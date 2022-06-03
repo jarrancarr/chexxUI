@@ -66,10 +66,15 @@
 .header > h1 {
   margin: 0px;
   color:rgb(194, 200, 18);
+  filter: none;
 }
 .topper > h2 {
   margin: 0px;
   color:rgb(194, 200, 18);
+  white-space:nowrap;
+  padding-left: 2em;
+  padding-right: 2em;
+  filter: none;
 }
 .bottomer > h2 {
   margin: 0px;
@@ -79,14 +84,31 @@
 .Dialog {
   position: absolute;
   border-radius: 2vw;
-  background-color: rgb(126, 131, 99);
+  background-color: #442210a0;
   text-align: center;
-  border: 0.5vw solid rgb(22, 24, 24);
+  border: 0.3vw solid #ee2;
   display: inline-grid;
+  filter: drop-shadow(1vw 1vw 2vw #aa3);
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
+  padding: 2vw;
+  min-width: 29vw;
+  pointer-events: all;
 }
+.subPanel {
+  padding: 0.3em;
+  margin: 0.8em;
+  background-color: #503015a0;
+}
+.Dialog > h1,h2,h3,h4,h5 {
+  filter: drop-shadow(0vw 0vw 0.3vw #FF0);
+}
+
+.input {
+  font-size: 30px;
+}
+
 #Tutor {
   position: absolute;
   border-radius: 2vw;
@@ -141,4 +163,12 @@
   display: inline-flex;
   margin: 1vw; 
   margin: auto;
+}
+
+.right {
+  text-align: right;
+}
+
+.left {
+  text-align:left;
 }

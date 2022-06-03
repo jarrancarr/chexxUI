@@ -291,4 +291,24 @@ function analyse(match){ // console.log('analyse', match);
     }
 }
 
-export {whiteMove, inStartPos, map, revMap, hilite, getPiece, movePiece, clear, off, analyse,isOnBoard}
+function text(x,y,r,sz,w,fc,sc,ds,text) {
+    const id = ('t-'+text).replaceAll('.','').replaceAll(' ','').trim().toLowerCase();
+    const words = text.trim().split(' '); 
+    const fs = [];
+    const nudge = [];
+    for (const w of words) {
+        const t = w.split(w.replaceAll('.',''));
+        nudge.push((t[1].length-t[0].length)/3-2-w.length/50);
+        fs.push(sz*20/(8+w.length));
+    }
+    return <g id={id} transform={'rotate('+r+','+x+','+y+')'} filter={'drop-shadow('+ds+')'}>
+        { words.length === 1 && <text className='noMouse' x={x+nudge[0]} y={y+fs[0]/4} fontFamily="Verdana" fontSize={fs[0]} fill={fc} stroke={sc} strokeWidth={w}>{words[0].replaceAll('.','')}</text> }
+        { words.length === 2 && <text className='noMouse' x={x+nudge[0]} y={y-fs[0]/5} fontFamily="Verdana" fontSize={fs[0]} fill={fc} stroke={sc} strokeWidth={w}>{words[0].replaceAll('.','')}</text> }
+        { words.length === 2 && <text className='noMouse' x={x+nudge[1]} y={y+(fs[0]+fs[1])/3} fontFamily="Verdana" fontSize={fs[1]} fill={fc} stroke={sc} strokeWidth={w}>{words[1].replaceAll('.','')}</text> }
+        { words.length === 3 && <text className='noMouse' x={x+nudge[0]} y={y-(fs[1]+fs[2])/5} fontFamily="Verdana" fontSize={fs[0]} fill={fc} stroke={sc} strokeWidth={w}>{words[0].replaceAll('.','')}</text> }
+        { words.length === 3 && <text className='noMouse' x={x+nudge[1]} y={y+fs[2]/3} fontFamily="Verdana" fontSize={fs[1]} fill={fc} stroke={sc} strokeWidth={w}>{words[1].replaceAll('.','')}</text> }
+        { words.length === 3 && <text className='noMouse' x={x+nudge[2]} y={y+2*(fs[1]+fs[2])/3} fontFamily="Verdana" fontSize={fs[2]} fill={fc} stroke={sc} strokeWidth={w}>{words[2].replaceAll('.','')}</text> }
+    </g>
+}
+       
+export {whiteMove, inStartPos, map, revMap, hilite, getPiece, movePiece, clear, off, analyse,isOnBoard, text}

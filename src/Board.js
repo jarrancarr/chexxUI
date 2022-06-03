@@ -30,7 +30,7 @@ function Board({color, user, match, update, view, menu, command}) { // console.l
     let special = false;
     let left = 0;
     let right = 0;
-    const serverUrl = 'http://localhost:8000';
+    const serverUrl = 'http://localhost:8001';
 
 
     function clocks() {
@@ -64,7 +64,16 @@ function Board({color, user, match, update, view, menu, command}) { // console.l
         const x=20;
         const y=95;
         ui.push(<path key="user" id="user" transform={'translate('+x+','+y+') rotate(2,0,0) scale('+2+')'} fill="#359" stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=>command({order:'menu', choice:'users'})} d="M -1.7 -1 L 0 -2 L 1.7 -1 V 1 L 0 2 L -1.7 1 Z"></path>);
-        ui.push(text(x,y,30,2,0.01,'#fff','#500','#ff0000ff 0.2px 0.2px 0.25px','.'+user.userid)); // x,y,r,sz,w,fc,sc,ds,text
+        ui.push(text(x,y,28,2,0.01,'#fff','#500','#ff0000ff 0.2px 0.2px 0.25px','.'+user.userid)); // x,y,r,sz,w,fc,sc,ds,text
+        return ui;
+    }
+
+    function offline() {
+        const ui = [];
+        const x=80;
+        const y=95;
+        ui.push(<path key="edit" id="edit" transform={'translate('+x+','+y+') rotate(-2,0,0) scale('+2+')'} fill="#aa0" stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=>command({order:'menu', choice:'edit'})} d="M -1.7 -1 L 0 -2 L 1.7 -1 V 1 L 0 2 L -1.7 1 Z"></path>);
+        ui.push(text(x,y,-28,2,0.01,'#fff','#500','#ff0000ff 0.2px 0.2px 0.25px','.edit')); // x,y,r,sz,w,fc,sc,ds,text
         return ui;
     }
 
@@ -305,7 +314,7 @@ function Board({color, user, match, update, view, menu, command}) { // console.l
                 ele.setAttribute('stroke', on?'#fff':'#000');
                 ele.setAttribute('stroke-width', on?'0.2':'0.1');
                 e.target.setAttribute('x',on?8:13);
-                e.target.nextSibling.setAttribute('x',on?9:14);
+                e.target.nextSibling.firstChild.setAttribute('x',on?9:14);
             }
         }
     }
@@ -318,7 +327,7 @@ function Board({color, user, match, update, view, menu, command}) { // console.l
             notes.push(
                 <g key={match.log[l]} transform={t} onMouseOver={(e) => highlight(e, match.log[l],true)} onMouseLeave={(e) => highlight(e, match.log[l],false)} style={{ filter: 'drop-shadow(rgba(180, 180, 0, 0.5) 0.3px 0px 1px)'}}>
                     <rect id={'rect-'+match.log[l]} x="13" y="16" fill={f} stroke={s} strokeWidth={0.35} height="3" width="20"/>
-                    {text(16,17.8,0,3,0,notes.length%2===0?'#fff':'#000','#888',(notes.length%2===0?'#80f':'#f80')+' 0.2px 0.2px 0.5px',match.log[l].split('=')[0])}
+                    {text(16,17.8,0,2,0,notes.length%2===0?'#fff':'#000','#888',(notes.length%2===0?'#80f':'#f80')+' 0.2px 0.2px 0.5px',match.log[l].split('=')[0])}
                 </g>);
         }
         return notes;
@@ -351,20 +360,22 @@ function Board({color, user, match, update, view, menu, command}) { // console.l
         return help;
     }
 
-    function makeMenu(list, label, end, spin, bloom) { // console.log('tutorials');
+    function makeMenu(list, label, end, spin, bloom, size=2, font=4, color='#880') { // console.log('tutorials');
         const items=[];
         let iter = 0;
         for (const p of list) {
-            const id = (label+'-'+p[0]).replaceAll('.','').replaceAll(' ','').trim().toLowerCase();
-            
-            items.push(<g key={id} transform={'rotate('+(end+iter*10)+',0,0) '}>
-                <animateTransform className='spin' attributeName="transform" attributeType="XML" type="rotate" from={''+(spin+iter*bloom)+' 0 0'} to={''+(end+iter*10)+' 0 0'} dur='0.4s' begin='indefinite' repeatCount="1"/>
-                <g transform={'translate(47, 0)'}>
-                <path id={id} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={() => menuSelect(id)} transform={'rotate(30) scale(2)'} stroke='#000' strokeWidth='0.1' fill='#880' d="M -1.7 -1 L 0 -2 L 1.7 -1 V 1 L 0 2 L -1.7 1 Z"></path>
-                <g transform={'rotate('+(-end-iter*10)+',0,0)'} filter='drop-shadow(rgba(0, 0, 0, 0.99) 0px 0px 0.3px)'>
-                    { p[1] && <g transform={'translate(-15.8, -11.2)'} filter='drop-shadow(#000 0.3px 0.3px 0.03px)'><Piece w={p[1]} x={0} y={0} c='#cc4' s={'#110'} id='tutor' sc={0.2}/></g>}
-                    { !p[1] && text(0,0,0,4,0,'cc4','#000','#00f 0.3px 0.3px 0.03px',p[0]) }
-                </g></g></g>);
+            if (p[1]!=='spacer') {
+                const id = (label+'-'+p[0]).replaceAll('.','').replaceAll(' ','').trim().toLowerCase();
+                
+                items.push(<g key={id} transform={'rotate('+(end+iter*4.5*size)+',0,0) '}>
+                    <animateTransform className='spin' attributeName="transform" attributeType="XML" type="rotate" from={''+(spin+iter*bloom)+' 0 0'} to={''+(end+iter*4.5*size)+' 0 0'} dur='0.4s' begin='indefinite' repeatCount="1"/>
+                    <g transform={'translate(47, 0)'}>
+                    <path id={id} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={() => menuSelect(id)} transform={'rotate(30) scale('+size+')'} stroke='#000' strokeWidth='0.1' fill={color} d="M -1.7 -1 L 0 -2 L 1.7 -1 V 1 L 0 2 L -1.7 1 Z"></path>
+                    <g transform={'rotate('+(-end-iter*4.5*size)+',0,0)'} filter='drop-shadow(rgba(0, 0, 0, 0.99) 0px 0px 0.3px)'>
+                        { p[1] && <g transform={'translate(-15.8, -11.2)'} filter='drop-shadow(#000 0.3px 0.3px 0.03px)'><Piece w={p[1]} x={0} y={0} c='#cc4' s={'#110'} id='tutor' sc={0.2}/></g>}
+                        { !p[1] && text(0,0,0,font,0,'cc4','#000','#00f 0.3px 0.3px 0.03px',p[0]) }
+                    </g></g></g>);
+            }
             iter++;
         }
         return items;
@@ -384,7 +395,9 @@ function Board({color, user, match, update, view, menu, command}) { // console.l
         return makeMenu(items,'items', 20, 25, 7);
     }
     function matchMenu() { // console.log('match');
-        return makeMenu([['...........Open.......... .................Challenge...............',''],['.........Load.......',''],['........Save......',''],['.........Blitz........ ...........Match.........',''],['........Play........ .................Computer...............',''],['.............History............','']],'match', 115, 125, 1);
+        let matchMenu = makeMenu([['...........Open.......... .................Challenge...............',''],['.........Load.......',''],['........Save......',''],['.........Blitz........ ...........Match.........',''],['........Play........ .................Computer...............',''],['.............History............','']],'match', 115, 125, 8);
+        matchMenu = matchMenu.concat(makeMenu(user.savedMatches,'match', 215, 225, 8, 2, 1.5,'#088'));
+        return matchMenu;
     }
     function userMenu() {
         return makeMenu([['...............Conquest.............',''],['.............Teams/............ .....................Tournaments...................',''],['.............Matches...........',''],['............Profile...........',''],['............Logout...........','']],'user', 110, 112, 8);
@@ -398,7 +411,7 @@ function Board({color, user, match, update, view, menu, command}) { // console.l
             case 'user-logout': command({order:'dialog', title:'Log out?', text:['Leaving us so soon?'], yesno:true}); break;
             case 'match-playcomputer':  command({order:'dialog', title:'New Game vs AI?', text:['Play against computer...'], yesno:true}); break;
             case 'items-puzzles': command({order:'menu', choice:'puzzles'}); break;
-            case 'user-matches': command({order:'menu', choice:'match'}); break;
+            case 'user-matches': command({order:'listMatches'}); break;
             case 'items-profile': command({order:'profile'}); break;
             case 'match-save': command({order:'saveMatch', match:match}); break;
             case 'lesson-starthere': lesson('Intro'); break;
@@ -450,6 +463,7 @@ function Board({color, user, match, update, view, menu, command}) { // console.l
             <circle fill="#000" cx="50" cy="50" r="50"/>
             { clocks() }
             { user.userid && users() }
+            { offline() }
             { ledger() }
             { menu==='puzzles' && <g transform={'translate(50, 50)'}> { puzzles() } </g>}
             { menu==='tutor' && <g transform={'translate(50, 50)'}> { tutorials() } </g>}

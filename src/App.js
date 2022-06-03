@@ -9,7 +9,7 @@ import { clear, hilite, movePiece } from './res';
 
 let onHint = 0;
 let lesson = {};
-const serverUrl = 'http://localhost:8000';
+const serverUrl = 'http://localhost:8001';
 const zoomed = false;
 let tutor = '';
 
@@ -44,6 +44,7 @@ function App() { console.log('App');
       case 'logout' : loginUser({}); cmd({order:'dialog', title:'Thanks for Playing', text:['h2:::Hope to see you again soon.','h4:::Any social media attention would be appreciated.','h4:::Leaving comments is my best way to help improve Chexx.']}); break;
       case 'menu' : setBoard(data.choice); break;
       case 'saveMatch' : saveMatch(data.match); break;
+      case 'listMatches' : listMatches(); break;
       case 'guess' : console.log('user guessed:',tutor, data.here, lesson); 
         const ansKey = lesson.step[idx].answer;
         if (ansKey) { // console.log('answer key ',ansKey);
@@ -76,7 +77,6 @@ function App() { console.log('App');
       default: break;
     }
   }
-
   function saveMatch(match) {
     fetch(serverUrl+'/match/save',{
       mode: 'cors',
@@ -84,7 +84,24 @@ function App() { console.log('App');
       headers: {"Content-Type": "application/json", "Authorization": user.token},
       body: JSON.stringify(match)
     }).then(response => response.json() )
-      .then(data => cmd({order:'dialog', dialog:data}));
+      .then(data => cmd(data.status?{order:'dialog', title:'Match Saved', text:[], ok:true, noClose:true}:{order:'dialog', title:'Error', text:['h2:::'+data.message]}));
+  }
+  function listMatches() {
+    fetch(serverUrl+'/match/list',{
+      mode: 'cors',
+      method: "GET",
+      headers: {"Content-Type": "application/json", "Authorization": user.token}
+    }).then(response => response.json() )
+      .then(data => {
+        if (data.status) {
+          user.savedMatches = data.matches;
+          cmd({order:'menu', choice:'match'});
+        } else cmd({order:'dialog', title:'Error', text:['h2:::'+data.message]}); })
+      .catch((error) => {
+        // Handle the error
+        console.log(error);
+        cmd({order:'dialog',title:'Error', text:['h3:::Server error.', ''+error]})
+      });
   }
 
   const responseFacebook = (response) => { // console.log("responseFacebook", response);
@@ -110,7 +127,7 @@ function App() { console.log('App');
     //setMode('profile');
   }
 
-  function yes() { console.log('yes',dialog);
+  function yes() { // console.log('yes',dialog);
     switch (dialog.title) {
       case 'New Game vs AI?': newGame(); break;
       case 'Log out?': chexxLogout(); break;
@@ -166,7 +183,7 @@ function App() { console.log('App');
     return form;
 
   }
-  function showDialog(dialog) { // console.log('dialog', dialog);
+  function showDialog(dialog) { console.log('dialog', dialog);
     return (
       <div className='Full Overlay'>
         <div className='Dialog' >
@@ -183,14 +200,14 @@ function App() { console.log('App');
           </div> }
           <div className='bottomer'>
             <div className='group'>
-              {dialog.createMatch && <button className='smButton' onClick={createMatch}>Post Game</button>}
-              {dialog.yesno && <div className='group'><button className='smButton' onClick={yes}>Yes</button><button className='smButton' onClick={no}>No</button></div> }
-              {dialog.ok && <button className='smButton' onClick={ok}>OK</button> }
+              { dialog.createMatch && <button className='smButton' onClick={createMatch}>Post Game</button>}
+              { dialog.yesno && <div className='group'><button className='smButton' onClick={yes}>Yes</button><button className='smButton' onClick={no}>No</button></div> }
+              { dialog.ok && <button className='smButton' onClick={ok}>OK</button> }
               { dialog.login && <button className='smButton' onClick={chexxLogin}>Login</button> }
               { dialog.login && <button className='smButton' onClick={()=> cmd({order:'dialog', register:true, title:'Register', text:['h2:::Kindly fill out the following form to experience the rich experience of Chexx.']})}>Register</button> }
               { dialog.login && <button className='smButton' onClick={chexxLogin}>Email Password Link</button> }
               { dialog.register && <button className='smButton' onClick={chexxRegister}>Submit</button> }
-              <button className='smButton' onClick={resume}>Close</button>
+              { !dialog.noClose && <button className='smButton' onClick={resume}>Close</button> }
             </div>
           </div>
         </div>

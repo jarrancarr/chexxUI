@@ -9,7 +9,8 @@ import { clear, hilite, movePiece } from './res';
 
 let onHint = 0;
 let lesson = {};
-const serverUrl = 'http://localhost:8001';
+// const serverUrl = 'http://192.168.1.152:8000';
+const serverUrl = 'http://71.246.199.75:6085';
 const zoomed = false;
 let tutor = '';
 
@@ -44,6 +45,7 @@ function App() { console.log('App');
       case 'logout' : loginUser({}); cmd({order:'dialog', title:'Thanks for Playing', text:['h2:::Hope to see you again soon.','h4:::Any social media attention would be appreciated.','h4:::Leaving comments is my best way to help improve Chexx.']}); break;
       case 'menu' : setBoard(data.choice); break;
       case 'saveMatch' : saveMatch(data.match); break;
+      case 'loadMatch' : loadMatch(data.id); break;
       case 'listMatches' : listMatches(); break;
       case 'guess' : console.log('user guessed:',tutor, data.here, lesson); 
         const ansKey = lesson.step[idx].answer;
@@ -76,6 +78,19 @@ function App() { console.log('App');
       break;
       default: break;
     }
+  }
+  function loadMatch(id) {
+    fetch(serverUrl+'/match/load/'+id,{
+      mode: 'cors',
+      method: "GET",
+      headers: {"Content-Type": "application/json", "Authorization": user.token}
+    }).then(response => response.json() )
+      .then(data => { 
+        if (data.status) { 
+          update(data.match); 
+          resume(); 
+        } else cmd({order:'dialog', title:'Error', text:['h2:::'+data.message]});
+      });
   }
   function saveMatch(match) {
     fetch(serverUrl+'/match/save',{
@@ -382,7 +397,7 @@ function App() { console.log('App');
 
   return (
     <div className="App Full">
-      <Board color={['#555','#aaa','#111']} user={user} match={match} menu={state} update={update} view={view} command={cmd}/>
+      <Board color={['#555','#aaa','#111']} user={user} match={match} menu={state} update={update} view={view} command={cmd} serverUrl={serverUrl}/>
       { (mode === 'offline' || mode === 'tutor') &&  <Pieces white={match.white.pieces} black={match.black.pieces} light={flip?"#012":"#eeb"} dark={flip?"#eeb":"#012"} view={view} flip={flip}/>}
       { mode === 'dialog' && showDialog(dialog) }
       { mode === 'tutor' && teacher() }

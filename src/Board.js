@@ -19,7 +19,7 @@ function rose() {
   return points;
 }
 
-function Board({color, user, match, update, view, menu, command}) { // console.log('Board', user);
+function Board({color, user, match, update, view, menu, command, serverUrl}) { // console.log('Board', user);
 
     let first = ''; // selection of piece
     const board = analyse(match);  // console.log('board',board);
@@ -30,7 +30,6 @@ function Board({color, user, match, update, view, menu, command}) { // console.l
     let special = false;
     let left = 0;
     let right = 0;
-    const serverUrl = 'http://localhost:8001';
 
 
     function clocks() {
@@ -364,6 +363,7 @@ function Board({color, user, match, update, view, menu, command}) { // console.l
         const items=[];
         let iter = 0;
         for (const p of list) {
+            const txt = p[0].split(':');
             if (p[1]!=='spacer') {
                 const id = (label+'-'+p[0]).replaceAll('.','').replaceAll(' ','').trim().toLowerCase();
                 
@@ -373,7 +373,7 @@ function Board({color, user, match, update, view, menu, command}) { // console.l
                     <path id={id} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={() => menuSelect(id)} transform={'rotate(30) scale('+size+')'} stroke='#000' strokeWidth='0.1' fill={color} d="M -1.7 -1 L 0 -2 L 1.7 -1 V 1 L 0 2 L -1.7 1 Z"></path>
                     <g transform={'rotate('+(-end-iter*4.5*size)+',0,0)'} filter='drop-shadow(rgba(0, 0, 0, 0.99) 0px 0px 0.3px)'>
                         { p[1] && <g transform={'translate(-15.8, -11.2)'} filter='drop-shadow(#000 0.3px 0.3px 0.03px)'><Piece w={p[1]} x={0} y={0} c='#cc4' s={'#110'} id='tutor' sc={0.2}/></g>}
-                        { !p[1] && text(0,0,0,font,0,'cc4','#000','#00f 0.3px 0.3px 0.03px',p[0]) }
+                        { !p[1] && text(0,0,0,font,0,'cc4','#000','#00f 0.3px 0.3px 0.03px',txt[0]) }
                     </g></g></g>);
             }
             iter++;
@@ -396,7 +396,7 @@ function Board({color, user, match, update, view, menu, command}) { // console.l
     }
     function matchMenu() { // console.log('match');
         let matchMenu = makeMenu([['...........Open.......... .................Challenge...............',''],['.........Load.......',''],['........Save......',''],['.........Blitz........ ...........Match.........',''],['........Play........ .................Computer...............',''],['.............History............','']],'match', 115, 125, 8);
-        matchMenu = matchMenu.concat(makeMenu(user.savedMatches,'match', 215, 225, 8, 2, 1.5,'#088'));
+        matchMenu = matchMenu.concat(makeMenu(user.savedMatches,'load', 215, 225, 8, 2, 1.5,'#088'));
         return matchMenu;
     }
     function userMenu() {
@@ -405,38 +405,42 @@ function Board({color, user, match, update, view, menu, command}) { // console.l
 
     function menuSelect(item) { console.log('menuSelect('+item+')');
         command({order:'menu', choice:''});
-        switch(item) {
-            case 'items-about': command({order:'dialog', title:'About Chexx', text:['A Chess variant']}); break;
-            case 'items-login': command({order:'dialog', title:'Log in', text:['Select a login method.'], login:true}); break;
-            case 'user-logout': command({order:'dialog', title:'Log out?', text:['Leaving us so soon?'], yesno:true}); break;
-            case 'match-playcomputer':  command({order:'dialog', title:'New Game vs AI?', text:['Play against computer...'], yesno:true}); break;
-            case 'items-puzzles': command({order:'menu', choice:'puzzles'}); break;
-            case 'user-matches': command({order:'listMatches'}); break;
-            case 'items-profile': command({order:'profile'}); break;
-            case 'match-save': command({order:'saveMatch', match:match}); break;
-            case 'lesson-starthere': lesson('Intro'); break;
-            case 'lesson-interface': lesson('Interface'); break;
-            case 'lesson-quickstart': lesson('Unimplemented'); break;
-            case 'lesson-board': lesson('Board'); break;
-            case 'lesson-rules': lesson('Rules'); break;
-            case 'lesson-pawn': lesson('Pawn'); break;
-            case 'lesson-spear': lesson('Spearman'); break;
-            case 'lesson-knight': lesson('Knight'); break;
-            case 'lesson-bishop': lesson('Bishop'); break;
-            case 'lesson-rook': lesson('Rook'); break;
-            case 'lesson-archer': lesson('Archer'); break;
-            case 'lesson-queen': lesson('Queen'); break;
-            case 'lesson-prince': lesson('Prince'); break;
-            case 'lesson-princess': lesson('Princess'); break;
-            case 'lesson-special': lesson('Special'); break;
-            case 'lesson-promotion': lesson('Promotion'); break;
-            case 'lesson-forks': lesson('Forks'); break;
-            case 'lesson-skewers': lesson('Skewers'); break;
-            case 'lesson-pins': lesson('Pins'); break;
-            case 'lesson-tactics': lesson('Tactics'); break;
-            case 'match-new': command({order:'dialog', title:'Open Challenge', text:['Only opponents within 200 points of your rank will be allowed to accept your challenge.'], createMatch:true}); break;
-            default: lesson('Unimplemented'); break;
-        }
+        if (item.startsWith('load-')) { command({order:'loadMatch', id:item.split(':')[1]});
+        } else {
+            switch(item) {
+                case 'items-about': command({order:'dialog', title:'About Chexx', text:['A Chess variant']}); break;
+                case 'items-login': command({order:'dialog', title:'Log in', text:['Select a login method.'], login:true}); break;
+                case 'user-logout': command({order:'dialog', title:'Log out?', text:['Leaving us so soon?'], yesno:true}); break;
+                case 'match-playcomputer':  command({order:'dialog', title:'New Game vs AI?', text:['Play against computer...'], yesno:true}); break;
+                case 'items-puzzles': command({order:'menu', choice:'puzzles'}); break;
+                case 'user-matches': command({order:'listMatches'}); break;
+                case 'items-profile': command({order:'profile'}); break;
+                case 'match-save': command({order:'saveMatch', match:match}); break;
+                //case 'match-load': command({order:'loadMatch'}); break;
+                case 'lesson-starthere': lesson('Intro'); break;
+                case 'lesson-interface': lesson('Interface'); break;
+                case 'lesson-quickstart': lesson('Unimplemented'); break;
+                case 'lesson-board': lesson('Board'); break;
+                case 'lesson-rules': lesson('Rules'); break;
+                case 'lesson-pawn': lesson('Pawn'); break;
+                case 'lesson-spear': lesson('Spearman'); break;
+                case 'lesson-knight': lesson('Knight'); break;
+                case 'lesson-bishop': lesson('Bishop'); break;
+                case 'lesson-rook': lesson('Rook'); break;
+                case 'lesson-archer': lesson('Archer'); break;
+                case 'lesson-queen': lesson('Queen'); break;
+                case 'lesson-prince': lesson('Prince'); break;
+                case 'lesson-princess': lesson('Princess'); break;
+                case 'lesson-special': lesson('Special'); break;
+                case 'lesson-promotion': lesson('Promotion'); break;
+                case 'lesson-forks': lesson('Forks'); break;
+                case 'lesson-skewers': lesson('Skewers'); break;
+                case 'lesson-pins': lesson('Pins'); break;
+                case 'lesson-tactics': lesson('Tactics'); break;
+                case 'match-new': command({order:'dialog', title:'Open Challenge', text:['Only opponents within 200 points of your rank will be allowed to accept your challenge.'], createMatch:true}); break;
+                default: lesson('Unimplemented'); break;
+            }
+        } // end menu not starts with...
     }
 
     function lesson(on) { console.log('do lesson on',on);

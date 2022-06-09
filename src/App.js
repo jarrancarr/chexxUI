@@ -28,7 +28,7 @@ function App() { console.log('App');
   let [drawing, scribble] = React.useState([]);
 
   
-  function cmd(data) { // console.log('command', data);
+  function cmd(data) { console.log('command', data);
     switch(data.order) {
       case 'dialog': // console.log('opening dialog');
         setDialog(data)
@@ -44,6 +44,7 @@ function App() { console.log('App');
       case 'login' : loginUser(data.user); setMode('profile'); break;
       case 'logout' : loginUser({}); cmd({order:'dialog', title:'Thanks for Playing', text:['h2:::Hope to see you again soon.','h4:::Any social media attention would be appreciated.','h4:::Leaving comments is my best way to help improve Chexx.']}); break;
       case 'menu' : setBoard(data.choice); break;
+      case 'users' : setBoard(data.choice); break;
       case 'saveMatch' : saveMatch(data.match); break;
       case 'loadMatch' : loadMatch(data.id); break;
       case 'listMatches' : listMatches(); break;
@@ -87,6 +88,7 @@ function App() { console.log('App');
     }).then(response => response.json() )
       .then(data => { 
         if (data.status) { 
+          data.match.log = data.match.log.filter(l=>l!=='');
           update(data.match); 
           resume(); 
         } else cmd({order:'dialog', title:'Error', text:['h2:::'+data.message]});
@@ -109,7 +111,13 @@ function App() { console.log('App');
     }).then(response => response.json() )
       .then(data => {
         if (data.status) {
-          user.savedMatches = data.matches;
+          user.savedMatches = data.savedMatches;
+          user.open = data.open
+          user.myOpen = data.myOpen
+          user.ready = data.ready
+          user.waiting = data.waiting
+          user.victory = data.victory
+          user.defeat = data.defeat
           cmd({order:'menu', choice:'match'});
         } else cmd({order:'dialog', title:'Error', text:['h2:::'+data.message]}); })
       .catch((error) => {
@@ -161,6 +169,15 @@ function App() { console.log('App');
   function ok() {
     resume();
   }
+  function save() {
+    const title = document.getElementById('title').value;
+    const notes = document.getElementById('notes').value;
+    let copyMatch = {...match};
+    if (title) copyMatch.name = title;
+    if (notes) copyMatch.notes = notes;
+    update(copyMatch);
+    resume();
+  }
   function newGame() {
     update({id:0, name:'offline', white:{pieces:['Rd54', 'Rd5', 'Rc52', 'Nd53', 'Nd51', 'Nc33', 'Bc53', 'Bc55', 'Bd52', 'Qd41', 'Kc44', 'Id31', 'Ed4', 'Pd55', 'Pd44', 'Pd33', 'Pd21', 'Pc22', 'Pc31', 'Pc41', 'Pc51', 'Sd43', 'Sd32', 'Sd2', 'Sc32', 'Sc42', 'Ad42', 'Ad3', 'Ac43'], time:300}, black:{pieces:['Ra5', 'Rf52', 'Ra54', 'Nf53', 'Nf55', 'Na31', 'Ba53', 'Ba51', 'Bf54', 'Qf44', 'Ka41', 'If33', 'Ea4', 'Pf51', 'Pf41', 'Pf31', 'Pf22', 'Pa21', 'Pa33', 'Pa44', 'Pa55', 'Sf42', 'Sf32', 'Sa2', 'Sa32', 'Sa43', 'Af43', 'Aa3', 'Aa42'], time:300}, log:[], type:{game:300, move:15}});
     resume();
@@ -168,8 +185,27 @@ function App() { console.log('App');
 
   function resume() { setMode('offline'); }
 
-  function createMatch() {
-    console.log('Form');
+  function openChallenge() {
+    const title = document.getElementById('title').value;
+    const dpm = document.getElementById('dpm').value;
+    const color = document.getElementById('color').value;
+    console.log('Form',title,dpm,color);
+    fetch(serverUrl+'/match/challenge',{
+      mode: 'cors',
+      method: "POST",
+      headers: {"Content-Type": "application/json", "Authorization": user.token},
+      body: JSON.stringify({title:title, dpm:dpm, color:color})
+    }).then(response => response.json() )
+      .then(data => {
+        if (data.status) {
+          user.savedMatches = data.matches;
+          cmd({order:'menu', choice:'match'});
+        } else cmd({order:'dialog', title:'Error', text:['h2:::'+data.message]}); })
+      .catch((error) => {
+        // Handle the error
+        console.log(error);
+        cmd({order:'dialog',title:'Error', text:['h3:::Server error.', ''+error]})
+      });
   }
  
   function loginForm() {
@@ -199,25 +235,34 @@ function App() { console.log('App');
 
   }
   function showDialog(dialog) { console.log('dialog', dialog);
+    const fieldSz = 20;
     return (
       <div className='Full Overlay'>
         <div className='Dialog' >
           <div className='topper'><h2>{dialog.title}</h2></div>
-          {textOut(dialog.text)}
+          { dialog.text && textOut(dialog.text)}
           { dialog.login && loginForm() }
           { dialog.register && registerForm() }
-          {dialog.createMatch && <div className='group'>
+          { dialog.challenge && <div className='group'>
             <table><tbody>
-              <tr><td>Title:</td><td><input type="text" name="title" size="30" maxlength="120" value="Chexx Battle"/></td></tr>
-              <tr><td>Time per move:</td><td><select name="days"><option value="2">2 days</option><option value="3" selected="">3 days</option><option value="4">4 days</option><option value="5">5 days</option><option value="7">7 days</option><option value="10">10 days</option><option value="14">14 days</option></select></td></tr>
-              <tr><td>Play as (color):</td><td><select name="color"><option value="2" selected="">random color</option><option value="1">white</option><option value="0">black</option></select></td></tr>
+              <tr><td><h1>Title:</h1></td><td colSpan={3}><input id="title" type="text" className='input' name="title" size="20" maxlength="120" defaultValue="Chexx Battle"/></td></tr>
+              <tr>{tdr('Time per move:')}<td><select id='dpm' name="days"><option value="2">2 days</option><option value="3" selected="">3 days</option><option value="4">4 days</option><option value="5">5 days</option><option value="7">7 days</option><option value="10">10 days</option><option value="14">14 days</option></select></td>{tdr('Play as (color):')}<td><select id='color' name="color"><option value="2" selected="">random color</option><option value="1">white</option><option value="0">black</option></select></td></tr>
+            </tbody></table>
+          </div> }
+          { dialog.details && <div className='group'>
+            <table><tbody>
+              <tr><td>Title:</td><td colSpan={3}><input id="title" type="text" className='input' name="title" size="30" maxlength="120" defaultValue={match.name}/></td></tr>
+              <tr><td>created</td><td>{match.CreatedAt}</td><td>updated</td><td>{match.UpdatedAt}</td></tr>
+              <tr><td colSpan={4}>notes</td></tr>
+              <tr><td colSpan={4}><textarea id="notes" className='subInput' cols="40" rows="5"></textarea></td></tr>
             </tbody></table>
           </div> }
           <div className='bottomer'>
             <div className='group'>
-              { dialog.createMatch && <button className='smButton' onClick={createMatch}>Post Game</button>}
+              { dialog.challenge && <button className='smButton' onClick={openChallenge}>Post Game</button>}
               { dialog.yesno && <div className='group'><button className='smButton' onClick={yes}>Yes</button><button className='smButton' onClick={no}>No</button></div> }
               { dialog.ok && <button className='smButton' onClick={ok}>OK</button> }
+              { dialog.save && <button className='smButton' onClick={save}>Save</button> }
               { dialog.login && <button className='smButton' onClick={chexxLogin}>Login</button> }
               { dialog.login && <button className='smButton' onClick={()=> cmd({order:'dialog', register:true, title:'Register', text:['h2:::Kindly fill out the following form to experience the rich experience of Chexx.']})}>Register</button> }
               { dialog.login && <button className='smButton' onClick={chexxLogin}>Email Password Link</button> }
@@ -348,9 +393,10 @@ function App() { console.log('App');
     return text;
   }
 
-  function profile() { console.log("profile",user);
   function tdr(txt) { return <td className='right'>{txt}</td>; }
   function tdl(txt) { return <td className='left'>{txt}</td>; }
+
+  function profile() { console.log("profile",user);
     const table = [<table><tbody>
       <tr>{tdr('User Name:')}{tdl(user.userid)}{tdr('Email:')}{tdl(user.email)}</tr>
       <tr>{tdr('Rank:')}{tdl(user.rank)}{tdr('About:')}{tdl('xxxxxx')}</tr>

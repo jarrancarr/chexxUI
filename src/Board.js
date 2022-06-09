@@ -4,7 +4,7 @@ import Hex from "./Hex"
 import Piece from "./Piece";
 import {map, revMap} from './res';
 
-import {whiteMove, hilite, movePiece, analyse,isOnBoard, clear, text} from './res';
+import {whiteMove, hilite, movePiece, getPiece, swapPieces, analyse,isOnBoard, clear, text} from './res';
 
 function rose() {
   const points = [];
@@ -22,6 +22,7 @@ function rose() {
 function Board({color, user, match, update, view, menu, command, serverUrl}) { // console.log('Board', user);
 
     let first = ''; // selection of piece
+    let editor = '';
     const board = analyse(match);  // console.log('board',board);
     let formation = [];
     let muster = [];
@@ -71,8 +72,8 @@ function Board({color, user, match, update, view, menu, command, serverUrl}) { /
         const ui = [];
         const x=80;
         const y=95;
-        ui.push(<path key="edit" id="edit" transform={'translate('+x+','+y+') rotate(-2,0,0) scale('+2+')'} fill="#aa0" stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=>command({order:'menu', choice:'edit'})} d="M -1.7 -1 L 0 -2 L 1.7 -1 V 1 L 0 2 L -1.7 1 Z"></path>);
-        ui.push(text(x,y,-28,2,0.01,'#fff','#500','#ff0000ff 0.2px 0.2px 0.25px','.edit')); // x,y,r,sz,w,fc,sc,ds,text
+        ui.push(<path key="edit" id="edit" transform={'translate('+x+','+y+') rotate(-2,0,0) scale('+2+')'} fill="#aa0" stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=>command({order:'menu', choice:(menu==='edit'?'offline':'edit')})} d="M -1.7 -1 L 0 -2 L 1.7 -1 V 1 L 0 2 L -1.7 1 Z"></path>);
+        ui.push(text(x,y,-28,2,0.01,'#fff','#500','#ff0000ff 0.2px 0.2px 0.25px',menu==='edit'?'.play':'.edit')); // x,y,r,sz,w,fc,sc,ds,text
         return ui;
     }
 
@@ -176,6 +177,27 @@ function Board({color, user, match, update, view, menu, command, serverUrl}) { /
         if (menu==='tutor') {
             command({order:'guess', here: here});
             return;
+        } else if (menu==='edit') {
+            clear();
+            hilite([here],"stroke","#aaf");
+            if (editor) {
+                // switch pieces
+                const x = getPiece(match, editor);
+                const y = getPiece(match, here);
+                console.log('first piece:',x, editor);
+                console.log('second piece',y, here);
+                let copyMatch = {...match};
+                if (swapPieces(copyMatch, editor, here)) {
+                    update(copyMatch);
+                    editor = '';
+                    clear();
+                } else {
+                    editor = here;
+                }
+            } else {
+                editor = here;
+            }
+            return
         }
         clear();
         hilite([here],"stroke","#00f");
@@ -215,10 +237,10 @@ function Board({color, user, match, update, view, menu, command, serverUrl}) { /
                         for (const idx in match.white.pieces)
                             if (match.white.pieces[idx].substring(1)===ps) // { console.log('ps',ps);
                                 copyMatch.white.pieces[idx]=(match.white.pieces[idx][0]==='P'?'S':'P')+ps;
-                            } else {
-                    for (const idx in match.black.pieces)
-                        if (match.black.pieces[idx].substring(1)===ps) 
-                            copyMatch.black.pieces[idx]=(match.black.pieces[idx][0]==='P'?'S':'P')+ps;
+                    } else {
+                        for (const idx in match.black.pieces)
+                            if (match.black.pieces[idx].substring(1)===ps) 
+                                copyMatch.black.pieces[idx]=(match.black.pieces[idx][0]==='P'?'S':'P')+ps;
                     }
                 }
                 copyMatch.log.push('%%%%%%%%'.substring(0,left)+here+'%%%%%%%%'.substring(0,right));
@@ -266,7 +288,8 @@ function Board({color, user, match, update, view, menu, command, serverUrl}) { /
                 selectPiece(moves, attacks, attacked, covered, board.occupants, board.pinned, here);
                 // console.log('moves',moves); console.log('attacks',attacks); console.log('attacked, covered',attacked, covered);
             } else { // console.log('second selection');  // piece had already been chosen...
-                if (first === here && board.occupants[here][0]===(whiteMove(match)?'w':'b')) { console.log('init special moves');  // select piece again.... special moves
+                const me = board.occupants[here];
+                if (first === here && me[0]===(whiteMove(match)?'w':'b') && (me[1]==='P' || me[1]==='S')) { console.log('init special moves');  // select piece again.... special moves
                     const [canMarch, swArms] = specialMoves(here);
                     const [m,sa] = getChain(here, true, true); //console.log('muster, switchArms',muster, switchArms)
                     formation = [here]
@@ -317,9 +340,9 @@ function Board({color, user, match, update, view, menu, command, serverUrl}) { /
             }
         }
     }
-    function ledger() {
+    function ledger() { console.log('ledger',match.log);
         const notes = [];
-        for(let l in match.log) {
+        for(let l in match.log) { console.log('log',l, match.log[l]);
             let t = "rotate("+(-l+match.log.length-1)*5+", 50, 50)";
             let f = match.log[l].indexOf('x')>0?"#a55":"#363";
             let s = match.log[l].indexOf('+')>0?"#ff3":"#666";
@@ -359,8 +382,9 @@ function Board({color, user, match, update, view, menu, command, serverUrl}) { /
         return help;
     }
 
-    function makeMenu(list, label, end, spin, bloom, size=2, font=4, color='#880') { // console.log('tutorials');
+    function makeMenu(list, label, end, spin, bloom, size=2, font=4, color='#880', draw='#110', fill='#cc4') { // console.log('tutorials');
         const items=[];
+        if (!list || list.length===0) return [];
         let iter = 0;
         for (const p of list) {
             const txt = p[0].split(':');
@@ -372,8 +396,8 @@ function Board({color, user, match, update, view, menu, command, serverUrl}) { /
                     <g transform={'translate(47, 0)'}>
                     <path id={id} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={() => menuSelect(id)} transform={'rotate(30) scale('+size+')'} stroke='#000' strokeWidth='0.1' fill={color} d="M -1.7 -1 L 0 -2 L 1.7 -1 V 1 L 0 2 L -1.7 1 Z"></path>
                     <g transform={'rotate('+(-end-iter*4.5*size)+',0,0)'} filter='drop-shadow(rgba(0, 0, 0, 0.99) 0px 0px 0.3px)'>
-                        { p[1] && <g transform={'translate(-15.8, -11.2)'} filter='drop-shadow(#000 0.3px 0.3px 0.03px)'><Piece w={p[1]} x={0} y={0} c='#cc4' s={'#110'} id='tutor' sc={0.2}/></g>}
-                        { !p[1] && text(0,0,0,font,0,'cc4','#000','#00f 0.3px 0.3px 0.03px',txt[0]) }
+                        { p[1] && <g transform={'translate(-15.8, -11.2)'} filter='drop-shadow(#000 0.3px 0.3px 0.03px)'><Piece w={p[1]} x={0} y={0} c={fill} s={draw} id='tutor' sc={0.2}/></g>}
+                        { !p[1] && text(0,0,0,font,0,fill,draw,'#00f 0.3px 0.3px 0.03px',txt[0]) }
                     </g></g></g>);
             }
             iter++;
@@ -384,62 +408,107 @@ function Board({color, user, match, update, view, menu, command, serverUrl}) { /
 
 
     function tutorials() { // console.log('tutorials');
-        return makeMenu([['........Start....... ........Here......',''],['...........Quick.......... ........Start.......',''],['.............Interface..........',''],['..........Board........',''],['.........Rules.......',''],['pawn','P'],['spear','S'],['knight','N'],['bishop','B'],['rook','R'],['queen','Q'],['archer','A'],['prince','I'],['princess','E'],['king','K'],['............Special..........',''],['.................Promotion...............',''],['.........Forks.......',''],['..............Skewers............',''],['.......Pins......',''],['...........Tactics........','']], 'lesson', -100, -90, 9);
+        return makeMenu([['........Start....... ........Here......',''],['...........Quick.......... ........Start.......',''],['.............Interface..........',''],['..........Board........',''],['.........Rules.......',''],['pawn','P'],['spear','S'],['knight','N'],['bishop','B'],['rook','R'],['queen','Q'],['archer','A'],['prince','I'],['princess','E'],['king','K'],['............Special..........',''],['.................Promotion...............',''],['.........Forks.......',''],['..............Skewers............',''],['.......Pins......',''],['...........Tactics........','']], 'lesson', -110, -104, 8);
     }
     function puzzles() { // console.log('puzzles');
         return makeMenu([['...........Mate............ ...........in.................. ...........One............'],['...........Mate............ ..........in................. ...........Two...........'],['...........Mate............ ..........in................. .............Three.............'],['...........Mate............ ............in................... .............More.............']],'puzzle', -10, -6, 1);
     }
     function items() { // console.log('main items');
-        const items = [['..........About.......',''],['............Puzzles..........',''],['........Play........ .................Computer...............','','']];
-        if (!user.userid) items.push(['..........Login........','']);
-        return makeMenu(items,'items', 20, 25, 7);
+        const items = [['..About',''],['..Puzzles',''],['.Reset .Board','','']];
+        if (!user.userid) items.push(['.Login','']);
+        return makeMenu(items,'items', 20, 22, 7, 2, 1.6,'#884');
     }
     function matchMenu() { // console.log('match');
-        let matchMenu = makeMenu([['...........Open.......... .................Challenge...............',''],['.........Load.......',''],['........Save......',''],['.........Blitz........ ...........Match.........',''],['........Play........ .................Computer...............',''],['.............History............','']],'match', 115, 125, 8);
-        matchMenu = matchMenu.concat(makeMenu(user.savedMatches,'load', 215, 225, 8, 2, 1.5,'#088'));
+        let matchMenu = makeMenu([['.Open ..Challenge',''],['.Save',''],['.Blitz ..Match',''],['Play ...Computer',''],['..History','']],'match', 110, 112, 8,2,1.6,'#88a');
+        if (user.savedMatches) matchMenu = matchMenu.concat(makeMenu(user.savedMatches,'load', 215, 215+user.savedMatches.length/2, 8, 2, 1.7,'#088','#888','#ff5'));
+        if (user.myOpen) matchMenu = matchMenu.concat(makeMenu(user.myOpen,'myOpen', 325, 325+user.myOpen.length/2, 8, 2, 1.7,'#06a','#000','#f92'));
+        if (user.open) matchMenu = matchMenu.concat(makeMenu(user.open,'open', 350, 350+user.myOpen.length/2, 8, 2, 1.7,'#b94','#000','#222'));
+        if (user.ready) matchMenu = matchMenu.concat(makeMenu(user.ready,'ready', 0, user.myOpen.length/2, 8, 2, 1.7,'#6a6','#000','#f9f'));
+        if (user.waiting) matchMenu = matchMenu.concat(makeMenu(user.waiting,'wait', -30, user.myOpen.length/2, 8, 2, 1.7,'#a66','#000','#9ff'));
         return matchMenu;
     }
     function userMenu() {
-        return makeMenu([['...............Conquest.............',''],['.............Teams/............ .....................Tournaments...................',''],['.............Matches...........',''],['............Profile...........',''],['............Logout...........','']],'user', 110, 112, 8);
+        return makeMenu([['...Conquest',''],['..Teams/. ....Tournaments.',''],['..Matches',''],['..Profile',''],['..Logout','']],'user', 110, 112, 8,2,1.6,'#88a');
+    }
+    function editMenu() {
+        let editMenu = makeMenu([['pawn','P'],['spear','S'],['knight','N'],['bishop','B'],['rook','R'],['queen','Q'],['archer','A'],['prince','I'],['princess','E'],['king','K']],'edit-b', -55, -48, 8, 2, 1.5,'#f99','#888','#210');
+        editMenu = editMenu.concat(makeMenu([['Trash','X'],['Details','D']],'edit', 40, 40.5, 8, 2, 1.5,'#f99'));
+        editMenu = editMenu.concat(makeMenu([['pawn','P'],['spear','S'],['knight','N'],['bishop','B'],['rook','R'],['queen','Q'],['archer','A'],['prince','I'],['princess','E'],['king','K']],'edit-w', 63, 65, 8, 2, 1.5,'#f99','#888','#cdb'));
+        return editMenu;
     }
 
     function menuSelect(item) { console.log('menuSelect('+item+')');
-        command({order:'menu', choice:''});
-        if (item.startsWith('load-')) { command({order:'loadMatch', id:item.split(':')[1]});
-        } else {
+        if (item.startsWith('edit-')) {
+            let copyMatch = {...match};
+            copyMatch.log = [];
             switch(item) {
-                case 'items-about': command({order:'dialog', title:'About Chexx', text:['A Chess variant']}); break;
-                case 'items-login': command({order:'dialog', title:'Log in', text:['Select a login method.'], login:true}); break;
-                case 'user-logout': command({order:'dialog', title:'Log out?', text:['Leaving us so soon?'], yesno:true}); break;
-                case 'match-playcomputer':  command({order:'dialog', title:'New Game vs AI?', text:['Play against computer...'], yesno:true}); break;
-                case 'items-puzzles': command({order:'menu', choice:'puzzles'}); break;
-                case 'user-matches': command({order:'listMatches'}); break;
-                case 'items-profile': command({order:'profile'}); break;
-                case 'match-save': command({order:'saveMatch', match:match}); break;
-                //case 'match-load': command({order:'loadMatch'}); break;
-                case 'lesson-starthere': lesson('Intro'); break;
-                case 'lesson-interface': lesson('Interface'); break;
-                case 'lesson-quickstart': lesson('Unimplemented'); break;
-                case 'lesson-board': lesson('Board'); break;
-                case 'lesson-rules': lesson('Rules'); break;
-                case 'lesson-pawn': lesson('Pawn'); break;
-                case 'lesson-spear': lesson('Spearman'); break;
-                case 'lesson-knight': lesson('Knight'); break;
-                case 'lesson-bishop': lesson('Bishop'); break;
-                case 'lesson-rook': lesson('Rook'); break;
-                case 'lesson-archer': lesson('Archer'); break;
-                case 'lesson-queen': lesson('Queen'); break;
-                case 'lesson-prince': lesson('Prince'); break;
-                case 'lesson-princess': lesson('Princess'); break;
-                case 'lesson-special': lesson('Special'); break;
-                case 'lesson-promotion': lesson('Promotion'); break;
-                case 'lesson-forks': lesson('Forks'); break;
-                case 'lesson-skewers': lesson('Skewers'); break;
-                case 'lesson-pins': lesson('Pins'); break;
-                case 'lesson-tactics': lesson('Tactics'); break;
-                case 'match-new': command({order:'dialog', title:'Open Challenge', text:['Only opponents within 200 points of your rank will be allowed to accept your challenge.'], createMatch:true}); break;
-                default: lesson('Unimplemented'); break;
-            }
+                case 'edit-w-king': copyMatch.white.pieces.push('K'+editor); break;
+                case 'edit-w-queen': copyMatch.white.pieces.push('Q'+editor); break;
+                case 'edit-w-prince': copyMatch.white.pieces.push('I'+editor); break;
+                case 'edit-w-princess': copyMatch.white.pieces.push('E'+editor); break;
+                case 'edit-w-rook': copyMatch.white.pieces.push('R'+editor); break;
+                case 'edit-w-archer': copyMatch.white.pieces.push('A'+editor); break;
+                case 'edit-w-bishop': copyMatch.white.pieces.push('B'+editor); break;
+                case 'edit-w-knight': copyMatch.white.pieces.push('N'+editor); break;
+                case 'edit-w-pawn': copyMatch.white.pieces.push('P'+editor); break;
+                case 'edit-w-spear': copyMatch.white.pieces.push('S'+editor); break;
+                case 'edit-b-king': copyMatch.black.pieces.push('K'+editor); break;
+                case 'edit-b-queen': copyMatch.black.pieces.push('Q'+editor); break;
+                case 'edit-b-prince': copyMatch.black.pieces.push('I'+editor); break;
+                case 'edit-b-princess': copyMatch.black.pieces.push('E'+editor); break;
+                case 'edit-b-rook': copyMatch.black.pieces.push('R'+editor); break;
+                case 'edit-b-archer': copyMatch.black.pieces.push('A'+editor); break;
+                case 'edit-b-bishop': copyMatch.black.pieces.push('B'+editor); break;
+                case 'edit-b-knight': copyMatch.black.pieces.push('N'+editor); break;
+                case 'edit-b-pawn': copyMatch.black.pieces.push('P'+editor); break;
+                case 'edit-b-spear': copyMatch.black.pieces.push('S'+editor); break;
+                case 'edit-trash':
+                    copyMatch.white.pieces = match.white.pieces.filter(f => f.substring(1)!==editor);
+                    copyMatch.black.pieces = match.black.pieces.filter(f => f.substring(1)!==editor);
+                    break;
+                case 'edit-details': command({order:'dialog', title:'Match Details', details:true, save:true}); break;
+                default: break;
+        }
+            update(copyMatch);
+            return;
+        }
+        command({order:'menu', choice:''});
+        if (item.startsWith('load-')) { 
+            command({order:'loadMatch', id:item.split(':')[1]});
+            return;
+        }
+        switch(item) {
+            case 'items-about': command({order:'dialog', title:'About Chexx', text:['A Chess variant']}); break;
+            case 'items-login': command({order:'dialog', title:'Log in', text:['Select a login method.'], login:true}); break;
+            case 'user-logout': command({order:'dialog', title:'Log out?', text:['Leaving us so soon?'], yesno:true}); break;
+            case 'match-playcomputer':  command({order:'dialog', title:'New Game vs AI?', text:['Play against computer...'], yesno:true}); break;
+            case 'items-puzzles': command({order:'menu', choice:'puzzles'}); break;
+            case 'user-matches': command({order:'listMatches'}); break;
+            case 'items-profile': command({order:'profile'}); break;
+            case 'match-save': command({order:'saveMatch', match:match}); break;
+            case 'lesson-starthere': lesson('Intro'); break;
+            case 'lesson-interface': lesson('Interface'); break;
+            case 'lesson-quickstart': lesson('Unimplemented'); break;
+            case 'lesson-board': lesson('Board'); break;
+            case 'lesson-rules': lesson('Rules'); break;
+            case 'lesson-pawn': lesson('Pawn'); break;
+            case 'lesson-spear': lesson('Spearman'); break;
+            case 'lesson-knight': lesson('Knight'); break;
+            case 'lesson-bishop': lesson('Bishop'); break;
+            case 'lesson-rook': lesson('Rook'); break;
+            case 'lesson-archer': lesson('Archer'); break;
+            case 'lesson-queen': lesson('Queen'); break;
+            case 'lesson-prince': lesson('Prince'); break;
+            case 'lesson-princess': lesson('Princess'); break;
+            case 'lesson-special': lesson('Special'); break;
+            case 'lesson-promotion': lesson('Promotion'); break;
+            case 'lesson-forks': lesson('Forks'); break;
+            case 'lesson-skewers': lesson('Skewers'); break;
+            case 'lesson-pins': lesson('Pins'); break;
+            case 'lesson-tactics': lesson('Tactics'); break;
+            case 'match-openchallenge': command({order:'dialog', title:'Open Challenge', text:['Only opponents within 200 points of your rank will be allowed to accept your challenge.'], challenge:true}); break;
+            //case 'edit-trash': edit('trash'); break;
+            default: lesson('Unimplemented'); break;
         } // end menu not starts with...
     }
 
@@ -474,6 +543,7 @@ function Board({color, user, match, update, view, menu, command, serverUrl}) { /
             { menu==='main' && <g transform={'translate(50, 50)'}> { items() } </g>}
             { menu==='match' && <g transform={'translate(50, 50)'}> { matchMenu() } </g>}
             { menu==='users' && <g transform={'translate(50, 50)'}> { userMenu() } </g>}
+            { menu==='edit' && <g transform={'translate(50, 50)'}> { editMenu() } </g>}
             <circle fill={board.whiteInCheck||board.blackInCheck?'#F33':'#321'} cx="50" cy="50" r="43"/>
             <circle fill="#131" cx="50" cy="50" r="42"/>
             { tiles() }

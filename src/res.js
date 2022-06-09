@@ -46,6 +46,30 @@ function getPiece(match, here) { // console.log('getPiece', here);
     for (const p of match.black.pieces) if (p.substring(1)===here) return [p, false];
     return null;
 }
+
+function swapPieces(match, a, b) { console.log('swapPieces',a,b);
+    const p = getPiece(match, a); console.log('p',p);
+    if (!p) return false;
+    const q = getPiece(match, b); console.log('q',q);
+    if (p) // first selected on piece
+        if (p[1]) match.white.pieces = match.white.pieces.filter(f => f.substring(1)!==a);
+        else match.black.pieces = match.black.pieces.filter(f => f.substring(1)!==a);
+    if (q) // second selected on piece
+        if (q[1]) match.white.pieces = match.white.pieces.filter(f => f.substring(1)!==b);
+        else match.black.pieces = match.black.pieces.filter(f => f.substring(1)!==b);     
+
+    if (p && q) {
+        if (q[1]) match.white.pieces.push(q[0][0]+p[0].substring(1));
+        else match.black.pieces.push(q[0][0]+p[0].substring(1));
+        if (p[1]) match.white.pieces.push(p[0][0]+q[0].substring(1));
+        else match.black.pieces.push(p[0][0]+q[0].substring(1));
+    } else if (p) {
+        if (p[1]) match.white.pieces.push(p[0][0]+b);
+        else match.black.pieces.push(p[0][0]+b);
+    }
+    return true;
+}
+
 function movePiece(match, board,first,here) { // console.log('movePiece(match,', board,first,here,')');
     const p = getPiece(match, first); // console.log('p',p);
     const q = getPiece(match, here); // console.log('q',q);
@@ -311,4 +335,4 @@ function text(x,y,r,sz,w,fc,sc,ds,text) {
     </g>
 }
        
-export {whiteMove, inStartPos, map, revMap, hilite, getPiece, movePiece, clear, off, analyse,isOnBoard, text}
+export {whiteMove, inStartPos, map, revMap, hilite, getPiece, swapPieces, movePiece, clear, off, analyse,isOnBoard, text}

@@ -106,6 +106,9 @@
 }
 
 .input {
+  font-size: 40px;
+}
+.subInput {
   font-size: 30px;
 }
 

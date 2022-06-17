@@ -5,12 +5,12 @@ import GoogleLogin from 'react-google-login';
 import './App.css';
 import Board from "./Board"
 import Pieces from "./Pieces"
-import { clear, hilite, movePiece } from './res';
+import { clear, hilite, movePiece, analyse } from './res';
 
 let onHint = 0;
 let lesson = {};
 // const serverUrl = 'http://192.168.1.152:8000';
-const serverUrl = 'http://71.246.199.75:6085';
+const serverUrl = 'http://96.231.58.180:6085';
 const zoomed = false;
 let tutor = '';
 
@@ -18,14 +18,15 @@ function App() { console.log('App');
   const [match, update] = React.useState({id:0, name:'offline', white:{pieces:['Rd54', 'Rd5', 'Rc52', 'Nd53', 'Nd51', 'Nc33', 'Bc53', 'Bc55', 'Bd52', 'Qd41', 'Kc44', 'Id31', 'Ed4', 'Pd55', 'Pd44', 'Pd33', 'Pd21', 'Pc22', 'Pc31', 'Pc41', 'Pc51', 'Sd43', 'Sd32', 'Sd2', 'Sc32', 'Sc42', 'Ad42', 'Ad3', 'Ac43'], time:300}, black:{pieces:['Ra5', 'Rf52', 'Ra54', 'Nf53', 'Nf55', 'Na31', 'Ba53', 'Ba51', 'Bf54', 'Qf44', 'Ka41', 'If33', 'Ea4', 'Pf51', 'Pf41', 'Pf31', 'Pf22', 'Pa21', 'Pa33', 'Pa44', 'Pa55', 'Sf42', 'Sf32', 'Sa2', 'Sa32', 'Sa43', 'Af43', 'Aa3', 'Aa42'], time:300}, log:[], type:{game:300, move:15}});
   // const [match, update] = React.useState({id:0, name:'offline', white:{pieces:['Nd53', 'Na3', 'Bc53', 'Kc44', 'Pd33', 'Pd21', 'Pc22', 'Pa11', 'Sd32', 'Sd2', 'Sc32', 'Ac43'], time:300}, black:{pieces:['Nf55', 'Bf54', 'Ka41', 'Pf31', 'Pf22', 'Pa21', 'Sf32', 'Sa2', 'Sa32', 'Aa42'], time:300}, log:[], type:{game:300, move:15}});
   //const [match, update] = React.useState({id:0, name:'test', white:{pieces:['Kc44', 'Pc2','Sc32', 'Pc22','Pc3', 'Pc4'], time:300}, black:{pieces:['Ka41'], time:300}, log:[], type:{game:300, move:15}});
-  const flip = false;
-  let [view, zoom] = React.useState(zoomed?'14 0 72 200':'0, 0, 100, 200');
+
+  let [view, zoom] = React.useState(zoomed?'14 0 72 200':'0, -8, 100, 200');
   let [mode, setMode] = React.useState('offline');
   let [dialog, setDialog] = React.useState({});
   let [user, loginUser] = React.useState({});
   let [idx, move] = React.useState(0);
   let [state, setBoard] = React.useState('main');
   let [drawing, scribble] = React.useState([]);
+  let [flip, turn] = React.useState(false);
 
   
   function cmd(data) { console.log('command', data);
@@ -39,15 +40,19 @@ function App() { console.log('App');
         setMode('tutor');
         teach(0);
         break; 
+      case 'flip': turn(!flip); break;
       case 'profile': setMode('profile'); break;
       case 'zoom' : zoom(view==='0, 0, 100, 200'?'14 0 72 200':'0, 0, 100, 200'); break;
       case 'login' : loginUser(data.user); setMode('profile'); break;
       case 'logout' : loginUser({}); cmd({order:'dialog', title:'Thanks for Playing', text:['h2:::Hope to see you again soon.','h4:::Any social media attention would be appreciated.','h4:::Leaving comments is my best way to help improve Chexx.']}); break;
       case 'menu' : setBoard(data.choice); break;
       case 'users' : setBoard(data.choice); break;
+      case 'cpu' : cpuMove(data.level); break;
       case 'saveMatch' : saveMatch(data.match); break;
       case 'loadMatch' : loadMatch(data.id); break;
       case 'listMatches' : listMatches(); break;
+      case 'accept' : previewMatch(data.id); break;
+      case 'commit' : commitMove(data.move); break;
       case 'guess' : console.log('user guessed:',tutor, data.here, lesson); 
         const ansKey = lesson.step[idx].answer;
         if (ansKey) { // console.log('answer key ',ansKey);
@@ -80,6 +85,39 @@ function App() { console.log('App');
       default: break;
     }
   }
+
+  function cpuMove(level) {
+    fetch(serverUrl+'/match/cpu/'+level,{
+      mode: 'cors',
+      method: "POST",
+      headers: {"Content-Type": "application/json", "Authorization": user.token},
+      body: JSON.stringify(match)
+    }).then(response => response.json() )
+      .then(data => {
+        let copyMatch = {...match};
+        const board = analyse(match); 
+        const movs = data.move.split('~');
+        movePiece(copyMatch, board, movs[0], movs[1]);
+        update(copyMatch);
+      }
+    );
+  }
+
+  function commitMove(move) {
+    console.log('commit move',move,'to match id',match.ID);
+    fetch(serverUrl+'/match/move/'+match.ID,{
+      mode: 'cors',
+      method: "POST",
+      headers: {"Content-Type": "application/json", "Authorization": user.token},
+      body: JSON.stringify({move:move})
+    }).then(response => response.json() )
+      .then(data => { 
+        if (data.status) { 
+          listMatches();
+          resume();
+        } else cmd({order:'dialog', title:'Error', text:['h2:::'+data.message]});
+      });
+  }
   function loadMatch(id) {
     fetch(serverUrl+'/match/load/'+id,{
       mode: 'cors',
@@ -89,10 +127,80 @@ function App() { console.log('App');
       .then(data => { 
         if (data.status) { 
           data.match.log = data.match.log.filter(l=>l!=='');
+          if (data.white) data.match.white.player = data.white;
+          if (data.black) data.match.black.player = data.black;
+          if ((data.match.white.ID !== user.ID && data.match.white.ID !== 0)
+            || (data.match.black.ID !== user.ID && data.match.black.ID !== 0)) setMode("match");
+          else setMode("offline");
+          turn(data.match.black.player && data.match.black.player.ID === user.ID);
           update(data.match); 
           resume(); 
         } else cmd({order:'dialog', title:'Error', text:['h2:::'+data.message]});
       });
+  }
+  function previewMatch(id) { console.log('prefiewMatch',id);
+    let open = {};
+    fetch(serverUrl+'/match/load/'+id,{
+      mode: 'cors',
+      method: "GET",
+      headers: {"Content-Type": "application/json", "Authorization": user.token}
+    }).then(response => response.json() )
+      .then(data => { 
+        if (data.status) { 
+          data.match.log = data.match.log.filter(l=>l!=='');
+          open = data.match;
+          let oid = open.white.userid;
+          if (oid===0) oid = open.black.userid;
+          fetch(serverUrl+'/user/'+oid,{
+            mode: 'cors',
+            method: "GET",
+            headers: {"Content-Type": "application/json", "Authorization": user.token}
+          }).then(response => response.json() )
+            .then(data => { 
+              if (data.status) { 
+                let o = data.opponent;
+                cmd({order:'dialog', title:'Accept Challenge?', text:['h2:::Match: '+open.name,'h4:::Opponent: '+o.fullName,'h5:::rating:'+o.rank,'h5:::You will be playing '+(open.white.userid===0?'white':'black')], yesno:true, noClose:true, openId:id});
+                console.log(data['opponent']);                
+              } else cmd({order:'dialog', title:'Error', text:['h2:::'+data.message]});
+            });
+        } else cmd({order:'dialog', title:'Error', text:['h2:::'+data.message]});
+      });
+
+  }
+  function accept() {
+    fetch(serverUrl+'/match/accept/'+dialog.openId,{
+      mode: 'cors',
+      method: "GET",
+      headers: {"Content-Type": "application/json", "Authorization": user.token}
+    }).then(response => response.json() )
+      .then(data => { 
+        if (data.status) {
+          cmd({order:'listMatches'});  
+        } else cmd({order:'dialog', title:'Error', text:['h2:::'+data.message]});
+      });
+  }
+  function deleteMatch() {
+    fetch(serverUrl+'/match/delete/'+dialog.openId,{
+      mode: 'cors',
+      method: "GET",
+      headers: {"Content-Type": "application/json", "Authorization": user.token}
+    }).then(response => response.json() )
+    .then(data => {
+      if (data.status) {
+        user.savedMatches = data.savedMatches;
+        user.open = data.open
+        user.myOpen = data.myOpen
+        user.ready = data.ready
+        user.waiting = data.waiting
+        user.victory = data.victory
+        user.defeat = data.defeat
+        cmd({order:'menu', choice:'match'});
+      } else cmd({order:'dialog', title:'Error', text:['h2:::'+data.message]}); })
+    .catch((error) => {
+      // Handle the error
+      console.log(error);
+      cmd({order:'dialog',title:'Error', text:['h3:::Server error.', ''+error]})
+    });
   }
   function saveMatch(match) {
     fetch(serverUrl+'/match/save',{
@@ -154,8 +262,8 @@ function App() { console.log('App');
     switch (dialog.title) {
       case 'New Game vs AI?': newGame(); break;
       case 'Log out?': chexxLogout(); break;
-      case '': break;
-      // case '': break;
+      case 'Accept Challenge?': accept(); break;
+      case 'Delete Match': deleteMatch(); break;
       // case '': break;
       // case '': break;
       // case '': break;
@@ -167,15 +275,20 @@ function App() { console.log('App');
     resume();
   }
   function ok() {
-    resume();
-  }
-  function save() {
-    const title = document.getElementById('title').value;
-    const notes = document.getElementById('notes').value;
-    let copyMatch = {...match};
-    if (title) copyMatch.name = title;
-    if (notes) copyMatch.notes = notes;
-    update(copyMatch);
+    switch (dialog.title) {
+      case 'Match Details':
+        const title = document.getElementById('title').value;
+        const notes = document.getElementById('notes').value;
+        let copyMatch = {...match};
+        if (title) copyMatch.name = title;
+        if (notes) copyMatch.notes = notes;
+        update(copyMatch);
+        break;
+      // case '': break;
+      // case '': break;
+      // case '': break;
+      default: break;
+    }
     resume();
   }
   function newGame() {
@@ -199,7 +312,8 @@ function App() { console.log('App');
       .then(data => {
         if (data.status) {
           user.savedMatches = data.matches;
-          cmd({order:'menu', choice:'match'});
+          listMatches();
+          resume();
         } else cmd({order:'dialog', title:'Error', text:['h2:::'+data.message]}); })
       .catch((error) => {
         // Handle the error
@@ -234,8 +348,7 @@ function App() { console.log('App');
     return form;
 
   }
-  function showDialog(dialog) { console.log('dialog', dialog);
-    const fieldSz = 20;
+  function showDialog(dialog) { // console.log('dialog', dialog);
     return (
       <div className='Full Overlay'>
         <div className='Dialog' >
@@ -246,7 +359,7 @@ function App() { console.log('App');
           { dialog.challenge && <div className='group'>
             <table><tbody>
               <tr><td><h1>Title:</h1></td><td colSpan={3}><input id="title" type="text" className='input' name="title" size="20" maxlength="120" defaultValue="Chexx Battle"/></td></tr>
-              <tr>{tdr('Time per move:')}<td><select id='dpm' name="days"><option value="2">2 days</option><option value="3" selected="">3 days</option><option value="4">4 days</option><option value="5">5 days</option><option value="7">7 days</option><option value="10">10 days</option><option value="14">14 days</option></select></td>{tdr('Play as (color):')}<td><select id='color' name="color"><option value="2" selected="">random color</option><option value="1">white</option><option value="0">black</option></select></td></tr>
+              <tr>{tdr('Game Type:')}<td><select id='dpm' name="dpm"><option value="2">2 days per move</option><option value="3">3 days per move</option><option value="5">5 days per move</option><option value="10">10 days per move</option><option value="14+1dpm">14 days + 1 day per move</option><option value="21+2dpm">21 days + 2 days per move</option><option value="30+1dpm">30 days + 1 day per move</option></select></td>{tdr('Play as (color):')}<td><select id='color' name="color"><option value="2" selected="">random color</option><option value="1">white</option><option value="0">black</option></select></td></tr>
             </tbody></table>
           </div> }
           { dialog.details && <div className='group'>
@@ -254,7 +367,7 @@ function App() { console.log('App');
               <tr><td>Title:</td><td colSpan={3}><input id="title" type="text" className='input' name="title" size="30" maxlength="120" defaultValue={match.name}/></td></tr>
               <tr><td>created</td><td>{match.CreatedAt}</td><td>updated</td><td>{match.UpdatedAt}</td></tr>
               <tr><td colSpan={4}>notes</td></tr>
-              <tr><td colSpan={4}><textarea id="notes" className='subInput' cols="40" rows="5"></textarea></td></tr>
+              <tr><td colSpan={4}><textarea id="notes" className='subInput' cols="40" rows="5" defaultValue={match.notes}></textarea></td></tr>
             </tbody></table>
           </div> }
           <div className='bottomer'>
@@ -262,7 +375,6 @@ function App() { console.log('App');
               { dialog.challenge && <button className='smButton' onClick={openChallenge}>Post Game</button>}
               { dialog.yesno && <div className='group'><button className='smButton' onClick={yes}>Yes</button><button className='smButton' onClick={no}>No</button></div> }
               { dialog.ok && <button className='smButton' onClick={ok}>OK</button> }
-              { dialog.save && <button className='smButton' onClick={save}>Save</button> }
               { dialog.login && <button className='smButton' onClick={chexxLogin}>Login</button> }
               { dialog.login && <button className='smButton' onClick={()=> cmd({order:'dialog', register:true, title:'Register', text:['h2:::Kindly fill out the following form to experience the rich experience of Chexx.']})}>Register</button> }
               { dialog.login && <button className='smButton' onClick={chexxLogin}>Email Password Link</button> }
@@ -294,7 +406,7 @@ function App() { console.log('App');
     fetch(serverUrl+'/user/logout',{
       mode: 'cors',
       method: "POST",
-      headers: {"Content-Type": "application/json"},
+      headers: {"Content-Type": "application/json", "Authorization": user.token},
       body: JSON.stringify({token:user.token})
     }).then(response => response.json() )
     .then(data => cmd(data.status?{order:'logout'}:{order:'dialog', title:'Error', text:['h2:::'+data.message], ok:true}))
@@ -396,7 +508,7 @@ function App() { console.log('App');
   function tdr(txt) { return <td className='right'>{txt}</td>; }
   function tdl(txt) { return <td className='left'>{txt}</td>; }
 
-  function profile() { console.log("profile",user);
+  function profile() { // console.log("profile",user);
     const table = [<table><tbody>
       <tr>{tdr('User Name:')}{tdl(user.userid)}{tdr('Email:')}{tdl(user.email)}</tr>
       <tr>{tdr('Rank:')}{tdl(user.rank)}{tdr('About:')}{tdl('xxxxxx')}</tr>
@@ -443,8 +555,8 @@ function App() { console.log('App');
 
   return (
     <div className="App Full">
-      <Board color={['#555','#aaa','#111']} user={user} match={match} menu={state} update={update} view={view} command={cmd} serverUrl={serverUrl}/>
-      { (mode === 'offline' || mode === 'tutor') &&  <Pieces white={match.white.pieces} black={match.black.pieces} light={flip?"#012":"#eeb"} dark={flip?"#eeb":"#012"} view={view} flip={flip}/>}
+      <Board color={['#555','#aaa','#111']} user={user} match={match} menu={state} update={update} view={view} command={cmd} serverUrl={serverUrl} flip={flip} mode={mode}/>
+      { (mode === 'offline' || mode === 'tutor' || mode === 'match') &&  <Pieces white={match.white.pieces} black={match.black.pieces} light={flip?"#012":"#eeb"} dark={flip?"#eeb":"#012"} view={view} flip={flip}/>}
       { mode === 'dialog' && showDialog(dialog) }
       { mode === 'tutor' && teacher() }
       { mode === 'profile' && profile() }

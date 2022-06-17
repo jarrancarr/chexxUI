@@ -22,13 +22,19 @@ const keys = Object.keys(map);
 for (const hex of keys) revMap[map[hex]] = hex; 
 const off = 'drop-shadow(rgba(210, 128, 210, 0.4) 0px 0px 2px)';
 
+function flipped(here) {
+    const coord = revMap[here].split('-');
+    const flip = coord[0]+'-'+(24-parseInt(coord[1]));
+    return map[flip];
+}
+
 function inStartPos(piece) { // console.log('inStartPos',piece);
     return 'wPd55 wPd44 wPd33 wPd21 wPc22 wPc31 wPc41 wPc51 wSd43 wSd32 wSd2 wSc32 wSc42 bPf51 bPf41 bPf31 bPf22 bPa21 bPa33 bPa44 bPa55 bSf42 bSf32 bSa2 bSa32 bSa43 '.includes(piece+' ');
 }
 
-function hilite(idList, what, to) { //console.log('hilite',idList, what, to);
+function hilite(idList, what, to, flip) { //console.log('hilite',idList, what, to);
     for (const id of idList) {
-        let ele = document.getElementById(id.replace(/[ABEIKNPQRS]/, ''));
+        let ele = document.getElementById(flip?flipped(id.replace(/[ABEIKNPQRS]/, '')):id.replace(/[ABEIKNPQRS]/, ''));
         if (ele) ele.setAttribute(what, to);
     }
 }
@@ -105,7 +111,7 @@ function isOnBoard(i,j) { //console.log('isOnBoard',i,j);
     if (x<0 || x>12 || x+y<6 || x+y>31 || x-y>6 || y-x>19) return false;
     return true;
 }
-function parsePiece(piece) { // console.log('parsePiece', piece);
+function parsePiece(piece) { //console.log('parsePiece', piece);
     const where = piece.substring(2);
     const start = revMap[where].split('-'); // console.log('start',start)
     const xy = [parseInt(start[0]),parseInt(start[1])]
@@ -315,7 +321,8 @@ function analyse(match){ // console.log('analyse', match);
     }
 }
 
-function text(x,y,r,sz,w,fc,sc,ds,text) {
+function text(x,y,r,sz,w,fc,sc,ds,text) { // console.log('text',text);
+    if (!text) return [];
     const id = ('t-'+text).replaceAll('.','').replaceAll(' ','').trim().toLowerCase();
     const words = text.trim().split(' '); 
     const fs = [];
@@ -325,14 +332,14 @@ function text(x,y,r,sz,w,fc,sc,ds,text) {
         nudge.push((t[1].length-t[0].length)/3-2-w.length/50);
         fs.push(sz*20/(8+w.length));
     }
-    return <g id={id} transform={'rotate('+r+','+x+','+y+')'} filter={'drop-shadow('+ds+')'}>
+    return <g key={id} id={id} transform={'rotate('+r+','+x+','+y+')'} filter={'drop-shadow('+ds+')'}>
         { words.length === 1 && <text className='noMouse' x={x+nudge[0]} y={y+fs[0]/4} fontFamily="Verdana" fontSize={fs[0]} fill={fc} stroke={sc} strokeWidth={w}>{words[0].replaceAll('.','')}</text> }
         { words.length === 2 && <text className='noMouse' x={x+nudge[0]} y={y-fs[0]/5} fontFamily="Verdana" fontSize={fs[0]} fill={fc} stroke={sc} strokeWidth={w}>{words[0].replaceAll('.','')}</text> }
         { words.length === 2 && <text className='noMouse' x={x+nudge[1]} y={y+(fs[0]+fs[1])/3} fontFamily="Verdana" fontSize={fs[1]} fill={fc} stroke={sc} strokeWidth={w}>{words[1].replaceAll('.','')}</text> }
-        { words.length === 3 && <text className='noMouse' x={x+nudge[0]} y={y-(fs[1]+fs[2])/5} fontFamily="Verdana" fontSize={fs[0]} fill={fc} stroke={sc} strokeWidth={w}>{words[0].replaceAll('.','')}</text> }
-        { words.length === 3 && <text className='noMouse' x={x+nudge[1]} y={y+fs[2]/3} fontFamily="Verdana" fontSize={fs[1]} fill={fc} stroke={sc} strokeWidth={w}>{words[1].replaceAll('.','')}</text> }
-        { words.length === 3 && <text className='noMouse' x={x+nudge[2]} y={y+2*(fs[1]+fs[2])/3} fontFamily="Verdana" fontSize={fs[2]} fill={fc} stroke={sc} strokeWidth={w}>{words[2].replaceAll('.','')}</text> }
+        { words.length >2 && <text className='noMouse' x={x+nudge[0]} y={y-(fs[1]+fs[2])/5} fontFamily="Verdana" fontSize={fs[0]} fill={fc} stroke={sc} strokeWidth={w}>{words[0].replaceAll('.','')}</text> }
+        { words.length >2 && <text className='noMouse' x={x+nudge[1]} y={y+fs[2]/3} fontFamily="Verdana" fontSize={fs[1]} fill={fc} stroke={sc} strokeWidth={w}>{words[1].replaceAll('.','')}</text> }
+        { words.length >2 && <text className='noMouse' x={x+nudge[2]} y={y+2*(fs[1]+fs[2])/3} fontFamily="Verdana" fontSize={fs[2]} fill={fc} stroke={sc} strokeWidth={w}>{words[2].replaceAll('.','')}</text> }
     </g>
 }
        
-export {whiteMove, inStartPos, map, revMap, hilite, getPiece, swapPieces, movePiece, clear, off, analyse,isOnBoard, text}
+export {whiteMove, inStartPos, map, revMap, flipped, hilite, getPiece, swapPieces, movePiece, clear, off, analyse,isOnBoard, text}

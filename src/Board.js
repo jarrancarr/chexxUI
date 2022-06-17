@@ -2,27 +2,16 @@
 import React from 'react';
 import Hex from "./Hex"
 import Piece from "./Piece";
-import {map, revMap} from './res';
+import {map, revMap, flipped} from './res';
 
-import {whiteMove, hilite, movePiece, getPiece, swapPieces, analyse,isOnBoard, clear, text} from './res';
+import {whiteMove, hilite, movePiece, swapPieces, analyse,isOnBoard, clear, text} from './res';
 
-function rose() {
-  const points = [];
-  for (let i=30;i<360;i+=60) {
-    points.push(<path key={'left-'+i} transform={'rotate('+i+')'} className='noMouse' fill='#990' stroke='#000' strokeWidth={0.02} strokeOpacity={0.5} d="M 0 0 V 1.7 L 0.3 0.5 Z"></path>);
-    points.push(<path key={'right-'+i}  transform={'rotate('+i+')'} className='noMouse' fill='#550' stroke='#000' strokeWidth={0.02} strokeOpacity={0.5} d="M 0 0 V 1.7 L -0.3 0.5 Z"></path>);
-  }
-  for (let i=0;i<360;i+=60) {
-    points.push(<path key={'left-'+i}  transform={'rotate('+i+')'} className='noMouse' fill='#990' stroke='#000' strokeWidth={0.02} strokeOpacity={0.5} d="M 0 0 V 2 L 0.3 0.5 Z"></path>);
-    points.push(<path key={'right-'+i}  transform={'rotate('+i+')'} className='noMouse' fill='#550' stroke='#000' strokeWidth={0.02} strokeOpacity={0.5} d="M 0 0 V 2 L -0.3 0.5 Z"></path>);
-  }
-  return points;
-}
+let move = '';
+let editor = '';
 
-function Board({color, user, match, update, view, menu, command, serverUrl}) { // console.log('Board', user);
+function Board({color, user, match, update, view, menu, command, serverUrl, flip, mode}) { // console.log('Board: match:', match);
 
     let first = ''; // selection of piece
-    let editor = '';
     const board = analyse(match);  // console.log('board',board);
     let formation = [];
     let muster = [];
@@ -32,6 +21,21 @@ function Board({color, user, match, update, view, menu, command, serverUrl}) { /
     let left = 0;
     let right = 0;
 
+    // const chxPieces = Array.from(document.querySelectorAll('.chx-piece'));
+    // chxPieces.forEach(p => { p.remove(); });
+
+    function rose() {
+        const points = [];
+        for (let i=30;i<360;i+=60) {
+          points.push(<path key={'left-'+i} transform={'rotate('+i+')'} className='noMouse' fill='#990' stroke='#000' strokeWidth={0.02} strokeOpacity={0.5} d="M 0 0 V 1.7 L 0.3 0.5 Z"></path>);
+          points.push(<path key={'right-'+i}  transform={'rotate('+i+')'} className='noMouse' fill='#550' stroke='#000' strokeWidth={0.02} strokeOpacity={0.5} d="M 0 0 V 1.7 L -0.3 0.5 Z"></path>);
+        }
+        for (let i=0;i<360;i+=60) {
+          points.push(<path key={'smLeft-'+i}  transform={'rotate('+i+')'} className='noMouse' fill='#990' stroke='#000' strokeWidth={0.02} strokeOpacity={0.5} d="M 0 0 V 2 L 0.3 0.5 Z"></path>);
+          points.push(<path key={'smRight-'+i}  transform={'rotate('+i+')'} className='noMouse' fill='#550' stroke='#000' strokeWidth={0.02} strokeOpacity={0.5} d="M 0 0 V 2 L -0.3 0.5 Z"></path>);
+        }
+        return points;
+    }
 
     function clocks() {
         const x=9;
@@ -59,21 +63,43 @@ function Board({color, user, match, update, view, menu, command, serverUrl}) { /
             </g>);
         return clocks;
     }
-    function users() {
+    function users() { // console.log('users',user, match);
         const ui = [];
         const x=20;
         const y=95;
         ui.push(<path key="user" id="user" transform={'translate('+x+','+y+') rotate(2,0,0) scale('+2+')'} fill="#359" stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=>command({order:'menu', choice:'users'})} d="M -1.7 -1 L 0 -2 L 1.7 -1 V 1 L 0 2 L -1.7 1 Z"></path>);
-        ui.push(text(x,y,28,2,0.01,'#fff','#500','#ff0000ff 0.2px 0.2px 0.25px','.'+user.userid)); // x,y,r,sz,w,fc,sc,ds,text
+        ui.push(text(x,y,0,2,0.01,'#fff','#500','#ff0000ff 0.2px 0.2px 0.25px','.'+user.userid)); // x,y,r,sz,w,fc,sc,ds,text
+        if (match.white.player && match.white.player.ID !== 0 && match.white.player.ID !== user.ID) {
+            ui.push(<path key="opponent" id="opponent" transform={'translate('+x+','+(100-y)+') rotate(-2,0,0) scale('+2+')'} fill="#953" stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=>command({order:'menu', choice:'opponent'})} d="M -1.7 -1 L 0 -2 L 1.7 -1 V 1 L 0 2 L -1.7 1 Z"></path>);
+            ui.push(text(x,(100-y),0,2,0.01,'#fff','#500','#ff0000ff 0.2px 0.2px 0.25px','.'+match.white.player.userid)); // x,y,r,sz,w,fc,sc,ds,text       
+        }
+        if (match.black.player && match.black.player.ID !== 0 && match.black.player.ID !== user.ID) {
+            ui.push(<path key="opponent" id="opponent" transform={'translate('+x+','+(100-y)+') rotate(-2,0,0) scale('+2+')'} fill="#953" stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=>command({order:'menu', choice:'opponent'})} d="M -1.7 -1 L 0 -2 L 1.7 -1 V 1 L 0 2 L -1.7 1 Z"></path>);
+            ui.push(text(x,(100-y),0,2,0.01,'#fff','#500','#ff0000ff 0.2px 0.2px 0.25px','.'+match.black.player.userid)); // x,y,r,sz,w,fc,sc,ds,text
+        }
+        return ui;
+    }
+    function commit() { // console.log('commit');
+        const ui = [];
+        const x=5;
+        const y=80;
+        ui.push(<path key="commit" id="commit" transform={'translate('+x+','+y+') rotate(27,0,0) scale('+2+')'} fill="#ff8" stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=> { command({order:'commit', move:move}); move=''; }} d="M -1.7 -1 L 0 -2 L 1.7 -1 V 1 L 0 2 L -1.7 1 Z"></path>);
+        ui.push(text(x,y,0,1.5 ,0.01,'#000','#500','#000000ff 0.2px 0.2px 0.25px','.'+move.replace('~','~ ').replace('x','x '))); // x,y,r,sz,w,fc,sc,ds,text
         return ui;
     }
 
     function offline() {
         const ui = [];
-        const x=80;
-        const y=95;
-        ui.push(<path key="edit" id="edit" transform={'translate('+x+','+y+') rotate(-2,0,0) scale('+2+')'} fill="#aa0" stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=>command({order:'menu', choice:(menu==='edit'?'offline':'edit')})} d="M -1.7 -1 L 0 -2 L 1.7 -1 V 1 L 0 2 L -1.7 1 Z"></path>);
+        let x=80;
+        let y=95;
+        ui.push(<path key="editMatch" id="edit" transform={'translate('+x+','+y+') rotate(-2,0,0) scale('+2+')'} fill="#aa0" stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=>command({order:'menu', choice:(menu==='edit'?'offline':'edit')})} d="M -1.7 -1 L 0 -2 L 1.7 -1 V 1 L 0 2 L -1.7 1 Z"></path>);
         ui.push(text(x,y,-28,2,0.01,'#fff','#500','#ff0000ff 0.2px 0.2px 0.25px',menu==='edit'?'.play':'.edit')); // x,y,r,sz,w,fc,sc,ds,text
+        
+        x=5;
+        y=80;
+        ui.push(<path key="commit" id="commit" transform={'translate('+x+','+y+') rotate(27,0,0) scale('+2+')'} fill="#8af" stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=> { command({order:'menu', choice:'cpu'}); move=''; }} d="M -1.7 -1 L 0 -2 L 1.7 -1 V 1 L 0 2 L -1.7 1 Z"></path>);
+        ui.push(text(x,y,0,2.0 ,0.01,'#000','#500','#000000ff 0.2px 0.2px 0.25px','..CPU')); // x,y,r,sz,w,fc,sc,ds,text
+        
         return ui;
     }
 
@@ -94,29 +120,29 @@ function Board({color, user, match, update, view, menu, command, serverUrl}) { /
             // console.log('attacks by pinned piece include attacker?', attacks);
             if (attacks[1].includes(skewerer[0][1].substring(1))) { // can pinned piece capture attacker ?
                 first = here;
-                hilite([skewerer[0][1]],'stroke', moves[0][0]==='w'?'#f25':'#f52');
+                hilite([skewerer[0][1]],'stroke', moves[0][0]==='w'?'#f25':'#f52', flip);
             }
             moves[0] = [];
             return;
         }
         if (moves) {
-            hilite(moves[1],'stroke', moves[0][0]==='w'?'#8f2':'#2f8');
+            hilite(moves[1],'stroke', moves[0][0]==='w'?'#8f2':'#2f8', flip);
             first = here;
         } else {
             if (attacked) { // this must be a blank space
-                hilite(attacked[0],'stroke', '#f2a');
-                hilite(attacked[1],'stroke', '#fa2');
+                hilite(attacked[0],'stroke', '#f2a', flip);
+                hilite(attacked[1],'stroke', '#fa2', flip);
             }
             if (covered) { // this must be a blank space
-                hilite(covered[0],'stroke', '#a27');
-                hilite(covered[1],'stroke', '#a72');
+                hilite(covered[0],'stroke', '#a27', flip);
+                hilite(covered[1],'stroke', '#a72', flip);
             }
         }
         if (attacks) {
             const me = occupants[here];
             if (me[1] === 'P' || me[1] === 'S') {
-                hilite(attacks[1].filter(a=>occupants[a]),'stroke', moves[0][0]==='w'?'#f25':'#f85');
-            } else hilite(attacks[1],'stroke', moves[0][0]==='w'?'#f25':'#f85');
+                hilite(attacks[1].filter(a=>occupants[a]),'stroke', moves[0][0]==='w'?'#f25':'#f85', flip);
+            } else hilite(attacks[1],'stroke', moves[0][0]==='w'?'#f25':'#f85', flip);
             first = here;
         }
     }
@@ -174,37 +200,58 @@ function Board({color, user, match, update, view, menu, command, serverUrl}) { /
     }
 
     function hexClicked(here) { // console.log('hexClicked  first:',first, '  here',here);
+        if (flip) here = flipped(here);
         if (menu==='tutor') {
             command({order:'guess', here: here});
             return;
         } else if (menu==='edit') {
             clear();
-            hilite([here],"stroke","#aaf");
-            if (editor) {
-                // switch pieces
-                const x = getPiece(match, editor);
-                const y = getPiece(match, here);
-                console.log('first piece:',x, editor);
-                console.log('second piece',y, here);
+            hilite([here],"stroke","#aaf", flip);
+            if (editor) { console.log('meta command',editor, here);
                 let copyMatch = {...match};
-                if (swapPieces(copyMatch, editor, here)) {
-                    update(copyMatch);
-                    editor = '';
-                    clear();
-                } else {
-                    editor = here;
+                copyMatch.log = [];
+                switch(editor) {
+                    case 'w-king': copyMatch.white.pieces.push('K'+here); break;
+                    case 'w-queen': copyMatch.white.pieces.push('Q'+here); break;
+                    case 'w-prince': copyMatch.white.pieces.push('I'+here); break;
+                    case 'w-princess': copyMatch.white.pieces.push('E'+here); break;
+                    case 'w-rook': copyMatch.white.pieces.push('R'+here); break;
+                    case 'w-archer': copyMatch.white.pieces.push('A'+here); break;
+                    case 'w-bishop': copyMatch.white.pieces.push('B'+here); break;
+                    case 'w-knight': copyMatch.white.pieces.push('N'+here); break;
+                    case 'w-pawn': copyMatch.white.pieces.push('P'+here); break;
+                    case 'w-spear': copyMatch.white.pieces.push('S'+here); break;
+                    case 'b-king': copyMatch.black.pieces.push('K'+here); break;
+                    case 'b-queen': copyMatch.black.pieces.push('Q'+here); break;
+                    case 'b-prince': copyMatch.black.pieces.push('I'+here); break;
+                    case 'b-princess': copyMatch.black.pieces.push('E'+here); break;
+                    case 'b-rook': copyMatch.black.pieces.push('R'+here); break;
+                    case 'b-archer': copyMatch.black.pieces.push('A'+here); break;
+                    case 'b-bishop': copyMatch.black.pieces.push('B'+here); break;
+                    case 'b-knight': copyMatch.black.pieces.push('N'+here); break;
+                    case 'b-pawn': copyMatch.black.pieces.push('P'+here); break;
+                    case 'b-spear': copyMatch.black.pieces.push('S'+here); break;
+                    default: // switch pieces
+                        if (swapPieces(copyMatch, editor, here)) {
+                            editor = '';
+                            clear();
+                        } else {
+                            editor = here;
+                        }
+                    break;
                 }
+                update(copyMatch);
             } else {
                 editor = here;
             }
             return
         }
         clear();
-        hilite([here],"stroke","#00f");
+        hilite([here],"stroke","#00f", flip);
         const attacks = board.attacks[here];
         const attacked = board.attacked[here];
-        attacked && hilite(attacked[0], "stroke",'#f00');
-        attacked && hilite(attacked[1], "stroke",'#f00');
+        attacked && hilite(attacked[0], "stroke",'#f00', flip);
+        attacked && hilite(attacked[1], "stroke",'#f00', flip);
         const covered = board.covered[here];
         const moves = board.moves[here];
         const myGuy = moves?((moves[0][0]==='w')===whiteMove(match)):false;
@@ -227,7 +274,8 @@ function Board({color, user, match, update, view, menu, command, serverUrl}) { /
                                 copyMatch.black.pieces[idx]=match.black.pieces[idx][0]+fm;
                     }
                 }
-                copyMatch.log.push('--------'.substring(0,left)+here+'--------'.substring(0,right));
+                if (!move) move = '^^^^^^^^^'.substring(0,left)+here+'^^^^^^^^'.substring(0,right)
+                copyMatch.log.push('^^^^^^^^^'.substring(0,left)+here+'^^^^^^^^'.substring(0,right));
                 update(copyMatch);
             } else if (here===formation[0]) { // console.log('switch arms');
                 const copyMatch = {...match};
@@ -243,6 +291,7 @@ function Board({color, user, match, update, view, menu, command, serverUrl}) { /
                                 copyMatch.black.pieces[idx]=(match.black.pieces[idx][0]==='P'?'S':'P')+ps;
                     }
                 }
+                if (!move) move ='%%%%%%%%'.substring(0,left)+here+'%%%%%%%%'.substring(0,right);
                 copyMatch.log.push('%%%%%%%%'.substring(0,left)+here+'%%%%%%%%'.substring(0,right));
                 update(copyMatch);
             } else { // console.log('add soldier');
@@ -276,12 +325,12 @@ function Board({color, user, match, update, view, menu, command, serverUrl}) { /
                     switchArms = [];
                 }
                 // console.log('muster', muster); console.log('switchArms', switchArms); console.log('formation',formation);
-                hilite(muster,'stroke', '#0ff');
+                hilite(muster,'stroke', '#0ff', flip);
                 hilite(switchArms,'stroke', '#a0a');
-                hilite(switchArms.filter(sa=>muster.includes(sa)),'stroke', '#afa');
-                hilite(formation,'stroke', '#ff4');
-                hilite([formation[0]],'stroke', '#f8f');
-                hilite([march],'stroke', '#9f9');
+                hilite(switchArms.filter(sa=>muster.includes(sa)),'stroke', '#afa', flip);
+                hilite(formation,'stroke', '#ff4', flip);
+                hilite([formation[0]],'stroke', '#f8f', flip);
+                hilite([march],'stroke', '#9f9', flip);
             }
         } else { // not special
             if (first === '') { // console.log('first selection'); // no piece was selected
@@ -295,10 +344,10 @@ function Board({color, user, match, update, view, menu, command, serverUrl}) { /
                     formation = [here]
                     if (canMarch) muster=m; else muster=[];
                     if (swArms) switchArms=sa; else switchArms=[];
-                    hilite(switchArms,'stroke', '#f0f');
-                    hilite(muster,'stroke', '#0ff');
-                    hilite(switchArms.filter(sa=>muster.includes(sa)),'stroke', '#afa');
-                    hilite(formation,'stroke', '#ff4')
+                    hilite(switchArms,'stroke', '#f0f', flip);
+                    hilite(muster,'stroke', '#0ff', flip);
+                    hilite(switchArms.filter(sa=>muster.includes(sa)),'stroke', '#afa', flip);
+                    hilite(formation,'stroke', '#ff4', flip)
                     special = true;
                     const [dir,coord] = [board.occupants[here][0]==='w'?-1:1, revMap[here].split('-')];
                     const [x, y] = [parseInt(coord[0]),parseInt(coord[1])];
@@ -313,9 +362,12 @@ function Board({color, user, match, update, view, menu, command, serverUrl}) { /
                     movePiece(copyMatch, board, first, here);
                     // console.log('updating match',match)
                     const look = analyse(copyMatch);
-                    if (!look.whiteInCheck && !look.blackInCheck) update(copyMatch);
-                    if ((look.whiteInCheck && whiteMove(copyMatch))||(look.blackInCheck && !whiteMove(copyMatch))) update(copyMatch);
-                    else match = JSON.parse(store);
+                    if ((!look.whiteInCheck && !look.blackInCheck)
+                        ||(look.whiteInCheck && whiteMove(copyMatch))
+                        ||(look.blackInCheck && !whiteMove(copyMatch))) {
+                            if (!move) move = copyMatch.log[copyMatch.log.length-1];
+                            update(copyMatch);
+                    } else match = JSON.parse(store);
                     first = '';
                 } else { // console.log('invalid move');
                     first = '';
@@ -340,14 +392,38 @@ function Board({color, user, match, update, view, menu, command, serverUrl}) { /
             }
         }
     }
-    function ledger() { console.log('ledger',match.log);
+    function ledger(match) { // console.log('ledger',match.log);
+        const ledge = 63;
+        if (!match) return [];
         const notes = [];
-        for(let l in match.log) { console.log('log',l, match.log[l]);
-            let t = "rotate("+(-l+match.log.length-1)*5+", 50, 50)";
+        let start = 0;
+        let end = match.log.length;
+        if (end>ledge) {
+            start = end - ledge;
+        }
+        
+        let fade = 0;
+        if (start>10) fade = start-10;
+
+
+        if (start>0) {
+            for (let l=fade;l<start;l++) {
+                let t = "rotate("+(-l+end-1)*5+", 50, 50)";
+                let f = match.log[l].indexOf('x')>0?"#a55":"#363";
+                let s = match.log[l].indexOf('+')>0?"#ff3":"#666";
+                notes.push(
+                    <g key={'log-'+l} transform={t} opacity={(10+l-start)/10} onMouseOver={(e) => highlight(e, match.log[l],true)} onMouseLeave={(e) => highlight(e, match.log[l],false)} onClick={()=>command({order:'rewind', event:l})} style={{ filter: 'drop-shadow(rgba(180, 180, 0, 0.5) 0.3px 0px 1px)'}}>
+                        <rect id={'rect-'+match.log[l]} x="13" y="16" fill={f} stroke={s} strokeWidth={0.35} height="3" width="20"/>
+                        {text(16,17.8,0,2,0,notes.length%2===0?'#fff':'#000','#888',(notes.length%2===0?'#80f':'#f80')+' 0.2px 0.2px 0.5px',match.log[l].split('=')[0])}
+                    </g>);
+            }
+        }
+        for (let l=start;l<end;l++) {
+            let t = "rotate("+(-l+end-1)*5+", 50, 50)";
             let f = match.log[l].indexOf('x')>0?"#a55":"#363";
             let s = match.log[l].indexOf('+')>0?"#ff3":"#666";
             notes.push(
-                <g key={match.log[l]} transform={t} onMouseOver={(e) => highlight(e, match.log[l],true)} onMouseLeave={(e) => highlight(e, match.log[l],false)} style={{ filter: 'drop-shadow(rgba(180, 180, 0, 0.5) 0.3px 0px 1px)'}}>
+                <g key={'log-'+l} transform={t} onMouseOver={(e) => highlight(e, match.log[l],true)} onMouseLeave={(e) => highlight(e, match.log[l],false)} onClick={()=>command({order:'rewind', event:l})} style={{ filter: 'drop-shadow(rgba(180, 180, 0, 0.5) 0.3px 0px 1px)'}}>
                     <rect id={'rect-'+match.log[l]} x="13" y="16" fill={f} stroke={s} strokeWidth={0.35} height="3" width="20"/>
                     {text(16,17.8,0,2,0,notes.length%2===0?'#fff':'#000','#888',(notes.length%2===0?'#80f':'#f80')+' 0.2px 0.2px 0.5px',match.log[l].split('=')[0])}
                 </g>);
@@ -365,9 +441,13 @@ function Board({color, user, match, update, view, menu, command, serverUrl}) { /
         hilite([e.target.id],'stroke-width', '0.1');
     }
 
+    function toggleMain() { console.log('toggleMain',menu);
+        command({order:'menu', choice:menu==='main'?'offline':'main'})
+    }
+
     function mainMenu() {
         const menu = [];
-        menu.push(<path id="menu" key='menu' onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=>command({order:'menu', choice:'main'})} transform={'rotate(-14,0,0) scale(4)'} stroke='#000' strokeWidth={0.1} fill={'#880'} d="M -1.7 -1 L 0 -2 L 1.7 -1 V 1 L 0 2 L -1.7 1 Z"></path>);
+        menu.push(<path id="menu" key='menu' onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={toggleMain} transform={'rotate(-14,0,0) scale(4)'} stroke='#000' strokeWidth={0.1} fill={'#880'} d="M -1.7 -1 L 0 -2 L 1.7 -1 V 1 L 0 2 L -1.7 1 Z"></path>);
         for (const l of [[-4.6,-0.3,'#b00',0.6],[-3.4,-0.3,'#00b',0.4],[-3.4,0.3,'#0b0',0.4],[-4.6,0.3,'#880',0.4],[-4,0,'#000', 1]])
             for(let j=-3;j<4;j+=3)
                 menu.push(<path className='noMouse' key={'dash'+l[0]+l[1]+j} stroke={l[2]} strokeWidth={1} opacity={l[3]} d={'M '+l[0]+' '+(l[1]+j)+' H '+(l[0]+8)}></path>);
@@ -394,7 +474,7 @@ function Board({color, user, match, update, view, menu, command, serverUrl}) { /
                 items.push(<g key={id} transform={'rotate('+(end+iter*4.5*size)+',0,0) '}>
                     <animateTransform className='spin' attributeName="transform" attributeType="XML" type="rotate" from={''+(spin+iter*bloom)+' 0 0'} to={''+(end+iter*4.5*size)+' 0 0'} dur='0.4s' begin='indefinite' repeatCount="1"/>
                     <g transform={'translate(47, 0)'}>
-                    <path id={id} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={() => menuSelect(id)} transform={'rotate(30) scale('+size+')'} stroke='#000' strokeWidth='0.1' fill={color} d="M -1.7 -1 L 0 -2 L 1.7 -1 V 1 L 0 2 L -1.7 1 Z"></path>
+                    <path id={id} className={label} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={() => menuSelect(id)} transform={'rotate(30) scale('+size+')'} stroke='#000' strokeWidth='0.1' fill={color} d="M -1.7 -1 L 0 -2 L 1.7 -1 V 1 L 0 2 L -1.7 1 Z"></path>
                     <g transform={'rotate('+(-end-iter*4.5*size)+',0,0)'} filter='drop-shadow(rgba(0, 0, 0, 0.99) 0px 0px 0.3px)'>
                         { p[1] && <g transform={'translate(-15.8, -11.2)'} filter='drop-shadow(#000 0.3px 0.3px 0.03px)'><Piece w={p[1]} x={0} y={0} c={fill} s={draw} id='tutor' sc={0.2}/></g>}
                         { !p[1] && text(0,0,0,font,0,fill,draw,'#00f 0.3px 0.3px 0.03px',txt[0]) }
@@ -419,26 +499,44 @@ function Board({color, user, match, update, view, menu, command, serverUrl}) { /
         return makeMenu(items,'items', 20, 22, 7, 2, 1.6,'#884');
     }
     function matchMenu() { // console.log('match');
-        let matchMenu = makeMenu([['.Open ..Challenge',''],['.Save',''],['.Blitz ..Match',''],['Play ...Computer',''],['..History','']],'match', 110, 112, 8,2,1.6,'#88a');
-        if (user.savedMatches) matchMenu = matchMenu.concat(makeMenu(user.savedMatches,'load', 215, 215+user.savedMatches.length/2, 8, 2, 1.7,'#088','#888','#ff5'));
-        if (user.myOpen) matchMenu = matchMenu.concat(makeMenu(user.myOpen,'myOpen', 325, 325+user.myOpen.length/2, 8, 2, 1.7,'#06a','#000','#f92'));
-        if (user.open) matchMenu = matchMenu.concat(makeMenu(user.open,'open', 350, 350+user.myOpen.length/2, 8, 2, 1.7,'#b94','#000','#222'));
-        if (user.ready) matchMenu = matchMenu.concat(makeMenu(user.ready,'ready', 0, user.myOpen.length/2, 8, 2, 1.7,'#6a6','#000','#f9f'));
-        if (user.waiting) matchMenu = matchMenu.concat(makeMenu(user.waiting,'wait', -30, user.myOpen.length/2, 8, 2, 1.7,'#a66','#000','#9ff'));
+        const items = [['.Open ..Challenge',''],['.Save',''],['.Blitz ..Match',''],['Play ...Computer',''],['..History','']];
+        if (move) items.unshift(['..Undo','']);
+        if (match.ID>0 && match.white.player.ID === user.ID && match.black.player.ID===user.ID) items.unshift(['..Delete','']);
+        let matchMenu = makeMenu(items,'match', 110, 112, 8,2,1.6,'#88a');
+        if (user.savedMatches) matchMenu = matchMenu.concat(makeMenu(user.savedMatches,'load', 175, 175+user.savedMatches.length/2, 8, 2, 1.7,'#088','#888','#ff5'));
+        if (user.myOpen) matchMenu = matchMenu.concat(makeMenu(user.myOpen,'myOpen', 325, 325+user.myOpen.length/2, 8, 2, 1.5,'#007','#000','#aaa'));
+        if (user.open) matchMenu = matchMenu.concat(makeMenu(user.open,'open', 325+user.myOpen.length*9, 325+user.myOpen.length*9+user.open.length/2, 8, 2, 1.5,'#444','#000','#bb0'));
+        if (user.ready) matchMenu = matchMenu.concat(makeMenu(user.ready,'ready', 325+(user.open.length+user.myOpen.length)*9, 325+(user.open.length+user.myOpen.length)*9+user.ready.length/2, 8, 2, 1.7,'#6a6','#000','#f9f'));
+        if (user.waiting) matchMenu = matchMenu.concat(makeMenu(user.waiting,'wait', 325+(user.open.length+user.myOpen.length+user.ready.length)*9, 325+(user.open.length+user.myOpen.length+user.ready.length)*9+user.waiting.length/2, 8, 2, 1.7,'#a66','#000','#9ff'));
         return matchMenu;
     }
     function userMenu() {
         return makeMenu([['...Conquest',''],['..Teams/. ....Tournaments.',''],['..Matches',''],['..Profile',''],['..Logout','']],'user', 110, 112, 8,2,1.6,'#88a');
     }
     function editMenu() {
-        let editMenu = makeMenu([['pawn','P'],['spear','S'],['knight','N'],['bishop','B'],['rook','R'],['queen','Q'],['archer','A'],['prince','I'],['princess','E'],['king','K']],'edit-b', -55, -48, 8, 2, 1.5,'#f99','#888','#210');
-        editMenu = editMenu.concat(makeMenu([['Trash','X'],['Details','D']],'edit', 40, 40.5, 8, 2, 1.5,'#f99'));
-        editMenu = editMenu.concat(makeMenu([['pawn','P'],['spear','S'],['knight','N'],['bishop','B'],['rook','R'],['queen','Q'],['archer','A'],['prince','I'],['princess','E'],['king','K']],'edit-w', 63, 65, 8, 2, 1.5,'#f99','#888','#cdb'));
+        let editMenu = makeMenu([['pawn','P'],['spear','S'],['knight','N'],['bishop','B'],['rook','R'],['queen','Q'],['archer','A'],['prince','I'],['princess','E'],['king','K']],'edit-b', -65, -58, 8, 2, 1.5,'#f99','#888','#210');
+        editMenu = editMenu.concat(makeMenu([['Trash','X'],["Flip","F"],['Clear','C'],['Details','D']],'edit', 30, 31.5, 8, 2, 1.5,'#f99'));
+        editMenu = editMenu.concat(makeMenu([['pawn','P'],['spear','S'],['knight','N'],['bishop','B'],['rook','R'],['queen','Q'],['archer','A'],['prince','I'],['princess','E'],['king','K']],'edit-w', 72, 74, 8, 2, 1.5,'#f99','#888','#cdb'));
         return editMenu;
+    }
+
+    function aiMenu() {
+        return makeMenu([['Very Easy',''],['Easy',''],['Medium',''],['Hard',''],['Very Hard',''],['Best','']],'ai', 124, 126, 8,2,1.3,'#5bb','#fff','#440');
     }
 
     function menuSelect(item) { console.log('menuSelect('+item+')');
         if (item.startsWith('edit-')) {
+            if ((item.startsWith('edit-w-') || item.startsWith('edit-b-')) && !revMap[editor]) { console.log('init meta', editor, revMap[editor]);
+                [...document.getElementsByClassName('edit-b')].forEach(e=>e.setAttribute('fill','#f99'));
+                [...document.getElementsByClassName('edit-w')].forEach(e=>e.setAttribute('fill','#f99'));
+                if (editor && item.endsWith(editor)) {
+                    editor = '';
+                } else {
+                    editor = item.substring(5);
+                    hilite([item],'fill', '#8f8', false);
+                }
+                return
+            }
             let copyMatch = {...match};
             copyMatch.log = [];
             switch(item) {
@@ -466,15 +564,27 @@ function Board({color, user, match, update, view, menu, command, serverUrl}) { /
                     copyMatch.white.pieces = match.white.pieces.filter(f => f.substring(1)!==editor);
                     copyMatch.black.pieces = match.black.pieces.filter(f => f.substring(1)!==editor);
                     break;
-                case 'edit-details': command({order:'dialog', title:'Match Details', details:true, save:true}); break;
-                default: break;
-        }
+                case 'edit-details': command({order:'dialog', title:'Match Details', details:true, ok:true}); break;
+                case 'edit-clear': update({id:0, name:'offline', white:{pieces:['Kc44'], time:300}, black:{pieces:['Ka41'], time:300}, log:[], type:{game:300, move:15}}); return;
+                case 'edit-flip': command({order:'flip'}); break;
+                default: editor = ''; break;
+            }
+            editor = '';
             update(copyMatch);
             return;
         }
         command({order:'menu', choice:''});
-        if (item.startsWith('load-')) { 
+        if (item.startsWith('load-') || item.startsWith('ready-') || item.startsWith('wait-')) { 
             command({order:'loadMatch', id:item.split(':')[1]});
+            return;
+        }
+        if (item.startsWith('open-')) { 
+            command({order:'accept', id:item.split(':')[1]});
+            return;
+        }
+        if (item.startsWith('myopen-')) { 
+            const oc = item.split(':');
+            command({order:'dialog', title:'Your Challenge',text:['h3:::Open challenge: '+oc[0].substring(7),'h5:::Opened:','h4:::Close challenge?'], id:oc[1], yesno:true, noClose:true});
             return;
         }
         switch(item) {
@@ -507,7 +617,14 @@ function Board({color, user, match, update, view, menu, command, serverUrl}) { /
             case 'lesson-pins': lesson('Pins'); break;
             case 'lesson-tactics': lesson('Tactics'); break;
             case 'match-openchallenge': command({order:'dialog', title:'Open Challenge', text:['Only opponents within 200 points of your rank will be allowed to accept your challenge.'], challenge:true}); break;
+            case 'match-delete': command({order:'dialog', title:'Delete Match', text:['h1:::'+match.name], yesno:true, openId:match.ID}); break;
             //case 'edit-trash': edit('trash'); break;
+            case 'ai-veryeasy': command({order:'cpu', level:1}); break;
+            case 'ai-easy': command({order:'cpu', level:2}); break;
+            case 'ai-medium': command({order:'cpu', level:3}); break;
+            case 'ai-hard': command({order:'cpu', level:4}); break;
+            case 'ai-veryhard': command({order:'cpu', level:5}); break;
+            case 'ai-best': command({order:'cpu', level:6}); break;
             default: lesson('Unimplemented'); break;
         } // end menu not starts with...
     }
@@ -536,14 +653,16 @@ function Board({color, user, match, update, view, menu, command, serverUrl}) { /
             <circle fill="#000" cx="50" cy="50" r="50"/>
             { clocks() }
             { user.userid && users() }
-            { offline() }
-            { ledger() }
+            { mode !== 'offline' && move && commit() }
+            { mode === 'offline' && offline() }
+            { ledger(match) }
             { menu==='puzzles' && <g transform={'translate(50, 50)'}> { puzzles() } </g>}
             { menu==='tutor' && <g transform={'translate(50, 50)'}> { tutorials() } </g>}
             { menu==='main' && <g transform={'translate(50, 50)'}> { items() } </g>}
             { menu==='match' && <g transform={'translate(50, 50)'}> { matchMenu() } </g>}
             { menu==='users' && <g transform={'translate(50, 50)'}> { userMenu() } </g>}
             { menu==='edit' && <g transform={'translate(50, 50)'}> { editMenu() } </g>}
+            { menu==='cpu' && <g transform={'translate(50, 50)'}> { aiMenu() } </g>}
             <circle fill={board.whiteInCheck||board.blackInCheck?'#F33':'#321'} cx="50" cy="50" r="43"/>
             <circle fill="#131" cx="50" cy="50" r="42"/>
             { tiles() }

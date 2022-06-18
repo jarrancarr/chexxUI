@@ -47,13 +47,14 @@ function get(who, match) { // console.log('get(',who,')');
     else return match.black.pieces.filter(f => f[0]===who[1]);
 
 }
-function getPiece(match, here) { // console.log('getPiece', here);
-    for (const p of match.white.pieces) if (p.substring(1)===here) return [p, true];
-    for (const p of match.black.pieces) if (p.substring(1)===here) return [p, false];
+function getPiece(match, here) { // console.log('getPiece', match, here);
+    const h = here.replace(/[PSARBNKQIE]/,'');
+    for (const p of match.white.pieces) if (p.substring(1)===h) return [p, true];
+    for (const p of match.black.pieces) if (p.substring(1)===h) return [p, false];
     return null;
 }
 
-function swapPieces(match, a, b) { console.log('swapPieces',a,b);
+function swapPieces(match, a, b) { // console.log('swapPieces',a,b);
     const p = getPiece(match, a); console.log('p',p);
     if (!p) return false;
     const q = getPiece(match, b); console.log('q',q);
@@ -76,7 +77,8 @@ function swapPieces(match, a, b) { console.log('swapPieces',a,b);
     return true;
 }
 
-function movePiece(match, board,first,here) { // console.log('movePiece(match,', board,first,here,')');
+function movePiece(match, board,first,second) { // console.log('movePiece(match,', board,first,second,')');
+    const here = second.replace(/[PSARBNKQIE]/,'');
     const p = getPiece(match, first); // console.log('p',p);
     const q = getPiece(match, here); // console.log('q',q);
     if (p[1]) { // console.log('looking for',here,'in',match.black.pieces);
@@ -111,7 +113,7 @@ function isOnBoard(i,j) { //console.log('isOnBoard',i,j);
     if (x<0 || x>12 || x+y<6 || x+y>31 || x-y>6 || y-x>19) return false;
     return true;
 }
-function parsePiece(piece) { //console.log('parsePiece', piece);
+function parsePiece(piece) { // console.log('parsePiece', piece);
     const where = piece.substring(2);
     const start = revMap[where].split('-'); // console.log('start',start)
     const xy = [parseInt(start[0]),parseInt(start[1])]
@@ -223,16 +225,14 @@ function surrounded(match, board, king, isWhite) { // console.log('surrounded',b
     return true;
 }
 function killAttacker(match, board, king, isWhite) { // console.log('killAttacker',board,king, isWhite);
-    // console.log('attacker',board.attacked[king][isWhite?1:0][0]);
-    // console.log('defenders',board.attacked[board.attacked[king][isWhite?1:0][0].substring(1)]);
     if (!board.attacked[board.attacked[king][isWhite?1:0][0].substring(1)]) return false;
-    // console.log(board.attacked[board.attacked[king][isWhite?1:0][0].substring(1)][isWhite?0:1]);
     for (const attacker of board.attacked[board.attacked[king][isWhite?1:0][0].substring(1)][isWhite?0:1]) {
         if (!board.pinned.includes(attacker.substring(1))) return true;
     }
     return false;   
 }
 function analyse(match){ // console.log('analyse', match);
+
     const board = {};
     board.occupants = {};
     board.attacks = {}; // 'd41':['wR',['d31','d21','d11'...]]

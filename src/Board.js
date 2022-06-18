@@ -9,7 +9,7 @@ import {whiteMove, hilite, movePiece, swapPieces, analyse,isOnBoard, clear, text
 let move = '';
 let editor = '';
 
-function Board({color, user, match, update, view, menu, command, serverUrl, flip, mode}) { // console.log('Board: match:', match);
+function Board({color, user, match, update, view, menu, command, serverUrl, flip, mode, history}) { // console.log('Board: match:', match);
 
     let first = ''; // selection of piece
     const board = analyse(match);  // console.log('board',board);
@@ -200,6 +200,7 @@ function Board({color, user, match, update, view, menu, command, serverUrl, flip
     }
 
     function hexClicked(here) { // console.log('hexClicked  first:',first, '  here',here);
+        if (history>-1) return;
         if (flip) here = flipped(here);
         if (menu==='tutor') {
             command({order:'guess', here: here});
@@ -392,12 +393,13 @@ function Board({color, user, match, update, view, menu, command, serverUrl, flip
             }
         }
     }
-    function ledger(match) { // console.log('ledger',match.log);
-        const ledge = 63;
+    function ledger(match) { console.log('ledger', history);
         if (!match) return [];
+        const ledge = history>-1?31:63;
         const notes = [];
         let start = 0;
-        let end = match.log.length;
+        let end = history>-1?history+1:match.log.length;
+        //const delta = history>0?match.log.length-history:0;
         if (end>ledge) {
             start = end - ledge;
         }
@@ -406,6 +408,43 @@ function Board({color, user, match, update, view, menu, command, serverUrl, flip
         if (start>10) fade = start-10;
 
 
+        if (history>-1) {
+            for (let l=end;l<end+25;l++) {
+                if (l<match.log.length) {
+                    let t = "rotate("+(-l+end-1)*5+", 50, 50)";
+                    let f ='#444';
+                    let s = match.log[l].indexOf('+')>0?"#ff3":"#666";
+                    notes.push(
+                        <g key={'log-'+l} transform={t} onMouseOver={(e) => highlight(e, match.log[l],true)} onMouseLeave={(e) => highlight(e, match.log[l],false)} onClick={()=>command({order:'rewind', event:l})} style={{ filter: 'drop-shadow(rgba(180, 180, 0, 0.5) 0.3px 0px 1px)'}}>
+                            <rect id={'rect-'+match.log[l]} x="13" y="16" fill={f} stroke={s} strokeWidth={0.35} height="3" width="20"/>
+                            {text(16,17.8,0,2,0,notes.length%2===0?'#fff':'#000','#888',(notes.length%2===0?'#80f':'#f80')+' 0.2px 0.2px 0.5px',match.log[l].split('=')[0])}
+                        </g>);
+                }
+            }
+            for (let l=end+25;l<end+32;l++) {
+                if (l<match.log.length) {
+                    let t = "rotate("+(-l+end-1)*5+", 50, 50)";
+                    let f ='#444';
+                    let s = match.log[l].indexOf('+')>0?"#ff3":"#666";
+                    notes.push(
+                        <g key={'log-'+l} transform={t} opacity={(7-l+end+25)/7} onMouseOver={(e) => highlight(e, match.log[l],true)} onMouseLeave={(e) => highlight(e, match.log[l],false)} onClick={()=>command({order:'rewind', event:l})} style={{ filter: 'drop-shadow(rgba(180, 180, 0, 0.5) 0.3px 0px 1px)'}}>
+                            <rect id={'rect-'+match.log[l]} x="13" y="16" fill={f} stroke={s} strokeWidth={0.35} height="3" width="20"/>
+                            {text(16,17.8,0,2,0,notes.length%2===0?'#fff':'#000','#888',(notes.length%2===0?'#80f':'#f80')+' 0.2px 0.2px 0.5px',match.log[l].split('=')[0])}
+                        </g>);
+                }
+            }
+            
+        }
+        for (let l=start;l<end;l++) {
+            let t = "rotate("+(-l+end-1)*5+", 50, 50)";
+            let f = match.log[l].indexOf('x')>0?"#a55":"#363";
+            let s = match.log[l].indexOf('+')>0?"#ff3":"#666";
+            notes.push(
+                <g key={'log-'+l} transform={t} onMouseOver={(e) => highlight(e, match.log[l],true)} onMouseLeave={(e) => highlight(e, match.log[l],false)} onClick={()=>command({order:'rewind', event:l})} style={{ filter: 'drop-shadow(rgba(180, 180, 0, 0.5) 0.3px 0px 1px)'}}>
+                    <rect id={'rect-'+match.log[l]} x="13" y="16" fill={f} stroke={s} strokeWidth={0.35} height="3" width="20"/>
+                    {text(16,17.8,0,2,0,notes.length%2===0?'#fff':'#000','#888',(notes.length%2===0?'#80f':'#f80')+' 0.2px 0.2px 0.5px',match.log[l].split('=')[0])}
+                </g>);
+        }
         if (start>0) {
             for (let l=fade;l<start;l++) {
                 let t = "rotate("+(-l+end-1)*5+", 50, 50)";
@@ -417,16 +456,6 @@ function Board({color, user, match, update, view, menu, command, serverUrl, flip
                         {text(16,17.8,0,2,0,notes.length%2===0?'#fff':'#000','#888',(notes.length%2===0?'#80f':'#f80')+' 0.2px 0.2px 0.5px',match.log[l].split('=')[0])}
                     </g>);
             }
-        }
-        for (let l=start;l<end;l++) {
-            let t = "rotate("+(-l+end-1)*5+", 50, 50)";
-            let f = match.log[l].indexOf('x')>0?"#a55":"#363";
-            let s = match.log[l].indexOf('+')>0?"#ff3":"#666";
-            notes.push(
-                <g key={'log-'+l} transform={t} onMouseOver={(e) => highlight(e, match.log[l],true)} onMouseLeave={(e) => highlight(e, match.log[l],false)} onClick={()=>command({order:'rewind', event:l})} style={{ filter: 'drop-shadow(rgba(180, 180, 0, 0.5) 0.3px 0px 1px)'}}>
-                    <rect id={'rect-'+match.log[l]} x="13" y="16" fill={f} stroke={s} strokeWidth={0.35} height="3" width="20"/>
-                    {text(16,17.8,0,2,0,notes.length%2===0?'#fff':'#000','#888',(notes.length%2===0?'#80f':'#f80')+' 0.2px 0.2px 0.5px',match.log[l].split('=')[0])}
-                </g>);
         }
         return notes;
     }
@@ -525,7 +554,7 @@ function Board({color, user, match, update, view, menu, command, serverUrl, flip
     }
 
     function menuSelect(item) { console.log('menuSelect('+item+')');
-        if (item.startsWith('edit-')) {
+        if (item.startsWith('edit-') || item.startsWith('ai-')) {
             if ((item.startsWith('edit-w-') || item.startsWith('edit-b-')) && !revMap[editor]) { console.log('init meta', editor, revMap[editor]);
                 [...document.getElementsByClassName('edit-b')].forEach(e=>e.setAttribute('fill','#f99'));
                 [...document.getElementsByClassName('edit-w')].forEach(e=>e.setAttribute('fill','#f99'));
@@ -567,6 +596,12 @@ function Board({color, user, match, update, view, menu, command, serverUrl, flip
                 case 'edit-details': command({order:'dialog', title:'Match Details', details:true, ok:true}); break;
                 case 'edit-clear': update({id:0, name:'offline', white:{pieces:['Kc44'], time:300}, black:{pieces:['Ka41'], time:300}, log:[], type:{game:300, move:15}}); return;
                 case 'edit-flip': command({order:'flip'}); break;
+                case 'ai-veryeasy': command({order:'cpu', level:1}); break;
+                case 'ai-easy': command({order:'cpu', level:2}); break;
+                case 'ai-medium': command({order:'cpu', level:3}); break;
+                case 'ai-hard': command({order:'cpu', level:4}); break;
+                case 'ai-veryhard': command({order:'cpu', level:5}); break;
+                case 'ai-best': command({order:'cpu', level:6}); break;
                 default: editor = ''; break;
             }
             editor = '';
@@ -595,6 +630,7 @@ function Board({color, user, match, update, view, menu, command, serverUrl, flip
             case 'items-puzzles': command({order:'menu', choice:'puzzles'}); break;
             case 'user-matches': command({order:'listMatches'}); break;
             case 'items-profile': command({order:'profile'}); break;
+            case 'items-resetboard': command({order:'setup'}); break;
             case 'match-save': command({order:'saveMatch', match:match}); break;
             case 'lesson-starthere': lesson('Intro'); break;
             case 'lesson-interface': lesson('Interface'); break;
@@ -619,12 +655,6 @@ function Board({color, user, match, update, view, menu, command, serverUrl, flip
             case 'match-openchallenge': command({order:'dialog', title:'Open Challenge', text:['Only opponents within 200 points of your rank will be allowed to accept your challenge.'], challenge:true}); break;
             case 'match-delete': command({order:'dialog', title:'Delete Match', text:['h1:::'+match.name], yesno:true, openId:match.ID}); break;
             //case 'edit-trash': edit('trash'); break;
-            case 'ai-veryeasy': command({order:'cpu', level:1}); break;
-            case 'ai-easy': command({order:'cpu', level:2}); break;
-            case 'ai-medium': command({order:'cpu', level:3}); break;
-            case 'ai-hard': command({order:'cpu', level:4}); break;
-            case 'ai-veryhard': command({order:'cpu', level:5}); break;
-            case 'ai-best': command({order:'cpu', level:6}); break;
             default: lesson('Unimplemented'); break;
         } // end menu not starts with...
     }

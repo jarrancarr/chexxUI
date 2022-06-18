@@ -5,14 +5,16 @@ import GoogleLogin from 'react-google-login';
 import './App.css';
 import Board from "./Board"
 import Pieces from "./Pieces"
-import { clear, hilite, movePiece, analyse } from './res';
+import { clear, hilite, movePiece, analyse, getPiece } from './res';
 
 let onHint = 0;
 let lesson = {};
+const serverUrl = 'http://localhost:8000';
 // const serverUrl = 'http://192.168.1.152:8000';
-const serverUrl = 'http://96.231.58.180:6085';
+// const serverUrl = 'http://96.231.58.180:6085';
 const zoomed = false;
 let tutor = '';
+let history = -1;
 
 function App() { console.log('App');
   const [match, update] = React.useState({id:0, name:'offline', white:{pieces:['Rd54', 'Rd5', 'Rc52', 'Nd53', 'Nd51', 'Nc33', 'Bc53', 'Bc55', 'Bd52', 'Qd41', 'Kc44', 'Id31', 'Ed4', 'Pd55', 'Pd44', 'Pd33', 'Pd21', 'Pc22', 'Pc31', 'Pc41', 'Pc51', 'Sd43', 'Sd32', 'Sd2', 'Sc32', 'Sc42', 'Ad42', 'Ad3', 'Ac43'], time:300}, black:{pieces:['Ra5', 'Rf52', 'Ra54', 'Nf53', 'Nf55', 'Na31', 'Ba53', 'Ba51', 'Bf54', 'Qf44', 'Ka41', 'If33', 'Ea4', 'Pf51', 'Pf41', 'Pf31', 'Pf22', 'Pa21', 'Pa33', 'Pa44', 'Pa55', 'Sf42', 'Sf32', 'Sa2', 'Sa32', 'Sa43', 'Af43', 'Aa3', 'Aa42'], time:300}, log:[], type:{game:300, move:15}});
@@ -48,6 +50,8 @@ function App() { console.log('App');
       case 'menu' : setBoard(data.choice); break;
       case 'users' : setBoard(data.choice); break;
       case 'cpu' : cpuMove(data.level); break;
+      case 'rewind' : goBack(data.event); break;
+      case 'setup' : newGame(); break;
       case 'saveMatch' : saveMatch(data.match); break;
       case 'loadMatch' : loadMatch(data.id); break;
       case 'listMatches' : listMatches(); break;
@@ -84,6 +88,20 @@ function App() { console.log('App');
       break;
       default: break;
     }
+  }
+
+  function goBack(event) { // console.log('goBack',event, match.log.length);
+    const copyMatch = {id:0, name:'offline', white:{pieces:['Rd54', 'Rd5', 'Rc52', 'Nd53', 'Nd51', 'Nc33', 'Bc53', 'Bc55', 'Bd52', 'Qd41', 'Kc44', 'Id31', 'Ed4', 'Pd55', 'Pd44', 'Pd33', 'Pd21', 'Pc22', 'Pc31', 'Pc41', 'Pc51', 'Sd43', 'Sd32', 'Sd2', 'Sc32', 'Sc42', 'Ad42', 'Ad3', 'Ac43'], time:300}, black:{pieces:['Ra5', 'Rf52', 'Ra54', 'Nf53', 'Nf55', 'Na31', 'Ba53', 'Ba51', 'Bf54', 'Qf44', 'Ka41', 'If33', 'Ea4', 'Pf51', 'Pf41', 'Pf31', 'Pf22', 'Pa21', 'Pa33', 'Pa44', 'Pa55', 'Sf42', 'Sf32', 'Sa2', 'Sa32', 'Sa43', 'Af43', 'Aa3', 'Aa42'], time:300}, log:[], type:{game:300, move:15}};
+    for (const l in match.log) {
+      if (l < event +1) {
+        const mvs = match.log[l].trim('+').split(/[x~]/);
+        movePiece(copyMatch, null, mvs[0], mvs[1])
+      }
+    }
+    copyMatch.log = match.log;
+    history = event===match.log.length-1?-1:event;
+    setMode(event===match.log.length-1?'offline':'history');
+    update(copyMatch);
   }
 
   function cpuMove(level) {
@@ -555,8 +573,8 @@ function App() { console.log('App');
 
   return (
     <div className="App Full">
-      <Board color={['#555','#aaa','#111']} user={user} match={match} menu={state} update={update} view={view} command={cmd} serverUrl={serverUrl} flip={flip} mode={mode}/>
-      { (mode === 'offline' || mode === 'tutor' || mode === 'match') &&  <Pieces white={match.white.pieces} black={match.black.pieces} light={flip?"#012":"#eeb"} dark={flip?"#eeb":"#012"} view={view} flip={flip}/>}
+      <Board color={['#555','#aaa','#111']} user={user} match={match} menu={state} update={update} view={view} command={cmd} serverUrl={serverUrl} flip={flip} mode={mode} history={history}/>
+      { (mode === 'history' || mode === 'offline' || mode === 'tutor' || mode === 'match') &&  <Pieces white={match.white.pieces} black={match.black.pieces} light={flip?"#012":"#eeb"} dark={flip?"#eeb":"#012"} view={view} flip={flip}/>}
       { mode === 'dialog' && showDialog(dialog) }
       { mode === 'tutor' && teacher() }
       { mode === 'profile' && profile() }

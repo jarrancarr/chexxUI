@@ -5,12 +5,12 @@ import GoogleLogin from 'react-google-login';
 import './App.css';
 import Board from "./Board"
 import Pieces from "./Pieces"
-import { clear, hilite, movePiece, analyse, getPiece } from './res';
+import { clear, hilite, movePiece, analyse } from './res';
 
 let onHint = 0;
 let lesson = {};
-const serverUrl = 'http://localhost:8000';
-// const serverUrl = 'http://192.168.1.152:8000';
+// const serverUrl = 'http://localhost:8000';
+const serverUrl = 'http://192.168.1.152:8000';
 // const serverUrl = 'http://96.231.58.180:6085';
 const zoomed = false;
 let tutor = '';
@@ -71,7 +71,7 @@ function App() { console.log('App');
             if (check[0][3]) { // action taken
               switch(check[0][3]) {
                 case '~' : tutor = data.here; hilite([data.here],"stroke","#00f"); break;
-                case '-' : movePiece(match, null,tutor,data.here); // move piece 
+                case '-' : movePiece(match, null,[tutor,data.here]); // move piece 
                   tutor = '';
                   break;
                 default: break;
@@ -95,7 +95,7 @@ function App() { console.log('App');
     for (const l in match.log) {
       if (l < event +1) {
         const mvs = match.log[l].trim('+').split(/[x~]/);
-        movePiece(copyMatch, null, mvs[0], mvs[1])
+        movePiece(copyMatch, null, mvs)
       }
     }
     copyMatch.log = match.log;
@@ -112,11 +112,14 @@ function App() { console.log('App');
       body: JSON.stringify(match)
     }).then(response => response.json() )
       .then(data => {
-        let copyMatch = {...match};
-        const board = analyse(match); 
-        const movs = data.move.split('~');
-        movePiece(copyMatch, board, movs[0], movs[1]);
-        update(copyMatch);
+        if (data.move === 'Checkmate') console.log("That was checkmate..");
+        else if (data.move === 'Stalemate') console.log("That was stalemate..");
+        else {
+          let copyMatch = {...match};
+          const board = analyse(match); 
+          movePiece(copyMatch, board, data.move.split('~'));
+          update(copyMatch);
+        }
       }
     );
   }
@@ -152,7 +155,6 @@ function App() { console.log('App');
           else setMode("offline");
           turn(data.match.black.player && data.match.black.player.ID === user.ID);
           update(data.match); 
-          resume(); 
         } else cmd({order:'dialog', title:'Error', text:['h2:::'+data.message]});
       });
   }

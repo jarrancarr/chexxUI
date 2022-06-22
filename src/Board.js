@@ -9,7 +9,7 @@ import {whiteMove, hilite, movePiece, swapPieces, analyse,isOnBoard, clear, text
 let move = '';
 let editor = '';
 
-function Board({color, user, match, update, view, menu, command, serverUrl, flip, mode, history}) { // console.log('Board: match:', match);
+function Board({color, user, match, update, view, menu, command, serverUrl, flip, mode, history}) { console.log('Board: match:', menu, mode);
 
     let first = ''; // selection of piece
     const board = analyse(match);  // console.log('board',board);
@@ -87,7 +87,6 @@ function Board({color, user, match, update, view, menu, command, serverUrl, flip
         ui.push(text(x,y,0,1.5 ,0.01,'#000','#500','#000000ff 0.2px 0.2px 0.25px','.'+move.replace('~','~ ').replace('x','x '))); // x,y,r,sz,w,fc,sc,ds,text
         return ui;
     }
-
     function offline() {
         const ui = [];
         let x=80;
@@ -96,13 +95,12 @@ function Board({color, user, match, update, view, menu, command, serverUrl, flip
         ui.push(text(x,y,-28,2,0.01,'#fff','#500','#ff0000ff 0.2px 0.2px 0.25px',menu==='edit'?'.play':'.edit')); // x,y,r,sz,w,fc,sc,ds,text
         
         x=5;
-        y=80;
+        y=20;
         ui.push(<path key="commit" id="commit" transform={'translate('+x+','+y+') rotate(27,0,0) scale('+2+')'} fill="#8af" stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=> { command({order:'menu', choice:'cpu'}); move=''; }} d="M -1.7 -1 L 0 -2 L 1.7 -1 V 1 L 0 2 L -1.7 1 Z"></path>);
         ui.push(text(x,y,0,2.0 ,0.01,'#000','#500','#000000ff 0.2px 0.2px 0.25px','..CPU')); // x,y,r,sz,w,fc,sc,ds,text
         
         return ui;
     }
-
     function tiles() {
         const hex = [];    
         for (let i = 0; i<13; i++) {
@@ -146,7 +144,6 @@ function Board({color, user, match, update, view, menu, command, serverUrl, flip
             first = here;
         }
     }
-
     function specialMoves(pos) { // console.log('specialMoves', pos); // console.trace();
         if (!board.occupants[pos]) return [false, false];
         const p = board.occupants[pos];
@@ -157,7 +154,6 @@ function Board({color, user, match, update, view, menu, command, serverUrl, flip
         return [!((att[pos] && att[pos][(1-dir)/2].length>0) || (cov[fm] && cov[fm][(1-dir)/2].length>0) || occ[fm]), 
         !((occ[flf] && occ[flf][0]!==p[0]) || (occ[frf] && occ[frf][0]!==p[0]) || (occ[lda] && occ[lda][0]!==p[0]) || (occ[rda] && occ[rda][0]!==p[0]) || occ[fm])];
     }
-
     function getChain(pos, left, right) { // console.log('getChain',pos, left, right, board);
         const muster=['',''];
         const switchArms=['',''];
@@ -198,7 +194,6 @@ function Board({color, user, match, update, view, menu, command, serverUrl, flip
         } // console.log('muster,switchArms',muster,switchArms);
         return [muster,switchArms];
     }
-
     function hexClicked(here) { // console.log('hexClicked  first:',first, '  here',here);
         if (history>-1) return;
         if (flip) here = flipped(here);
@@ -275,8 +270,9 @@ function Board({color, user, match, update, view, menu, command, serverUrl, flip
                                 copyMatch.black.pieces[idx]=match.black.pieces[idx][0]+fm;
                     }
                 }
-                if (!move) move = '^^^^^^^^^'.substring(0,left)+here+'^^^^^^^^'.substring(0,right)
-                copyMatch.log.push('^^^^^^^^^'.substring(0,left)+here+'^^^^^^^^'.substring(0,right));
+                if (whiteMove(match)) move = '^^^^^^^^^'.substring(0,left)+first+'^^^^^^^^'.substring(0,right)
+                else move = 'vvvvvvvvv'.substring(0,left)+first+'vvvvvvvvv'.substring(0,right)
+                copyMatch.log.push(move);
                 update(copyMatch);
             } else if (here===formation[0]) { // console.log('switch arms');
                 const copyMatch = {...match};
@@ -292,8 +288,8 @@ function Board({color, user, match, update, view, menu, command, serverUrl, flip
                                 copyMatch.black.pieces[idx]=(match.black.pieces[idx][0]==='P'?'S':'P')+ps;
                     }
                 }
-                if (!move) move ='%%%%%%%%'.substring(0,left)+here+'%%%%%%%%'.substring(0,right);
-                copyMatch.log.push('%%%%%%%%'.substring(0,left)+here+'%%%%%%%%'.substring(0,right));
+                if (!move) move ='#########'.substring(0,left)+here+'#########'.substring(0,right);
+                copyMatch.log.push('#########'.substring(0,left)+here+'#########'.substring(0,right));
                 update(copyMatch);
             } else { // console.log('add soldier');
                 const [m,sa] = getChain(here, true, true); //console.log(m,sa);
@@ -339,7 +335,7 @@ function Board({color, user, match, update, view, menu, command, serverUrl, flip
                 // console.log('moves',moves); console.log('attacks',attacks); console.log('attacked, covered',attacked, covered);
             } else { // console.log('second selection');  // piece had already been chosen...
                 const me = board.occupants[here];
-                if (first === here && me[0]===(whiteMove(match)?'w':'b') && (me[1]==='P' || me[1]==='S')) { console.log('init special moves');  // select piece again.... special moves
+                if (first === here && me[0]===(whiteMove(match)?'w':'b') && (me[1]==='P' || me[1]==='S')) { // console.log('init special moves');  // select piece again.... special moves
                     const [canMarch, swArms] = specialMoves(here);
                     const [m,sa] = getChain(here, true, true); //console.log('muster, switchArms',muster, switchArms)
                     formation = [here]
@@ -360,12 +356,10 @@ function Board({color, user, match, update, view, menu, command, serverUrl, flip
                 } else if (board.moves[first][1].includes(here) || board.attacks[first][1].includes(here)) { // console.log('valid move');
                     let copyMatch = {...match};
                     const store = JSON.stringify(match);
-                    movePiece(copyMatch, board, first, here);
-                    // console.log('updating match',match)
+                    movePiece(copyMatch, board, [first, here]);
                     const look = analyse(copyMatch);
                     if ((!look.whiteInCheck && !look.blackInCheck)
-                        ||(look.whiteInCheck && whiteMove(copyMatch))
-                        ||(look.blackInCheck && !whiteMove(copyMatch))) {
+                        || ((!look.whiteInCheck || whiteMove(copyMatch)) && (!look.blackInCheck || !whiteMove(copyMatch)))) {
                             if (!move) move = copyMatch.log[copyMatch.log.length-1];
                             update(copyMatch);
                     } else match = JSON.parse(store);
@@ -388,12 +382,12 @@ function Board({color, user, match, update, view, menu, command, serverUrl, flip
                 ele.setAttribute('style', 'filter: drop-shadow(rgba('+(on?'255, 255, 128, 0.99':'0, 0, 0, 0.0')+') 0px 0px 3px)');
                 ele.setAttribute('stroke', on?'#fff':'#000');
                 ele.setAttribute('stroke-width', on?'0.2':'0.1');
-                e.target.setAttribute('x',on?8:13);
-                e.target.nextSibling.firstChild.setAttribute('x',on?9:14);
             }
         }
+        e.target.setAttribute('x',on?8:13);
+        e.target.nextSibling.firstChild.setAttribute('x',on?9:14);
     }
-    function ledger(match) { console.log('ledger', history);
+    function ledger(match) { // console.log('ledger', history);
         if (!match) return [];
         const ledge = history>-1?31:63;
         const notes = [];
@@ -408,7 +402,7 @@ function Board({color, user, match, update, view, menu, command, serverUrl, flip
         if (start>10) fade = start-10;
 
 
-        if (history>-1) {
+        if (history>-1) { // future events
             for (let l=end;l<end+25;l++) {
                 if (l<match.log.length) {
                     let t = "rotate("+(-l+end-1)*5+", 50, 50)";
@@ -417,11 +411,11 @@ function Board({color, user, match, update, view, menu, command, serverUrl, flip
                     notes.push(
                         <g key={'log-'+l} transform={t} onMouseOver={(e) => highlight(e, match.log[l],true)} onMouseLeave={(e) => highlight(e, match.log[l],false)} onClick={()=>command({order:'rewind', event:l})} style={{ filter: 'drop-shadow(rgba(180, 180, 0, 0.5) 0.3px 0px 1px)'}}>
                             <rect id={'rect-'+match.log[l]} x="13" y="16" fill={f} stroke={s} strokeWidth={0.35} height="3" width="20"/>
-                            {text(16,17.8,0,2,0,notes.length%2===0?'#fff':'#000','#888',(notes.length%2===0?'#80f':'#f80')+' 0.2px 0.2px 0.5px',match.log[l].split('=')[0])}
+                            {text(16,17.8,0,2,0,l%2===0?'#fff':'#000','#888',(notes.length%2===0?'#80f':'#f80')+' 0.2px 0.2px 0.5px',match.log[l].split('=')[0])}
                         </g>);
                 }
             }
-            for (let l=end+25;l<end+32;l++) {
+            for (let l=end+25;l<end+32;l++) { // fade out future
                 if (l<match.log.length) {
                     let t = "rotate("+(-l+end-1)*5+", 50, 50)";
                     let f ='#444';
@@ -429,7 +423,7 @@ function Board({color, user, match, update, view, menu, command, serverUrl, flip
                     notes.push(
                         <g key={'log-'+l} transform={t} opacity={(7-l+end+25)/7} onMouseOver={(e) => highlight(e, match.log[l],true)} onMouseLeave={(e) => highlight(e, match.log[l],false)} onClick={()=>command({order:'rewind', event:l})} style={{ filter: 'drop-shadow(rgba(180, 180, 0, 0.5) 0.3px 0px 1px)'}}>
                             <rect id={'rect-'+match.log[l]} x="13" y="16" fill={f} stroke={s} strokeWidth={0.35} height="3" width="20"/>
-                            {text(16,17.8,0,2,0,notes.length%2===0?'#fff':'#000','#888',(notes.length%2===0?'#80f':'#f80')+' 0.2px 0.2px 0.5px',match.log[l].split('=')[0])}
+                            {text(16,17.8,0,2,0,l%2===0?'#fff':'#000','#888',(l%2===0?'#80f':'#f80')+' 0.2px 0.2px 0.5px',match.log[l].split('=')[0])}
                         </g>);
                 }
             }
@@ -437,23 +431,23 @@ function Board({color, user, match, update, view, menu, command, serverUrl, flip
         }
         for (let l=start;l<end;l++) {
             let t = "rotate("+(-l+end-1)*5+", 50, 50)";
-            let f = match.log[l].indexOf('x')>0?"#a55":"#363";
+            let f = l===end-1?"#99f":match.log[l].indexOf('x')>0?"#a55":"#363";
             let s = match.log[l].indexOf('+')>0?"#ff3":"#666";
             notes.push(
                 <g key={'log-'+l} transform={t} onMouseOver={(e) => highlight(e, match.log[l],true)} onMouseLeave={(e) => highlight(e, match.log[l],false)} onClick={()=>command({order:'rewind', event:l})} style={{ filter: 'drop-shadow(rgba(180, 180, 0, 0.5) 0.3px 0px 1px)'}}>
                     <rect id={'rect-'+match.log[l]} x="13" y="16" fill={f} stroke={s} strokeWidth={0.35} height="3" width="20"/>
-                    {text(16,17.8,0,2,0,notes.length%2===0?'#fff':'#000','#888',(notes.length%2===0?'#80f':'#f80')+' 0.2px 0.2px 0.5px',match.log[l].split('=')[0])}
+                    {text(16,17.8,0,2,0,l%2===0?'#fff':'#000','#888',(l%2===0?'#80f':'#f80')+' 0.2px 0.2px 0.5px',match.log[l].split('=')[0])}
                 </g>);
         }
         if (start>0) {
-            for (let l=fade;l<start;l++) {
+            for (let l=fade;l<start;l++) { // fade out past
                 let t = "rotate("+(-l+end-1)*5+", 50, 50)";
                 let f = match.log[l].indexOf('x')>0?"#a55":"#363";
                 let s = match.log[l].indexOf('+')>0?"#ff3":"#666";
                 notes.push(
                     <g key={'log-'+l} transform={t} opacity={(10+l-start)/10} onMouseOver={(e) => highlight(e, match.log[l],true)} onMouseLeave={(e) => highlight(e, match.log[l],false)} onClick={()=>command({order:'rewind', event:l})} style={{ filter: 'drop-shadow(rgba(180, 180, 0, 0.5) 0.3px 0px 1px)'}}>
                         <rect id={'rect-'+match.log[l]} x="13" y="16" fill={f} stroke={s} strokeWidth={0.35} height="3" width="20"/>
-                        {text(16,17.8,0,2,0,notes.length%2===0?'#fff':'#000','#888',(notes.length%2===0?'#80f':'#f80')+' 0.2px 0.2px 0.5px',match.log[l].split('=')[0])}
+                        {text(16,17.8,0,2,0,l%2===0?'#fff':'#000','#888',(l%2===0?'#80f':'#f80')+' 0.2px 0.2px 0.5px',match.log[l].split('=')[0])}
                     </g>);
             }
         }
@@ -550,11 +544,23 @@ function Board({color, user, match, update, view, menu, command, serverUrl, flip
     }
 
     function aiMenu() {
-        return makeMenu([['Very Easy',''],['Easy',''],['Medium',''],['Hard',''],['Very Hard',''],['Best','']],'ai', 124, 126, 8,2,1.3,'#5bb','#fff','#440');
+        return makeMenu([['Very Easy',''],['Easy',''],['Medium',''],['Hard',''],['Very Hard',''],['Best','']],'ai', 165, 168, 8,2,1.3,'#5bb','#fff','#440');
     }
 
     function menuSelect(item) { console.log('menuSelect('+item+')');
-        if (item.startsWith('edit-') || item.startsWith('ai-')) {
+        if (item.startsWith('ai-')) {
+            switch(item) {
+                case 'ai-veryeasy': command({order:'cpu', level:1}); break;
+                case 'ai-easy': command({order:'cpu', level:2}); break;
+                case 'ai-medium': command({order:'cpu', level:3}); break;
+                case 'ai-hard': command({order:'cpu', level:4}); break;
+                case 'ai-veryhard': command({order:'cpu', level:5}); break;
+                case 'ai-best': command({order:'cpu', level:6}); break;
+                default: editor = ''; break;            
+            }
+            return
+        }
+        if (item.startsWith('edit-')) {
             if ((item.startsWith('edit-w-') || item.startsWith('edit-b-')) && !revMap[editor]) { console.log('init meta', editor, revMap[editor]);
                 [...document.getElementsByClassName('edit-b')].forEach(e=>e.setAttribute('fill','#f99'));
                 [...document.getElementsByClassName('edit-w')].forEach(e=>e.setAttribute('fill','#f99'));
@@ -596,12 +602,6 @@ function Board({color, user, match, update, view, menu, command, serverUrl, flip
                 case 'edit-details': command({order:'dialog', title:'Match Details', details:true, ok:true}); break;
                 case 'edit-clear': update({id:0, name:'offline', white:{pieces:['Kc44'], time:300}, black:{pieces:['Ka41'], time:300}, log:[], type:{game:300, move:15}}); return;
                 case 'edit-flip': command({order:'flip'}); break;
-                case 'ai-veryeasy': command({order:'cpu', level:1}); break;
-                case 'ai-easy': command({order:'cpu', level:2}); break;
-                case 'ai-medium': command({order:'cpu', level:3}); break;
-                case 'ai-hard': command({order:'cpu', level:4}); break;
-                case 'ai-veryhard': command({order:'cpu', level:5}); break;
-                case 'ai-best': command({order:'cpu', level:6}); break;
                 default: editor = ''; break;
             }
             editor = '';
@@ -683,7 +683,7 @@ function Board({color, user, match, update, view, menu, command, serverUrl, flip
             <circle fill="#000" cx="50" cy="50" r="50"/>
             { clocks() }
             { user.userid && users() }
-            { mode !== 'offline' && move && commit() }
+            { mode === 'match' && move && commit() }
             { mode === 'offline' && offline() }
             { ledger(match) }
             { menu==='puzzles' && <g transform={'translate(50, 50)'}> { puzzles() } </g>}

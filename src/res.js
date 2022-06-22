@@ -31,14 +31,12 @@ function flipped(here) {
 function inStartPos(piece) { // console.log('inStartPos',piece);
     return 'wPd55 wPd44 wPd33 wPd21 wPc22 wPc31 wPc41 wPc51 wSd43 wSd32 wSd2 wSc32 wSc42 bPf51 bPf41 bPf31 bPf22 bPa21 bPa33 bPa44 bPa55 bSf42 bSf32 bSa2 bSa32 bSa43 '.includes(piece+' ');
 }
-
 function hilite(idList, what, to, flip) { //console.log('hilite',idList, what, to);
     for (const id of idList) {
         let ele = document.getElementById(flip?flipped(id.replace(/[ABEIKNPQRS]/, '')):id.replace(/[ABEIKNPQRS]/, ''));
         if (ele) ele.setAttribute(what, to);
     }
 }
-
 function whiteMove(match) {
     return match.log.length%2===0;
 }
@@ -53,7 +51,6 @@ function getPiece(match, here) { // console.log('getPiece', match, here);
     for (const p of match.black.pieces) if (p.substring(1)===h) return [p, false];
     return null;
 }
-
 function swapPieces(match, a, b) { // console.log('swapPieces',a,b);
     const p = getPiece(match, a); console.log('p',p);
     if (!p) return false;
@@ -76,27 +73,81 @@ function swapPieces(match, a, b) { // console.log('swapPieces',a,b);
     }
     return true;
 }
+function marchOn(match, pos, left, right) {  // console.log("marchOn", pos, left, right)
+    const p = getPiece(match, pos);
+    if (p[1]) { // white
+        const coord = revMap[p[0]].split('-');
+        const march = coord[0]+'-'+(parseInt(coord[1])-2);
+        movePiece(match, null, [p[0].substring(1), map[march]])
+        if (left > 0) {
+            const lp = getPiece(match,map[''+(parseInt(coord[0])-1)+'-'+(parseInt(coord[1])+1)]);
+            if (lp) marchOn(match, lp[0], left-1, 0);
+            else {
+                const ls = getPiece(match,map[''+(parseInt(coord[0])-1)+'-'+(parseInt(coord[1])+3)]);
+                if (ls) marchOn(match, ls[0], left-1, 0);
+            }
+        }
+        if (right > 0) {
+            const rp = getPiece(match,map[''+(parseInt(coord[0])+1)+'-'+(parseInt(coord[1])+1)]);
+            if (rp) marchOn(match, rp[0], 0, right-1);
+            else {
+                const rs = getPiece(match,map[''+(parseInt(coord[0])+1)+'-'+(parseInt(coord[1])+3)]);
+                if (rs) marchOn(match, rp[0], 0, right-1);
+            }
+        }
+    } else { // black
+        const coord = revMap[p[0].substring(1)].split('-');
+        const march = coord[0]+'-'+(parseInt(coord[1])+2);
+        movePiece(match, null, [p[0], map[march]])
+        if (left > 0) {
+            const lp = getPiece(match,map[''+(parseInt(coord[0])-1)+'-'+(parseInt(coord[1])-1)]);
+            if (lp) marchOn(match, lp[0], left-1, 0);
+            else {
+                const ls = getPiece(match,map[''+(parseInt(coord[0])-1)+'-'+(parseInt(coord[1])-3)]);
+                if (ls) marchOn(match, ls[0], left-1, 0);
+            }
+        }
+        if (right > 0) {
+            const rp = getPiece(match,map[''+(parseInt(coord[0])+1)+'-'+(parseInt(coord[1])-1)]);
+            if (rp) marchOn(match, rp[0], 0, right-1);
+            else {
+                const rs = getPiece(match,map[''+(parseInt(coord[0])+1)+'-'+(parseInt(coord[1])-3)]);
+                if (rs) marchOn(match, rs[0], 0, right-1);
+            }
+        }
 
-function movePiece(match, board,first,second) { // console.log('movePiece(match,', board,first,second,')');
-    const here = second.replace(/[PSARBNKQIE]/,'');
-    const p = getPiece(match, first); // console.log('p',p);
-    const q = getPiece(match, here); // console.log('q',q);
-    if (p[1]) { // console.log('looking for',here,'in',match.black.pieces);
-        // if pinned and not attacking skewerer... return
-        const skewer = board?board.pinned.filter(p=>p[0]===first)[0]:false;
-        if (skewer && skewer[1] !== q[0]) return;
-        const index = match.white.pieces.indexOf(p[0]);
-        match.white.pieces[index]=p[0][0]+here;
-        match.log.push(p[0]+(match.black.pieces.filter(f => f.substring(1)===here).length>0?'x':'~')+(q?q[0]:here));
-        match.black.pieces = match.black.pieces.filter(f => f.substring(1)!==here);
-    } else { // console.log('looking for',here,'in',match.white.pieces);
-        const index = match.black.pieces.indexOf(p[0]);
-        const skewer = board?board.pinned.filter(p=>p[0]===first)[0]:false;
-        if (skewer && skewer[1] !== q[0]) return;
-        // if (board.pinned.filter(p=>p[0]===first && p[1]!==q[0])) console.log('pinned piece dint attack skewer!');
-        match.black.pieces[index]=p[0][0]+here;
-        match.log.push(p[0]+(match.white.pieces.filter(f => f.substring(1)===here).length>0?'x':'~')+(q?q[0]:here));
-        match.white.pieces = match.white.pieces.filter(f => f.substring(1)!==here);
+    }
+}
+function movePiece(match, board, hexs) { // console.log('movePiece(match,', hexs,')');
+    if (hexs.length === 1) { // formation moves
+        const temp = [...match.log]
+        const pos = hexs[0].match(/[/abcdef*]\d*/)[0];
+        const leftright = hexs[0].split(pos);
+        marchOn(match, pos, leftright[0].length, leftright[1].length);
+        match.log = [...temp]
+        match.log.push(hexs[0]);
+    } else {
+        const pos0 = hexs[0].replace(/[PSARBNKQIE]/,'');
+        const pos1 = hexs[1].replace(/[PSARBNKQIE]/,'');
+        const p = getPiece(match, hexs[0]); // console.log('p',p);
+        const q = getPiece(match, hexs[1]); // console.log('q',q);
+        if (p[1]) { // console.log('looking for',here,'in',match.black.pieces);
+            // if pinned and not attacking skewerer... return
+            const skewer = board?board.pinned.filter(p=>p[0]===pos0)[0]:false;
+            if (skewer && skewer[1] !== q[0]) return;
+            const index = match.white.pieces.indexOf(p[0]);
+            match.white.pieces[index]=p[0][0]+pos1;
+            match.log.push(p[0]+(match.black.pieces.filter(f => f.substring(1)===pos1).length>0?'x':'~')+(q?q[0]:pos1));
+            match.black.pieces = match.black.pieces.filter(f => f.substring(1)!==pos1);
+        } else { // console.log('looking for',pos1,'in',match.white.pieces);
+            const index = match.black.pieces.indexOf(p[0]);
+            const skewer = board?board.pinned.filter(p=>p[0]===pos0)[0]:false;
+            if (skewer && skewer[1] !== q[0]) return;
+            // if (board.pinned.filter(p=>p[0]===pos0 && p[1]!==q[0])) console.log('pinned piece dint attack skewer!');
+            match.black.pieces[index]=p[0][0]+pos1;
+            match.log.push(p[0]+(match.white.pieces.filter(f => f.substring(1)===pos1).length>0?'x':'~')+(q?q[0]:pos1));
+            match.white.pieces = match.white.pieces.filter(f => f.substring(1)!==pos1);
+        }
     }
 }
 function clear() {
@@ -132,15 +183,18 @@ function slide(piece,occupants,direction) { // console.log('slide',piece,occupan
             const occupant = occupants[loc];
             if (!occupant) moves.push(loc);
             else {
-                go = false;
                 if (occupant[0]!==piece[0]) {
                     attacks.push(loc);
-                    for (let cont = [pos[0]+d[0],pos[1]+d[1]];isOnBoard(cont[0],cont[1]);cont=[cont[0]+d[0],cont[1]+d[1]]) {
+                    for (let cont = [pos[0]+d[0],pos[1]+d[1]];isOnBoard(cont[0],cont[1])&&go;cont=[cont[0]+d[0],cont[1]+d[1]]) {
                         const isKing = occupants[map[cont.join('-')]];
                         //console.log('isKing',isKing);
-                        if (isKing && isKing[1]==='K') pinned.push([loc, piece.substring(1),d[0],d[1]]);
+                        if (isKing) {
+                            if (isKing[1]==='K') pinned.push([loc, piece.substring(1),d[0],d[1]]);
+                            go = false;
+                        }
     }   }   }   }   }
     //console.log('    slide moves',moves,'    attacks',attacks,'    pinned',pinned);
+    //console.log('    occupants:', occupants);
     return [moves, attacks, pinned];
 }
 function jump(piece,occupants,direction) { //console.log('jump',piece,occupants,direction);
@@ -290,23 +344,23 @@ function analyse(match){ // console.log('analyse', match);
         }
     }
     if (get('wK',match).length>0) {
-        const wKing = get('wK',match)[0].substring(1); // console.log('white king is at',wKing);
+        const wKing = get('wK',match)[0].substring(1); 
         if (wKing.length>0 && board.attacked[wKing] && board.attacked[wKing][1].length>0) {
             board.whiteInCheck=true;
-            if (!surrounded(match, board, wKing, true)) return board;
-            console.log('board.attacked[wKing][1].length',board.attacked[wKing][1].length);
-            if (killAttacker(match, board, wKing, true)) return board;
-            board.mate = true;
+            // if (!surrounded(match, board, wKing, true)) return board;
+            // console.log('board.attacked[wKing][1].length',board.attacked[wKing][1].length);
+            // if (killAttacker(match, board, wKing, true)) return board;
+            // board.mate = true;
         }
     }
     if (get('bK',match).length>0) {
         const bKing = get('bK',match)[0].substring(1); // console.log('black king is at',bKing);
         if (bKing.length>0 && board.attacked[bKing] && board.attacked[bKing][0].length>0) {
             board.blackInCheck=true;
-            if (!surrounded(match, board, bKing, false)) return board;
-            if (board.attacked[bKing][0].length===1){ // console.log('One attacker');
-                if (killAttacker(match, board, bKing, false)) return board;
-            }
+            // if (!surrounded(match, board, bKing, false)) return board;
+            // if (board.attacked[bKing][0].length===1){ // console.log('One attacker');
+            //     if (killAttacker(match, board, bKing, false)) return board;
+            // }
             board.mate = true;
         }
     }

@@ -1,7 +1,7 @@
 import Piece from "./Piece";
 import {revMap} from './res';
 
-function place(w, b, l, d, f) { // console.log('place',w, b, l, d);
+function place(w, b, l, d, f) { console.log('place',w, b, l, d);
     const set = [];
     for (let wp of w) { 
         const xy = revMap[wp.substring(1)].split('-');

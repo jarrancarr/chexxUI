@@ -89,7 +89,6 @@ function App() { console.log('App');
       default: break;
     }
   }
-
   function goBack(event) { // console.log('goBack',event, match.log.length);
     const copyMatch = {id:0, name:'offline', white:{pieces:['Rd54', 'Rd5', 'Rc52', 'Nd53', 'Nd51', 'Nc33', 'Bc53', 'Bc55', 'Bd52', 'Qd41', 'Kc44', 'Id31', 'Ed4', 'Pd55', 'Pd44', 'Pd33', 'Pd21', 'Pc22', 'Pc31', 'Pc41', 'Pc51', 'Sd43', 'Sd32', 'Sd2', 'Sc32', 'Sc42', 'Ad42', 'Ad3', 'Ac43'], time:300}, black:{pieces:['Ra5', 'Rf52', 'Ra54', 'Nf53', 'Nf55', 'Na31', 'Ba53', 'Ba51', 'Bf54', 'Qf44', 'Ka41', 'If33', 'Ea4', 'Pf51', 'Pf41', 'Pf31', 'Pf22', 'Pa21', 'Pa33', 'Pa44', 'Pa55', 'Sf42', 'Sf32', 'Sa2', 'Sa32', 'Sa43', 'Af43', 'Aa3', 'Aa42'], time:300}, log:[], type:{game:300, move:15}};
     for (const l in match.log) {
@@ -103,7 +102,6 @@ function App() { console.log('App');
     setMode(event===match.log.length-1?'offline':'history');
     update(copyMatch);
   }
-
   function cpuMove(level) {
     fetch(serverUrl+'/match/cpu/'+level,{
       mode: 'cors',
@@ -123,7 +121,6 @@ function App() { console.log('App');
       }
     );
   }
-
   function commitMove(move) {
     console.log('commit move',move,'to match id',match.ID);
     fetch(serverUrl+'/match/move/'+match.ID,{
@@ -254,7 +251,6 @@ function App() { console.log('App');
         cmd({order:'dialog',title:'Error', text:['h3:::Server error.', ''+error]})
       });
   }
-
   const responseFacebook = (response) => { // console.log("responseFacebook", response);
     response.id = parseInt(response.id);
     fetch(serverUrl+'/user/facebook',{
@@ -266,7 +262,6 @@ function App() { console.log('App');
     .then(data => cmd({order:'login',user:data}));
     // setMode('profile');
   }
-
   const responseGoogle = (response) => { // console.log("responseGoogle", response);
     // fetch(serverUrl+'/user',{
     //   mode: 'cors',
@@ -277,13 +272,12 @@ function App() { console.log('App');
     // .then(data => cmd({order:'login',user:data}));
     //setMode('profile');
   }
-
   function yes() { // console.log('yes',dialog);
     switch (dialog.title) {
-      case 'New Game vs AI?': newGame(); break;
-      case 'Log out?': chexxLogout(); break;
-      case 'Accept Challenge?': accept(); break;
-      case 'Delete Match': deleteMatch(); break;
+      case 'New Game vs AI?': newGame(); resume(); break;
+      case 'Log out?': chexxLogout(); resume(); break;
+      case 'Accept Challenge?': accept(); resume(); break;
+      case 'Delete Match': deleteMatch(); resume(); break;
       // case '': break;
       // case '': break;
       // case '': break;
@@ -291,9 +285,7 @@ function App() { console.log('App');
     }
     
   }
-  function no() {
-    resume();
-  }
+  function no() { resume(); }
   function ok() {
     switch (dialog.title) {
       case 'Match Details':
@@ -315,7 +307,6 @@ function App() { console.log('App');
     update({id:0, name:'offline', white:{pieces:['Rd54', 'Rd5', 'Rc52', 'Nd53', 'Nd51', 'Nc33', 'Bc53', 'Bc55', 'Bd52', 'Qd41', 'Kc44', 'Id31', 'Ed4', 'Pd55', 'Pd44', 'Pd33', 'Pd21', 'Pc22', 'Pc31', 'Pc41', 'Pc51', 'Sd43', 'Sd32', 'Sd2', 'Sc32', 'Sc42', 'Ad42', 'Ad3', 'Ac43'], time:300}, black:{pieces:['Ra5', 'Rf52', 'Ra54', 'Nf53', 'Nf55', 'Na31', 'Ba53', 'Ba51', 'Bf54', 'Qf44', 'Ka41', 'If33', 'Ea4', 'Pf51', 'Pf41', 'Pf31', 'Pf22', 'Pa21', 'Pa33', 'Pa44', 'Pa55', 'Sf42', 'Sf32', 'Sa2', 'Sa32', 'Sa43', 'Af43', 'Aa3', 'Aa42'], time:300}, log:[], type:{game:300, move:15}});
     resume();
   }
-
   function resume() { setMode('offline'); }
 
   function openChallenge() {
@@ -340,8 +331,7 @@ function App() { console.log('App');
         console.log(error);
         cmd({order:'dialog',title:'Error', text:['h3:::Server error.', ''+error]})
       });
-  }
- 
+  } 
   function loginForm() {
     const form = [];
     form.push(<div className='subPanel'><FacebookLogin appId="1326440067839844" autoLoad={false} fields="name,email,picture" callback={responseFacebook}/></div>);
@@ -406,7 +396,6 @@ function App() { console.log('App');
       </div>
     );
   }
-
   function chexxLogin() { // console.log('chexxLogin');
     const user = {userid:document.getElementById('loginName').value, password:document.getElementById('loginPassword').value};
     if (user.userid && user.password) {
@@ -421,7 +410,6 @@ function App() { console.log('App');
       document.getElementById('chexxLogin').style.border='2px solid #f00';
     }
   }
-
   function chexxLogout() {
     fetch(serverUrl+'/user/logout',{
       mode: 'cors',
@@ -436,7 +424,6 @@ function App() { console.log('App');
       cmd({order:'dialog',title:'Error', text:['h3:::Syntax error.']})
     });
   }
-
   function chexxRegister() { // console.log('chexxRegister');
     function warn(m) { const e = document.getElementById('registrationError'); e.style.border='2px solid #f00'; e.innerHTML=m; }
     const user = {
@@ -495,7 +482,6 @@ function App() { console.log('App');
     }
     scribble(sketch);
   }
-
   function hint() {
     const sketch = [];
     const h = lesson.step[idx].hint[onHint].split('||');
@@ -503,8 +489,7 @@ function App() { console.log('App');
     sketch.push(<text id='critique' x={hAttr[0]} y={hAttr[1]} className='noMouse' fontFamily="Verdana" fontSize={hAttr[2]} fill={hAttr[3]} style={{filter: 'drop-shadow('+hAttr[4]+' 1px 1px 2px)'}}>{h[0]}</text>);
     scribble(sketch);
     onHint += 1;
-  }
-  
+  }  
   function textOut(dat) { // console.log('textOut', dat);
     const text=[];
     let index = 0;
@@ -524,10 +509,8 @@ function App() { console.log('App');
     }
     return text;
   }
-
   function tdr(txt) { return <td className='right'>{txt}</td>; }
   function tdl(txt) { return <td className='left'>{txt}</td>; }
-
   function profile() { // console.log("profile",user);
     const table = [<table><tbody>
       <tr>{tdr('User Name:')}{tdl(user.userid)}{tdr('Email:')}{tdl(user.email)}</tr>

@@ -27,9 +27,11 @@ function flipped(here) {
     const flip = coord[0]+'-'+(24-parseInt(coord[1]));
     return map[flip];
 }
-
 function inStartPos(piece) { // console.log('inStartPos',piece);
     return 'wPd55 wPd44 wPd33 wPd21 wPc22 wPc31 wPc41 wPc51 wSd43 wSd32 wSd2 wSc32 wSc42 bPf51 bPf41 bPf31 bPf22 bPa21 bPa33 bPa44 bPa55 bSf42 bSf32 bSa2 bSa32 bSa43 '.includes(piece+' ');
+}
+function inPromotePos(piece) {
+    return 'f5 f51 f52 f53 f54 f55 a5 a51 a52 a53 a54 a55 b5 c5 c51 c52 c53 c54 c55 d5 d51 d52 d53 d54 d55 e5 '.includes(piece+' ');
 }
 function hilite(idList, what, to, flip) { //console.log('hilite',idList, what, to);
     for (const id of idList) {
@@ -45,10 +47,10 @@ function get(who, match) { // console.log('get(',who,')');
     else return match.black.pieces.filter(f => f[0]===who[1]);
 
 }
-function getPiece(match, here) { // console.log('getPiece', match, here);
+function getPiece(match, here) { console.log('getPiece', match, here);
     const h = here.replace(/[PSARBNKQIE]/,'');
-    for (const p of match.white.pieces) if (p.substring(1)===h) return [p, true];
-    for (const p of match.black.pieces) if (p.substring(1)===h) return [p, false];
+    for (const p in match.white.pieces) if (match.white.pieces[p].substring(1)===h) return [match.white.pieces[p], true, p];
+    for (const p in match.black.pieces) if (match.black.pieces[p].substring(1)===h) return [match.black.pieces[p], false, p];
     return null;
 }
 function swapPieces(match, a, b) { // console.log('swapPieces',a,b);
@@ -73,10 +75,10 @@ function swapPieces(match, a, b) { // console.log('swapPieces',a,b);
     }
     return true;
 }
-function marchOn(match, pos, left, right) {  // console.log("marchOn", pos, left, right)
-    const p = getPiece(match, pos);
+function marchOn(match, pos, left, right) {  console.log("marchOn", pos, left, right)
+    const p = getPiece(match, pos); console.log("the p", p);
     if (p[1]) { // white
-        const coord = revMap[p[0]].split('-');
+        const coord = revMap[p[0].substring(1)].split('-');
         const march = coord[0]+'-'+(parseInt(coord[1])-2);
         movePiece(match, null, [p[0].substring(1), map[march]])
         if (left > 0) {
@@ -118,12 +120,22 @@ function marchOn(match, pos, left, right) {  // console.log("marchOn", pos, left
 
     }
 }
-function movePiece(match, board, hexs) { // console.log('movePiece(match,', hexs,')');
+function switchArms(match, pos) {
+    const p = getPiece(match, pos);
+    if (p[1]) { // white
+        match.white.pieces[p[2]] = (p[0][0]==='P'?'S':'P')+p[0].substring(1)
+    } else { // black
+        match.black.pieces[p[2]] = (p[0][0]==='P'?'S':'P')+p[0].substring(1)
+    }
+}
+function movePiece(match, board, hexs) { console.log('movePiece(match,', hexs,')');
     if (hexs.length === 1) { // formation moves
         const temp = [...match.log]
         const pos = hexs[0].match(/[/abcdef*]\d*/)[0];
         const leftright = hexs[0].split(pos);
-        marchOn(match, pos, leftright[0].length, leftright[1].length);
+        if (leftright[0].length===0 && leftright[1].length===0) {
+            switchArms(match, pos);
+        } else marchOn(match, pos, leftright[0].length, leftright[1].length);
         match.log = [...temp]
         match.log.push(hexs[0]);
     } else {
@@ -183,7 +195,7 @@ function slide(piece,occupants,direction) { // console.log('slide',piece,occupan
             const occupant = occupants[loc];
             if (!occupant) moves.push(loc);
             else {
-                if (occupant[0]!==piece[0]) {
+                if (occupant[0]!==piece[0]) { // enemy piece
                     attacks.push(loc);
                     for (let cont = [pos[0]+d[0],pos[1]+d[1]];isOnBoard(cont[0],cont[1])&&go;cont=[cont[0]+d[0],cont[1]+d[1]]) {
                         const isKing = occupants[map[cont.join('-')]];
@@ -192,7 +204,11 @@ function slide(piece,occupants,direction) { // console.log('slide',piece,occupan
                             if (isKing[1]==='K') pinned.push([loc, piece.substring(1),d[0],d[1]]);
                             go = false;
                         }
-    }   }   }   }   }
+                    }   
+                } else { // friendly piece
+                    go = false;
+                }
+}   }   }
     //console.log('    slide moves',moves,'    attacks',attacks,'    pinned',pinned);
     //console.log('    occupants:', occupants);
     return [moves, attacks, pinned];
@@ -396,4 +412,4 @@ function text(x,y,r,sz,w,fc,sc,ds,text) { // console.log('text',text);
     </g>
 }
        
-export {whiteMove, inStartPos, map, revMap, flipped, hilite, getPiece, swapPieces, movePiece, clear, off, analyse,isOnBoard, text}
+export {whiteMove, inStartPos, inPromotePos, map, revMap, flipped, hilite, getPiece, swapPieces, movePiece, clear, off, analyse,isOnBoard, text}

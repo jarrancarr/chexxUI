@@ -2,12 +2,13 @@
 import React from 'react';
 import Hex from "./Hex"
 import Piece from "./Piece";
-import {map, revMap, flipped} from './res';
+import {map, revMap, flipped, inPromotePos, getPiece} from './res';
 
 import {whiteMove, hilite, movePiece, swapPieces, analyse,isOnBoard, clear, text} from './res';
 
 let move = '';
 let editor = '';
+let promote = [];
 
 function Board({color, user, match, update, view, menu, command, serverUrl, flip, mode, history}) { console.log('Board: match:', menu, mode);
 
@@ -36,7 +37,6 @@ function Board({color, user, match, update, view, menu, command, serverUrl, flip
         }
         return points;
     }
-
     function clocks() {
         const x=9;
         const y=9;
@@ -291,7 +291,7 @@ function Board({color, user, match, update, view, menu, command, serverUrl, flip
                 if (!move) move ='#########'.substring(0,left)+here+'#########'.substring(0,right);
                 copyMatch.log.push('#########'.substring(0,left)+here+'#########'.substring(0,right));
                 update(copyMatch);
-            } else { // console.log('add soldier');
+            } else { console.log('add soldier    march:', march, '    muster:', muster, '   sa:', switchArms);
                 const [m,sa] = getChain(here, true, true); //console.log(m,sa);
                 //const [canMarch, swArms] = specialMoves(here); 
                 //console.log('   canMarch',canMarch, 'swArms',swArms,'   ...muster',muster,'   switchArms', switchArms);
@@ -348,22 +348,31 @@ function Board({color, user, match, update, view, menu, command, serverUrl, flip
                     special = true;
                     const [dir,coord] = [board.occupants[here][0]==='w'?-1:1, revMap[here].split('-')];
                     const [x, y] = [parseInt(coord[0]),parseInt(coord[1])];
-                    march = map[''+x+'-'+(y+dir*2)];
+                    march = muster.length>0?map[''+x+'-'+(y+dir*2)]:'';
                 } else if (myGuy || (board.moves[first][0][0]==='w' && !whiteMove(match)) || (board.moves[first][0][0]==='b' && whiteMove(match))) { // is the first selection not mine
                     // console.log('this is either another of my guys or the first selection was the enemy.');
                     first = '';
                     selectPiece(moves, attacks, attacked, covered, board.occupants, board.pinned, here);
                 } else if (board.moves[first][1].includes(here) || board.attacks[first][1].includes(here)) { // console.log('valid move');
-                    let copyMatch = {...match};
-                    const store = JSON.stringify(match);
-                    movePiece(copyMatch, board, [first, here]);
-                    const look = analyse(copyMatch);
-                    if ((!look.whiteInCheck && !look.blackInCheck)
-                        || ((!look.whiteInCheck || whiteMove(copyMatch)) && (!look.blackInCheck || !whiteMove(copyMatch)))) {
-                            if (!move) move = copyMatch.log[copyMatch.log.length-1];
-                            update(copyMatch);
-                    } else match = JSON.parse(store);
-                    first = '';
+                    const me = getPiece(match, first);
+                    console.log('me', me);
+                    //if (me && (me[1]==='P' || me[1]==='S') && inPromotePos(here)) {
+
+                    if (me && (me[0][0]==='P' || me[0][0]==='S') && inPromotePos(here)) {
+                        promote = [first, here];
+                        command({order:'menu', choice:'promote'})
+                    } else {
+                        let copyMatch = {...match};
+                        const store = JSON.stringify(match);
+                        movePiece(copyMatch, board, [first, here]);
+                        const look = analyse(copyMatch);
+                        if ((!look.whiteInCheck && !look.blackInCheck)
+                            || ((!look.whiteInCheck || whiteMove(copyMatch)) && (!look.blackInCheck || !whiteMove(copyMatch)))) {
+                                if (!move) move = copyMatch.log[copyMatch.log.length-1];
+                                update(copyMatch);
+                        } else match = JSON.parse(store);
+                        first = '';
+                    }
                 } else { // console.log('invalid move');
                     first = '';
                     selectPiece(moves, attacks, attacked, covered, board.occupants, board.pinned, here);
@@ -373,7 +382,6 @@ function Board({color, user, match, update, view, menu, command, serverUrl, flip
             } // console.log('check',board.check);
         } // else not special moves
     }
-
     function highlight(e, log, on) { // console.log('highlight',log,on);
         const term = log.split(/[ABEIKNPQRS~x|:=+]/);
         for (const id of term) {
@@ -463,11 +471,9 @@ function Board({color, user, match, update, view, menu, command, serverUrl, flip
         hilite([e.target.id],'stroke', c);
         hilite([e.target.id],'stroke-width', '0.1');
     }
-
-    function toggleMain() { console.log('toggleMain',menu);
+    function toggleMain() { // console.log('toggleMain',menu);
         command({order:'menu', choice:menu==='main'?'offline':'main'})
     }
-
     function mainMenu() {
         const menu = [];
         menu.push(<path id="menu" key='menu' onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={toggleMain} transform={'rotate(-14,0,0) scale(4)'} stroke='#000' strokeWidth={0.1} fill={'#880'} d="M -1.7 -1 L 0 -2 L 1.7 -1 V 1 L 0 2 L -1.7 1 Z"></path>);
@@ -484,7 +490,6 @@ function Board({color, user, match, update, view, menu, command, serverUrl, flip
         
         return help;
     }
-
     function makeMenu(list, label, end, spin, bloom, size=2, font=4, color='#880', draw='#110', fill='#cc4') { // console.log('tutorials');
         const items=[];
         if (!list || list.length===0) return [];
@@ -507,9 +512,6 @@ function Board({color, user, match, update, view, menu, command, serverUrl, flip
         }
         return items;
     }
-
-
-
     function tutorials() { // console.log('tutorials');
         return makeMenu([['........Start....... ........Here......',''],['...........Quick.......... ........Start.......',''],['.............Interface..........',''],['..........Board........',''],['.........Rules.......',''],['pawn','P'],['spear','S'],['knight','N'],['bishop','B'],['rook','R'],['queen','Q'],['archer','A'],['prince','I'],['princess','E'],['king','K'],['............Special..........',''],['.................Promotion...............',''],['.........Forks.......',''],['..............Skewers............',''],['.......Pins......',''],['...........Tactics........','']], 'lesson', -110, -104, 8);
     }
@@ -542,12 +544,46 @@ function Board({color, user, match, update, view, menu, command, serverUrl, flip
         editMenu = editMenu.concat(makeMenu([['pawn','P'],['spear','S'],['knight','N'],['bishop','B'],['rook','R'],['queen','Q'],['archer','A'],['prince','I'],['princess','E'],['king','K']],'edit-w', 72, 74, 8, 2, 1.5,'#f99','#888','#cdb'));
         return editMenu;
     }
-
+    function promMenu() {
+        return makeMenu([['knight','N'],['bishop','B'],['rook','R'],['queen','Q'],['archer','A'],['prince','I'],['princess','E']],'promote', 236, 246, 8, 2.5, 1.5,'#fe6','#fff','#779');
+    }
     function aiMenu() {
         return makeMenu([['Very Easy',''],['Easy',''],['Medium',''],['Hard',''],['Very Hard',''],['Best','']],'ai', 165, 168, 8,2,1.3,'#5bb','#fff','#440');
     }
-
     function menuSelect(item) { console.log('menuSelect('+item+')');
+        if (item.startsWith('promote-')) {
+            let q = 'P';
+            let copyMatch = {...match};
+            const store = JSON.stringify(match);
+            switch(item) {
+                case 'promote-bishop': q='B'; break;
+                case 'promote-knight': q='N'; break;
+                case 'promote-archer': q='A'; break;
+                case 'promote-rook': q='R'; break;
+                case 'promote-prince': q='I'; break;
+                case 'promote-princess': q='E'; break;
+                case 'promote-queen': q='Q'; break;
+                default: editor = ''; break;            
+            }
+            const p = getPiece(copyMatch, promote[0]);
+            if (p[1]) { // white
+                copyMatch.white.pieces = copyMatch.white.pieces.filter(f => f.substring(1)!==promote[0]);
+                copyMatch.white.pieces.push(q+promote[1]);
+            } else { // black
+                copyMatch.black.pieces = copyMatch.black.pieces.filter(f => f.substring(1)!==promote[0]);
+                copyMatch.black.pieces.push(q+promote[1]);
+            }
+            copyMatch.log.push(p[0]+'~'+q+promote[1]);
+            const look = analyse(copyMatch);
+            if ((!look.whiteInCheck && !look.blackInCheck)
+                || ((!look.whiteInCheck || whiteMove(copyMatch)) && (!look.blackInCheck || !whiteMove(copyMatch)))) {
+                    if (!move) move = copyMatch.log[copyMatch.log.length-1];
+                    update(copyMatch);
+            } else match = JSON.parse(store);
+            first = '';
+            command({order:'menu', choice:''});
+            return
+        }
         if (item.startsWith('ai-')) {
             switch(item) {
                 case 'ai-veryeasy': command({order:'cpu', level:1}); break;
@@ -658,8 +694,7 @@ function Board({color, user, match, update, view, menu, command, serverUrl, flip
             default: lesson('Unimplemented'); break;
         } // end menu not starts with...
     }
-
-    function lesson(on) { console.log('do lesson on',on);
+    function lesson(on) { // console.log('do lesson on',on);
         // selectMenu(state);
         fetch(serverUrl+'/tutor',{
         mode: 'cors',
@@ -669,7 +704,6 @@ function Board({color, user, match, update, view, menu, command, serverUrl, flip
       }).then(response => response.json() )
         .then(data => command({order:'tutorial',lesson:data}));
     }
-
     React.useEffect(() => {
         [...document.getElementsByClassName('spin')].forEach(e=>e.beginElement())
     }, [menu])
@@ -693,6 +727,7 @@ function Board({color, user, match, update, view, menu, command, serverUrl, flip
             { menu==='users' && <g transform={'translate(50, 50)'}> { userMenu() } </g>}
             { menu==='edit' && <g transform={'translate(50, 50)'}> { editMenu() } </g>}
             { menu==='cpu' && <g transform={'translate(50, 50)'}> { aiMenu() } </g>}
+            { menu==='promote' && <g transform={'translate(50, 50)'}> { promMenu() } </g>}
             <circle fill={board.whiteInCheck||board.blackInCheck?'#F33':'#321'} cx="50" cy="50" r="43"/>
             <circle fill="#131" cx="50" cy="50" r="42"/>
             { tiles() }

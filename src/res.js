@@ -1,3 +1,8 @@
+
+// const serverUrl = 'http://localhost:8000';
+// const serverUrl = 'http://192.168.1.152:8000';
+const serverUrl = 'http://96.231.58.180:6085';
+
 const map = {"6-12":"*", "6-10":"a", "7-11":"b", "7-13":"c", "6-14":"d", "5-13":"e", "5-11":"f"};
 for (let i=1;i<6;i++) {
   map["6-"+(10-2*i)] = "a"+i;
@@ -33,12 +38,6 @@ function inStartPos(piece) { // console.log('inStartPos',piece);
 function inPromotePos(piece) {
     return 'f5 f51 f52 f53 f54 f55 a5 a51 a52 a53 a54 a55 b5 c5 c51 c52 c53 c54 c55 d5 d51 d52 d53 d54 d55 e5 '.includes(piece+' ');
 }
-function hilite(idList, what, to, flip) { //console.log('hilite',idList, what, to);
-    for (const id of idList) {
-        let ele = document.getElementById(flip?flipped(id.replace(/[ABEIKNPQRS]/, '')):id.replace(/[ABEIKNPQRS]/, ''));
-        if (ele) ele.setAttribute(what, to);
-    }
-}
 function whiteMove(match) {
     return match.log.length%2===0;
 }
@@ -47,7 +46,7 @@ function get(who, match) { // console.log('get(',who,')');
     else return match.black.pieces.filter(f => f[0]===who[1]);
 
 }
-function getPiece(match, here) { console.log('getPiece', match, here);
+function getPiece(match, here) { //console.log('getPiece', match, here);
     const h = here.replace(/[PSARBNKQIE]/,'');
     for (const p in match.white.pieces) if (match.white.pieces[p].substring(1)===h) return [match.white.pieces[p], true, p];
     for (const p in match.black.pieces) if (match.black.pieces[p].substring(1)===h) return [match.black.pieces[p], false, p];
@@ -75,7 +74,7 @@ function swapPieces(match, a, b) { // console.log('swapPieces',a,b);
     }
     return true;
 }
-function marchOn(match, pos, left, right) {  console.log("marchOn", pos, left, right)
+function marchOn(match, pos, left, right) {  // console.log("marchOn", pos, left, right)
     const p = getPiece(match, pos); console.log("the p", p);
     if (p[1]) { // white
         const coord = revMap[p[0].substring(1)].split('-');
@@ -128,7 +127,7 @@ function switchArms(match, pos) {
         match.black.pieces[p[2]] = (p[0][0]==='P'?'S':'P')+p[0].substring(1)
     }
 }
-function movePiece(match, board, hexs) { console.log('movePiece(match,', hexs,')');
+function movePiece(match, board, hexs) { // console.log('movePiece(match,', hexs,')');
     if (hexs.length === 1) { // formation moves
         const temp = [...match.log]
         const pos = hexs[0].match(/[/abcdef*]\d*/)[0];
@@ -411,5 +410,12 @@ function text(x,y,r,sz,w,fc,sc,ds,text) { // console.log('text',text);
         { words.length >2 && <text className='noMouse' x={x+nudge[2]} y={y+2*(fs[1]+fs[2])/3} fontFamily="Verdana" fontSize={fs[2]} fill={fc} stroke={sc} strokeWidth={w}>{words[2].replaceAll('.','')}</text> }
     </g>
 }
+function hilite(idList, what, to, flip) { //console.log('hilite',idList, what, to);
+    for (const id of idList) {
+        if (id) {
+            let ele = document.getElementById(flip?flipped(id.replace(/[ABEIKNPQRS]/, '')):id.replace(/[ABEIKNPQRS]/, ''));
+            if (ele) ele.setAttribute(what, to);
+    }   }
+}
        
-export {whiteMove, inStartPos, inPromotePos, map, revMap, flipped, hilite, getPiece, swapPieces, movePiece, clear, off, analyse,isOnBoard, text}
+export {whiteMove, inStartPos, inPromotePos, map, revMap, flipped, hilite, getPiece, swapPieces, movePiece, clear, off, analyse,isOnBoard, text, serverUrl}

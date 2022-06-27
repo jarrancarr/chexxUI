@@ -1,22 +1,20 @@
 import React from 'react';
+import $ from 'jquery';
 // import ReactDOM from 'react-dom';
 import FacebookLogin from 'react-facebook-login';
 import GoogleLogin from 'react-google-login';
 import './App.css';
 import Board from "./Board"
 import Pieces from "./Pieces"
-import { clear, hilite, movePiece, analyse } from './res';
+import { serverUrl, clear, hilite, movePiece, analyse } from './res';
 
 let onHint = 0;
 let lesson = {};
-// const serverUrl = 'http://localhost:8000';
-const serverUrl = 'http://192.168.1.152:8000';
-// const serverUrl = 'http://96.231.58.180:6085';
 const zoomed = false;
 let tutor = '';
 let history = -1;
 
-function App() { console.log('App');
+function App() { // console.log('App');
   const [match, update] = React.useState({id:0, name:'offline', white:{pieces:['Rd54', 'Rd5', 'Rc52', 'Nd53', 'Nd51', 'Nc33', 'Bc53', 'Bc55', 'Bd52', 'Qd41', 'Kc44', 'Id31', 'Ed4', 'Pd55', 'Pd44', 'Pd33', 'Pd21', 'Pc22', 'Pc31', 'Pc41', 'Pc51', 'Sd43', 'Sd32', 'Sd2', 'Sc32', 'Sc42', 'Ad42', 'Ad3', 'Ac43'], time:300}, black:{pieces:['Ra5', 'Rf52', 'Ra54', 'Nf53', 'Nf55', 'Na31', 'Ba53', 'Ba51', 'Bf54', 'Qf44', 'Ka41', 'If33', 'Ea4', 'Pf51', 'Pf41', 'Pf31', 'Pf22', 'Pa21', 'Pa33', 'Pa44', 'Pa55', 'Sf42', 'Sf32', 'Sa2', 'Sa32', 'Sa43', 'Af43', 'Aa3', 'Aa42'], time:300}, log:[], type:{game:300, move:15}});
   // const [match, update] = React.useState({id:0, name:'offline', white:{pieces:['Nd53', 'Na3', 'Bc53', 'Kc44', 'Pd33', 'Pd21', 'Pc22', 'Pa11', 'Sd32', 'Sd2', 'Sc32', 'Ac43'], time:300}, black:{pieces:['Nf55', 'Bf54', 'Ka41', 'Pf31', 'Pf22', 'Pa21', 'Sf32', 'Sa2', 'Sa32', 'Aa42'], time:300}, log:[], type:{game:300, move:15}});
   //const [match, update] = React.useState({id:0, name:'test', white:{pieces:['Kc44', 'Pc2','Sc32', 'Pc22','Pc3', 'Pc4'], time:300}, black:{pieces:['Ka41'], time:300}, log:[], type:{game:300, move:15}});
@@ -31,7 +29,7 @@ function App() { console.log('App');
   let [flip, turn] = React.useState(false);
 
   
-  function cmd(data) { console.log('command', data);
+  function cmd(data) { // console.log('command', data);
     switch(data.order) {
       case 'dialog': // console.log('opening dialog');
         setDialog(data)
@@ -40,6 +38,7 @@ function App() { console.log('App');
       case 'tutorial':
         lesson = data.lesson;
         setMode('tutor');
+        turn(false);
         teach(0);
         break; 
       case 'flip': turn(!flip); break;
@@ -99,7 +98,15 @@ function App() { console.log('App');
     }
     copyMatch.log = match.log;
     history = event===match.log.length-1?-1:event;
-    setMode(event===match.log.length-1?'offline':'history');
+    if (history>-1) {
+      setBoard('wayback');
+      setMode('history');
+
+    } else {
+      setBoard('');
+      setMode('offline');
+      
+    }
     update(copyMatch);
   }
   function cpuMove(level) {
@@ -536,9 +543,13 @@ function App() { console.log('App');
   function teacher(lines) { // console.log('teacher', idx,lesson);
     
     const step = lesson.step[idx];
+    const h = $(window).height();
+    const w = $(window).width();
+    const m = h<w?h:w;
+    const top = m*step.posY/100
     return (
       <div className='Full' style={{pointerEvents: 'none'}}>
-        <div id='Tutor' style={{width:step.width+'vw', top:step.posY+'%', left:step.posX+'%', backgroundColor: step.background}}>
+        <div id='Tutor' style={{width:step.width+'vw', top:top, left:step.posX+'%', backgroundColor: step.background}}>
           {step.title && <div className='topper'><h2>{step.title}</h2></div>}
           {textOut(lesson.step[idx].text)}
           <div className='bottomer'>
@@ -558,7 +569,7 @@ function App() { console.log('App');
 
   return (
     <div className="App Full">
-      <Board color={['#555','#aaa','#111']} user={user} match={match} menu={state} update={update} view={view} command={cmd} serverUrl={serverUrl} flip={flip} mode={mode} history={history}/>
+      <Board color={['#555','#aaa','#111']} user={user} match={match} menu={state} update={update} view={view} command={cmd} flip={flip} mode={mode} history={history}/>
       { (mode === 'history' || mode === 'offline' || mode === 'tutor' || mode === 'match') &&  <Pieces white={match.white.pieces} black={match.black.pieces} light={flip?"#012":"#eeb"} dark={flip?"#eeb":"#012"} view={view} flip={flip}/>}
       { mode === 'dialog' && showDialog(dialog) }
       { mode === 'tutor' && teacher() }

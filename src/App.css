@@ -40,6 +40,17 @@
   border-radius: 2vw;
   border: 0.5vw solid rgb(22, 24, 24);
 }
+.footer {
+  position: absolute;
+  bottom: 0;
+  margin: 1vh;
+  height: 10vh;
+  width: 96vw;
+  background-color: rgb(77, 67, 4);
+  border-radius: 2vw;
+  border: 0.5vw solid rgb(22, 24, 24);
+  pointer-events: all;
+}
 .topper {
   position: absolute;
   top: 0;
@@ -161,6 +172,18 @@
   font-size: 16px;
   margin: 0.3vw; 
   border-radius: 0.8vw;
+}
+.lgButton {
+  background-color: rgb(38, 39, 1); /* Green */
+  border: none;
+  color: rgb(194, 200, 18);
+  padding: 5px 20px;
+  text-align: center;
+  text-decoration: none;
+  display: flex;
+  font-size: 20px;
+  margin: 12px; 
+  border-radius: 8px;
 }
 .group {
   display: inline-flex;

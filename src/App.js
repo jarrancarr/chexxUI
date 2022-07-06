@@ -1,4 +1,5 @@
 import React from 'react';
+import useWebSocket, { ReadyState } from 'react-use-websocket';
 import $ from 'jquery';
 // import ReactDOM from 'react-dom';
 import FacebookLogin from 'react-facebook-login';
@@ -6,7 +7,7 @@ import GoogleLogin from 'react-google-login';
 import './App.css';
 import Board from "./Board"
 import Pieces from "./Pieces"
-import { serverUrl, clear, hilite, movePiece, analyse } from './res';
+import { serverUrl, socketUrl, clear, hilite, movePiece, analyse } from './res';
 
 let onHint = 0;
 let lesson = {};
@@ -27,9 +28,30 @@ function App() { // console.log('App');
   let [state, setBoard] = React.useState('main');
   let [drawing, scribble] = React.useState([]);
   let [flip, turn] = React.useState(false);
+  let [hints, onoffHints] = React.useState(false);
+  const [messageHistory, setMessageHistory] = React.useState([]);
+
+  const { sendMessage, lastMessage, readyState } = useWebSocket(socketUrl);
+  const connectionStatus = {
+    [ReadyState.CONNECTING]: 'Connecting',
+    [ReadyState.OPEN]: 'Open',
+    [ReadyState.CLOSING]: 'Closing',
+    [ReadyState.CLOSED]: 'Closed',
+    [ReadyState.UNINSTANTIATED]: 'Uninstantiated',
+  }[readyState];
+  
+  const handleClickSendMessage = React.useCallback(() => {
+    console.log('handleClickSendMessage');
+    return sendMessage(JSON.stringify({type:'ping', token:user.token, Epoc:666, message:'hello'}));
+  }, [sendMessage, user.token]);
+
+  const h = $(window).height();
+  const w = $(window).width();
+  const m = h<w?h:w;
+
 
   
-  function cmd(data) { // console.log('command', data);
+  function cmd(data) { console.log('command', data);
     switch(data.order) {
       case 'dialog': // console.log('opening dialog');
         setDialog(data)
@@ -41,7 +63,7 @@ function App() { // console.log('App');
         turn(false);
         teach(0);
         break; 
-      case 'flip': turn(!flip); break;
+      case 'flip': turn(!flip); handleClickSendMessage(); break;
       case 'profile': setMode('profile'); break;
       case 'zoom' : zoom(view==='0, 0, 100, 200'?'14 0 72 200':'0, 0, 100, 200'); break;
       case 'login' : loginUser(data.user); setMode('profile'); break;
@@ -50,6 +72,7 @@ function App() { // console.log('App');
       case 'users' : setBoard(data.choice); break;
       case 'cpu' : cpuMove(data.level); break;
       case 'rewind' : goBack(data.event); break;
+      case 'resign' : resign(data.id); break;
       case 'setup' : newGame(); break;
       case 'saveMatch' : saveMatch(data.match); break;
       case 'loadMatch' : loadMatch(data.id); break;
@@ -57,8 +80,9 @@ function App() { // console.log('App');
       case 'accept' : previewMatch(data.id); break;
       case 'commit' : commitMove(data.move); break;
       case 'guess' : console.log('user guessed:',tutor, data.here, lesson); 
+        clear();
         const ansKey = lesson.step[idx].answer;
-        if (ansKey) { // console.log('answer key ',ansKey);
+        if (ansKey) { console.log('answer key ',ansKey);
           let check = ansKey.filter(ak=>ak[0].split(' ').includes((tutor?tutor+'~':'')+data.here));
           if (check.length===0) {
             tutor = '';
@@ -68,19 +92,37 @@ function App() { // console.log('App');
           if (check.length>0) { // console.log('got an answer', check);
             const textAttr = check[0][2].split(',');
             if (check[0][3]) { // action taken
-              switch(check[0][3]) {
-                case '~' : tutor = data.here; hilite([data.here],"stroke","#00f"); break;
-                case '-' : movePiece(match, null,[tutor,data.here]); // move piece 
-                  tutor = '';
-                  break;
-                default: break;
+              //clear();
+              for (const specs of check[0][3].split('||')) {
+                const spec = specs.split('|');
+                switch(spec[0]) {
+                  case '~' : tutor = data.here; hilite([data.here],"stroke","#00f"); break;
+                  case '-' : movePiece(match, null,[tutor,data.here]); tutor = ''; break; // move piece 
+                  case 'hl' : hilite(spec[2].split(' '),'stroke',spec[1]); break;
+                  default: break;
+                }
               }
             } else tutor = '';
-            sketch.push(<text id='critique' x={textAttr[0]} y={textAttr[1]} className='noMouse' fontFamily="Verdana" fontSize={textAttr[2]} fill={textAttr[3]} style={{filter: 'drop-shadow('+textAttr[4]+' 1px 1px 2px)'}}>{check[0][1]}</text>);
+            let space = parseInt(textAttr[1]);
+            if (check[0][1]) {
+              const lines = check[0][1].split('||');
+              let longest = 0;
+              for (const line of lines) {
+                sketch.push(<text id='critique' x={parseInt(textAttr[0])} y={space} className='noMouse' fontFamily="Verdana" fontSize={textAttr[2]} fill={textAttr[3]}>{line}</text>);
+                space += parseInt(textAttr[2])
+                if (line.length>longest) longest = line.length;
+              }
+              sketch.unshift(<rect id='ans-back' x={parseInt(textAttr[0])-2} y={parseInt(textAttr[1])-parseInt(textAttr[2])} style={{ filter: 'drop-shadow(rgba(0, 0, 0, 0.9) 0px 0px 2px)'}}
+                            fill={textAttr[4]} stroke={textAttr[3]} strokeWidth={0.05} height={(lines.length+0.5)*parseInt(textAttr[2])} width={parseInt(textAttr[2])*longest*2/5+2}/>);
+            }
+
           } else {
             tutor = '';
             const textAttr = ansKey[0][2].split(',');
-            sketch.push(<text id='critique' x={textAttr[0]} y={textAttr[1]} className='noMouse' fontFamily="Verdana" fontSize={textAttr[2]} fill={textAttr[3]} style={{filter: 'drop-shadow('+textAttr[4]+' 1px 1px 2px)'}}>{ansKey[0][1]}</text>);            
+            sketch.push(<rect id='ans-back' x={parseInt(textAttr[0])-2} y={parseInt(textAttr[1])-parseInt(textAttr[2])} fill={textAttr[4]}
+                          strokeWidth={0.25} height={textAttr[2]*1.5} width={textAttr[2]*ansKey[0][1].length*2/5+2} style={{ filter: 'drop-shadow(rgba(0, 0, 0, 0.9) 0px 0px 2px)'}}/>);
+
+            sketch.push(<text id='critique' x={textAttr[0]} y={textAttr[1]} className='noMouse' fontFamily="Verdana" fontSize={textAttr[2]} fill={textAttr[3]}>{ansKey[0][1]}</text>);            
           }
           scribble(sketch);
         }
@@ -144,6 +186,7 @@ function App() { // console.log('App');
       });
   }
   function loadMatch(id) {
+    clear();
     fetch(serverUrl+'/match/load/'+id,{
       mode: 'cors',
       method: "GET",
@@ -162,7 +205,7 @@ function App() { // console.log('App');
         } else cmd({order:'dialog', title:'Error', text:['h2:::'+data.message]});
       });
   }
-  function previewMatch(id) { console.log('prefiewMatch',id);
+  function previewMatch(id) { console.log('previewMatch',id);
     let open = {};
     fetch(serverUrl+'/match/load/'+id,{
       mode: 'cors',
@@ -234,6 +277,15 @@ function App() { // console.log('App');
       body: JSON.stringify(match)
     }).then(response => response.json() )
       .then(data => cmd(data.status?{order:'dialog', title:'Match Saved', text:[], ok:true, noClose:true}:{order:'dialog', title:'Error', text:['h2:::'+data.message]}));
+  }
+  function resign(match) {
+    fetch(serverUrl+'/match/resign',{
+      mode: 'cors',
+      method: "POST",
+      headers: {"Content-Type": "application/json", "Authorization": user.token},
+      body: JSON.stringify(match)
+    }).then(response => response.json() )
+      .then(data => cmd(data.status?{order:'dialog', title:'Match Resigned', text:['h2:::'+data.message, 'h3:::'+data.rank], ok:true, noClose:true}:{order:'dialog', title:'Error', text:['h2:::'+data.message]}));
   }
   function listMatches() {
     fetch(serverUrl+'/match/list',{
@@ -315,7 +367,6 @@ function App() { // console.log('App');
     resume();
   }
   function resume() { setMode('offline'); }
-
   function openChallenge() {
     const title = document.getElementById('title').value;
     const dpm = document.getElementById('dpm').value;
@@ -387,7 +438,7 @@ function App() { // console.log('App');
               <tr><td colSpan={4}><textarea id="notes" className='subInput' cols="40" rows="5" defaultValue={match.notes}></textarea></td></tr>
             </tbody></table>
           </div> }
-          <div className='bottomer'>
+          { h<=w*1.5 && <div className='bottomer'>
             <div className='group'>
               { dialog.challenge && <button className='smButton' onClick={openChallenge}>Post Game</button>}
               { dialog.yesno && <div className='group'><button className='smButton' onClick={yes}>Yes</button><button className='smButton' onClick={no}>No</button></div> }
@@ -398,8 +449,19 @@ function App() { // console.log('App');
               { dialog.register && <button className='smButton' onClick={chexxRegister}>Submit</button> }
               { !dialog.noClose && <button className='smButton' onClick={resume}>Close</button> }
             </div>
-          </div>
+          </div> }
         </div>
+        { h>w*1.5 && <div className='footer'>
+            <div className='group'>
+              { dialog.challenge && <button className='lgButton' onClick={openChallenge}>Post Game</button>}
+              { dialog.yesno && <div className='lgButton'><button className='button' onClick={yes}>Yes</button><button className='button' onClick={no}>No</button></div> }
+              { dialog.ok && <button className='lgButton' onClick={ok}>OK</button> }
+              { dialog.login && <button className='lgButton' onClick={chexxLogin}>Login</button> }
+              { dialog.login && <button className='lgButton' onClick={()=> cmd({order:'dialog', register:true, title:'Register', text:['h2:::Kindly fill out the following form to experience the rich experience of Chexx.']})}>Register</button> }
+              { dialog.login && <button className='lgButton' onClick={chexxLogin}>Email Password Link</button> }
+              { dialog.register && <button className='lgButton' onClick={chexxRegister}>Submit</button> }
+              { !dialog.noClose && <button className='lgButton' onClick={resume}>Close</button> }
+            </div></div> }
       </div>
     );
   }
@@ -412,7 +474,10 @@ function App() { // console.log('App');
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify(user)
       }).then(response => response.json() )
-      .then(data => cmd(data.status?{order:'login',user:data.user}:{order:'dialog', title:'Not Authorized', text:['h2:::Please check you login credentials and try again.']}));
+      .then(data => {
+        cmd(data.status?{order:'login',user:data.user}:{order:'dialog', title:'Not Authorized', text:['h2:::Please check you login credentials and try again.']});
+        sendMessage(JSON.stringify({type:'login', token:data.user.token})); 
+      });
     } else {
       document.getElementById('chexxLogin').style.border='2px solid #f00';
     }
@@ -457,14 +522,14 @@ function App() { // console.log('App');
         .then(data => cmd(data.status?{order:'login',user:data.user}:{order:'dialog', title:'Error', text:['h2:::'+data.message], ok:true})); //cmd({order:'login',user:data}));
       }
   }
-  function teach(num) { // console.log('teach', lesson.step[num]);
+  function teach(num) { console.log('teach', lesson.step[num]);
     if (num > lesson.step.length-1) return;
     onHint = 0;
     tutor = '';
     const copy = {...match};
     const step = lesson.step[num];
-    if (step.white) copy.white.pieces = step.white;
-    if (step.black) copy.black.pieces = step.black;
+    if (step.white) copy.white.pieces = [...step.white];
+    if (step.black) copy.black.pieces = [...step.black];
     if (step.log) copy.log = step.log;
     move(num)
     update(copy);
@@ -516,16 +581,24 @@ function App() { // console.log('App');
     }
     return text;
   }
-  function tdr(txt) { return <td className='right'>{txt}</td>; }
-  function tdl(txt) { return <td className='left'>{txt}</td>; }
+  function tdr(txt) { return <td className='right'>{textOut([txt])}</td>; }
+  function tdl(txt) { return <td className='left'>{textOut([txt])}</td>; }
+  function welcome() { }
   function profile() { // console.log("profile",user);
     const table = [<table><tbody>
-      <tr>{tdr('User Name:')}{tdl(user.userid)}{tdr('Email:')}{tdl(user.email)}</tr>
-      <tr>{tdr('Rank:')}{tdl(user.rank)}{tdr('About:')}{tdl('xxxxxx')}</tr>
+      <tr><td colSpan={2}><img src={serverUrl+'/pub/smiley.png'} alt="Smiley face" width="80" height="120" style={{border:'5px solid black'}}/></td></tr>
+      <tr>{tdr('h3:::User Name:')}{tdl('h2:::'+user.userid)}{tdr('h3:::Email:')}{tdl('h2:::'+user.email)}</tr>
+      <tr>{tdr('h3:::Rank:')}{tdl('h2:::'+user.rank)}{tdr('h3:::Account:')}{tdl('h2:::silver')}</tr>
+      <tr>{tdr('h3:::History:')}{tdl('-------')}{tdr('h3:::About:')}{tdl('xxxxxx')}</tr>
+      <tr></tr>
+      <tr>{tdr('h3:::Show Hints')}<td><input type="checkbox" id="showHints" className='left' name="showHints" checked={hints} onChange={()=>{onoffHints(!hints)}}/></td>{tdr('----')}{tdl('------')}</tr>
+      <tr></tr>
+      <tr></tr>
+      <tr></tr>
     </tbody></table>];
     return (
       <div className='Full Overlay'>
-        <div className='Dialog' style={{width:'55vw'}}>
+        <div className='Dialog' style={{width:(4*m/5)+'px', top:(m/2)+'px', left:(m/2)+'px', backgroundColor: '#444444bb'}}>
           <div className='topper'><h2>{'Welcome, '+user.fullName}</h2></div>
           
           {textOut(["h5:::This is your public profile..."])}
@@ -533,12 +606,22 @@ function App() { // console.log('App');
           <div className='bottomer'>
             <div className='group'>
               <button className='smButton' onClick={resume}>Close</button>
-              <button className='smButton' onClick={resume}>Edit</button>
+              <button className='smButton' onClick={storeProfile}>Save</button>
             </div>
           </div>
         </div>
       </div>
     );
+  }
+  function storeProfile() {
+    user.property.hints = hints?'true':'false';
+    fetch(serverUrl+'/user/save',{
+      mode: 'cors',
+      method: "POST",
+      headers: {"Content-Type": "application/json", "Authorization": user.token},
+      body: JSON.stringify(user)
+    }).then(response => response.json() )
+      .then(data => cmd(data.status?{order:'dialog', title:'Profile Saved', text:[], ok:true, noClose:true}:{order:'dialog', title:'Error', text:['h2:::'+data.message]}));
   }
   function teacher(lines) { // console.log('teacher', idx,lesson);
     
@@ -556,7 +639,7 @@ function App() { // console.log('App');
             <div className='group'>
               { idx > 0 && <button className='smButton' onClick={()=>teach(idx>0?idx-1:0)}>Prev</button> }
               <button className='smButton' onClick={resume}>Close</button>
-              <button className='smButton' onClick={()=>teach(0)}>Reset</button>
+              <button className='smButton' onClick={()=>teach(idx)}>Reset</button>
               { idx < lesson.step.length-1 && <button className='smButton' onClick={()=>teach(idx+1)}>Next</button> }
               { lesson.step[idx].hint && onHint < lesson.step[idx].hint.length && <button className='smButton' onClick={()=>hint()}>?</button>}
             </div>
@@ -567,6 +650,45 @@ function App() { // console.log('App');
     );
   }
 
+  React.useEffect(() => { //  console.log('App useEffect:',state, mode, user);
+
+    if (lastMessage !== null) {
+      setMessageHistory((prev) => prev.concat(lastMessage));
+      const message = JSON.parse(lastMessage.data);
+      console.log("WEBSOCKET:::"+message.type);
+      switch(message.type) {
+        case 'notify': console.log('match',message.match); 
+        hilite(['wait-'+message.match],'fill','#00ff00b0', false);
+        hilite(['txt-wait-'+message.match],'fill','#ffaaffb0', false);
+          // const update = $('#wait-'+message.match);
+          // if (update) update.style.fill='#00ff00ff';
+          break;
+        default: break;
+      }
+      //$('#wait-rtyu:49').css({ fill:'#00ff00ff'});
+    }
+    if (user) {
+      if (user.property) {
+        if (user.property.hints === 'true') {
+          let sketch = [];
+          switch(state+':'+mode) { // M -35,0 A 35,35 0 0 0 0,35 35,35 0 0 0 35,0 35,35 0 0 0 0,-35 35,35 0 0 0 -35,0 Z // M 40,0 A 40,40 0 0 1 0,40 40,40 0 0 1 -40,0 40,40 0 0 1 0,-40 40,40 0 0 1 40,0 Z
+            case 'match:offline': sketch.push(<defs><path id="hintPath1" transform={'translate(50,50) rotate(220,0,0)'} d="M -42,0 A 42,42 0 0 0 0,42 42,42 0 0 0 42,0 42,42 0 0 0 0,-42 42,42 0 0 0 -42,0 Z"></path></defs>); 
+              sketch.push(<defs><path id="hintPath2" transform={'translate(50,50) rotate(215,0,0)'} d="M 38,0 A 38,38 0 0 1 0,38 38,38 0 0 1 -38,0 38,38 0 0 1 0,-38 38,38 0 0 1 38,0 Z"></path></defs>); 
+              sketch.push(<text className='noMouse' fontFamily='Verdana' fontSize={7} fill='#ff9'><textPath href="#hintPath1">Current Matches</textPath></text>);
+              sketch.push(<text className='noMouse' fontFamily='Verdana' fontSize={7} fill='#ff9'><textPath href="#hintPath2">Saved Games</textPath></text>);
+              for (let i=0;i<12;i+=1)  
+                sketch.push(<g class='noMouse' transform={'translate('+(40+30*Math.sin(i*3.1416/6))+', '+(50-30*Math.cos(i*3.1416/6))+')'}>
+                  <text id={'hint'+i} className='noMouse hint' fontFamily="Verdana" fontSize={5} fill='#ff9'></text></g>);
+              break;
+            default: break;
+          }
+          scribble(sketch);
+        }
+        onoffHints(user.property.hints === 'true')
+      }
+    }
+  }, [state, mode, user, lastMessage, setMessageHistory])
+
   return (
     <div className="App Full">
       <Board color={['#555','#aaa','#111']} user={user} match={match} menu={state} update={update} view={view} command={cmd} flip={flip} mode={mode} history={history}/>
@@ -574,8 +696,17 @@ function App() { // console.log('App');
       { mode === 'dialog' && showDialog(dialog) }
       { mode === 'tutor' && teacher() }
       { mode === 'profile' && profile() }
+      { mode === 'welcome' && welcome() }
 
       { drawing && <div className="Overlay Full"><svg viewBox={view} xmlns="http://www.w3.org/2000/svg"> { drawing } </svg></div> }
+      
+      <span>The WebSocket is currently {connectionStatus}</span>
+      {lastMessage ? <span>Last message: {lastMessage.data}</span> : null}
+      <ul>
+        {messageHistory.map((message, idx) => (
+          <span key={idx}>{message ? message.data : null}</span>
+        ))}
+      </ul>
     </div>
   );
 }

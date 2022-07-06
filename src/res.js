@@ -2,7 +2,9 @@
 // const serverUrl = 'http://localhost:8000';
 // const serverUrl = 'http://192.168.1.152:8000';
 const serverUrl = 'http://96.231.58.180:6085';
+const socketUrl = 'ws://192.168.1.152:8000/ws';
 
+const hex = "M -1.7 -1 L 0 -2 L 1.7 -1 V 1 L 0 2 L -1.7 1 Z";
 const map = {"6-12":"*", "6-10":"a", "7-11":"b", "7-13":"c", "6-14":"d", "5-13":"e", "5-11":"f"};
 for (let i=1;i<6;i++) {
   map["6-"+(10-2*i)] = "a"+i;
@@ -175,7 +177,7 @@ function isOnBoard(i,j) { //console.log('isOnBoard',i,j);
     if (x<0 || x>12 || x+y<6 || x+y>31 || x-y>6 || y-x>19) return false;
     return true;
 }
-function parsePiece(piece) { // console.log('parsePiece', piece);
+function parsePiece(piece) { //console.log('parsePiece', piece);
     const where = piece.substring(2);
     const start = revMap[where].split('-'); // console.log('start',start)
     const xy = [parseInt(start[0]),parseInt(start[1])]
@@ -236,7 +238,7 @@ function pawnAttack(piece, pos, attacks, occupants) {
     const loc = map[pos.join('-')];
     if (isOnBoard(pos[0],pos[1]) && (!occupants[loc] || (occupants[loc] && occupants[loc][0]!==piece[0]))) attacks.push(loc);
 }
-function getAttacks(match,piece,occupants){ // console.log('getAttacks',match, piece);
+function getAttacks(match,piece,occupants){ //console.log('getAttacks',match, piece);
     const moves = [];
     const attacks = [];
     const [who, xy] = parsePiece(piece);
@@ -300,8 +302,7 @@ function killAttacker(match, board, king, isWhite) { // console.log('killAttacke
     }
     return false;   
 }
-function analyse(match){ // console.log('analyse', match);
-
+function analyse(match){ //console.log('analyse', match);
     const board = {};
     board.occupants = {};
     board.attacks = {}; // 'd41':['wR',['d31','d21','d11'...]]
@@ -313,6 +314,7 @@ function analyse(match){ // console.log('analyse', match);
     board.blackInCheck = false;
     board.mate = false;
     board.stale = false;
+    if (match.white.pieces.length === 0 || match.black.pieces.length === 0) return board;
 
     for (const m of match.white.pieces) {
         const where = m.substring(1);
@@ -393,7 +395,7 @@ function analyse(match){ // console.log('analyse', match);
 function text(x,y,r,sz,w,fc,sc,ds,text) { // console.log('text',text);
     if (!text) return [];
     const id = ('t-'+text).replaceAll('.','').replaceAll(' ','').trim().toLowerCase();
-    const words = text.trim().split(' '); 
+    const words = text.trim().split(' ').filter(w=>w&&w!=='.'); 
     const fs = [];
     const nudge = [];
     for (const w of words) {
@@ -401,13 +403,13 @@ function text(x,y,r,sz,w,fc,sc,ds,text) { // console.log('text',text);
         nudge.push((t[1].length-t[0].length)/3-2-w.length/50);
         fs.push(sz*20/(8+w.length));
     }
-    return <g key={id} id={id} transform={'rotate('+r+','+x+','+y+')'} filter={'drop-shadow('+ds+')'}>
-        { words.length === 1 && <text className='noMouse' x={x+nudge[0]} y={y+fs[0]/4} fontFamily="Verdana" fontSize={fs[0]} fill={fc} stroke={sc} strokeWidth={w}>{words[0].replaceAll('.','')}</text> }
-        { words.length === 2 && <text className='noMouse' x={x+nudge[0]} y={y-fs[0]/5} fontFamily="Verdana" fontSize={fs[0]} fill={fc} stroke={sc} strokeWidth={w}>{words[0].replaceAll('.','')}</text> }
-        { words.length === 2 && <text className='noMouse' x={x+nudge[1]} y={y+(fs[0]+fs[1])/3} fontFamily="Verdana" fontSize={fs[1]} fill={fc} stroke={sc} strokeWidth={w}>{words[1].replaceAll('.','')}</text> }
-        { words.length >2 && <text className='noMouse' x={x+nudge[0]} y={y-(fs[1]+fs[2])/5} fontFamily="Verdana" fontSize={fs[0]} fill={fc} stroke={sc} strokeWidth={w}>{words[0].replaceAll('.','')}</text> }
-        { words.length >2 && <text className='noMouse' x={x+nudge[1]} y={y+fs[2]/3} fontFamily="Verdana" fontSize={fs[1]} fill={fc} stroke={sc} strokeWidth={w}>{words[1].replaceAll('.','')}</text> }
-        { words.length >2 && <text className='noMouse' x={x+nudge[2]} y={y+2*(fs[1]+fs[2])/3} fontFamily="Verdana" fontSize={fs[2]} fill={fc} stroke={sc} strokeWidth={w}>{words[2].replaceAll('.','')}</text> }
+    return <g key={id} id={id} transform={'rotate('+r+','+x+','+y+')'} filter={'drop-shadow('+ds+')'} fill={fc}>
+        { words.length === 1 && <text className='noMouse' x={x+nudge[0]} y={y+fs[0]/4} fontFamily="Verdana" fontSize={fs[0]} stroke={sc} strokeWidth={w}>{words[0].replaceAll('.','')}</text> }
+        { words.length === 2 && <text className='noMouse' x={x+nudge[0]} y={y-fs[0]/5} fontFamily="Verdana" fontSize={fs[0]} stroke={sc} strokeWidth={w}>{words[0].replaceAll('.','')}</text> }
+        { words.length === 2 && <text className='noMouse' x={x+nudge[1]} y={y+(fs[0]+fs[1])/3} fontFamily="Verdana" fontSize={fs[1]} stroke={sc} strokeWidth={w}>{words[1].replaceAll('.','')}</text> }
+        { words.length >2 && <text className='noMouse' x={x+nudge[0]} y={y-(fs[1]+fs[2])/5} fontFamily="Verdana" fontSize={fs[0]} stroke={sc} strokeWidth={w}>{words[0].replaceAll('.','')}</text> }
+        { words.length >2 && <text className='noMouse' x={x+nudge[1]} y={y+fs[2]/3} fontFamily="Verdana" fontSize={fs[1]} stroke={sc} strokeWidth={w}>{words[1].replaceAll('.','')}</text> }
+        { words.length >2 && <text className='noMouse' x={x+nudge[2]} y={y+2*(fs[1]+fs[2])/3} fontFamily="Verdana" fontSize={fs[2]} stroke={sc} strokeWidth={w}>{words[2].replaceAll('.','')}</text> }
     </g>
 }
 function hilite(idList, what, to, flip) { //console.log('hilite',idList, what, to);
@@ -418,4 +420,4 @@ function hilite(idList, what, to, flip) { //console.log('hilite',idList, what, t
     }   }
 }
        
-export {whiteMove, inStartPos, inPromotePos, map, revMap, flipped, hilite, getPiece, swapPieces, movePiece, clear, off, analyse,isOnBoard, text, serverUrl}
+export {hex, whiteMove, inStartPos, inPromotePos, map, revMap, flipped, hilite, getPiece, swapPieces, movePiece, clear, off, analyse,isOnBoard, text, serverUrl, socketUrl}

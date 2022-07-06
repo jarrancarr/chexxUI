@@ -3,13 +3,13 @@ import React from 'react';
 import Hex from "./Hex"
 import {map, revMap, flipped, inPromotePos, getPiece} from './res';
 
-import {whiteMove, hilite, movePiece, swapPieces, analyse,isOnBoard, clear, text} from './res';
+import {hex, whiteMove, hilite, movePiece, swapPieces, analyse,isOnBoard, clear, text} from './res';
 import { waybackMenu, aiMenu, promMenu, editMenu, userMenu, matchMenu, items, puzzles, tutorials, help, mainMenu, leave, hover, highlight} from './menu'
 //let move = '';
 //let editor = '';
 //let promote = [];
 
-function Board({color, user, match, update, view, menu, command, flip, mode, history}) { // console.log('Board: match:', menu, mode);
+function Board({color, user, match, update, view, menu, command, flip, mode, history}) { console.log('<Board>   menu['+menu+']    mode['+mode+']');
     //console.log('match', match);
     const board = analyse(match);  // console.log('board', board);
     let formation = [];
@@ -41,10 +41,10 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
         const sc=4;
         const clocks = [];
 
-        clocks.push(<path key="opponentClock" id="opponentClock" transform={'translate('+x+','+y+') rotate(-14,0,0) scale('+sc+')'} fill="#a53" stroke='#111' strokeWidth={0.1} d="M -1.7 -1 L 0 -2 L 1.7 -1 V 1 L 0 2 L -1.7 1 Z"></path>);
+        clocks.push(<path key="opponentClock" id="opponentClock" transform={'translate('+x+','+y+') rotate(-14,0,0) scale('+sc+')'} fill="#a53" stroke='#111' strokeWidth={0.1} d={hex}></path>);
         clocks.push(<circle key="opponentClockFace" id="opponentClockFace" transform={'translate('+x+','+y+') scale('+sc+')'} fill="#bbb" stroke='#111' strokeWidth={0.1} cx={0} cy={0} r={1.6}></circle>);
 
-        clocks.push(<path key="myClock" id="myClock" transform={'translate('+x+','+(100-y)+') rotate(14,0,0) scale('+sc+')'} fill="#a53" stroke='#111' strokeWidth={0.1} d="M -1.7 -1 L 0 -2 L 1.7 -1 V 1 L 0 2 L -1.7 1 Z"></path>);
+        clocks.push(<path key="myClock" id="myClock" transform={'translate('+x+','+(100-y)+') rotate(14,0,0) scale('+sc+')'} fill="#a53" stroke='#111' strokeWidth={0.1} d={hex}></path>);
         clocks.push(<circle key="myClockFace" id="myClockFace" transform={'translate('+x+','+(100-y)+') scale('+sc+')'} fill="#bbb" stroke='#111' strokeWidth={0.1} cx={0} cy={0} r={1.6}></circle>);
 
         clocks.push(    
@@ -65,43 +65,55 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
         const ui = [];
         const x=20;
         const y=95;
-        ui.push(<path key="user" id="user" transform={'translate('+x+','+y+') rotate(2,0,0) scale('+2+')'} fill="#359" stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=>command({order:'menu', choice:'users'})} d="M -1.7 -1 L 0 -2 L 1.7 -1 V 1 L 0 2 L -1.7 1 Z"></path>);
+        ui.push(<path key="user" id="user" transform={'translate('+x+','+y+') rotate(2,0,0) scale('+2+')'} fill="#359" stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=>command({order:'menu', choice:'users'})} d={hex}></path>);
         ui.push(text(x,y,0,2,0.01,'#fff','#500','#ff0000ff 0.2px 0.2px 0.25px','.'+user.userid)); // x,y,r,sz,w,fc,sc,ds,text
         if (match.white.player && match.white.player.ID !== 0 && match.white.player.ID !== user.ID) {
-            ui.push(<path key="opponent" id="opponent" transform={'translate('+x+','+(100-y)+') rotate(-2,0,0) scale('+2+')'} fill="#953" stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=>command({order:'menu', choice:'opponent'})} d="M -1.7 -1 L 0 -2 L 1.7 -1 V 1 L 0 2 L -1.7 1 Z"></path>);
+            ui.push(<path key="opponent" id="opponent" transform={'translate('+x+','+(100-y)+') rotate(-2,0,0) scale('+2+')'} fill="#953" stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=>command({order:'menu', choice:'opponent'})} d={hex}></path>);
             ui.push(text(x,(100-y),0,2,0.01,'#fff','#500','#ff0000ff 0.2px 0.2px 0.25px','.'+match.white.player.userid)); // x,y,r,sz,w,fc,sc,ds,text       
         }
         if (match.black.player && match.black.player.ID !== 0 && match.black.player.ID !== user.ID) {
-            ui.push(<path key="opponent" id="opponent" transform={'translate('+x+','+(100-y)+') rotate(-2,0,0) scale('+2+')'} fill="#953" stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=>command({order:'menu', choice:'opponent'})} d="M -1.7 -1 L 0 -2 L 1.7 -1 V 1 L 0 2 L -1.7 1 Z"></path>);
+            ui.push(<path key="opponent" id="opponent" transform={'translate('+x+','+(100-y)+') rotate(-2,0,0) scale('+2+')'} fill="#953" stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=>command({order:'menu', choice:'opponent'})} d={hex}></path>);
             ui.push(text(x,(100-y),0,2,0.01,'#fff','#500','#ff0000ff 0.2px 0.2px 0.25px','.'+match.black.player.userid)); // x,y,r,sz,w,fc,sc,ds,text
         }
         return ui;
     }
-    function commit() { console.log('commit');
+    function resign() { //console.log('resign');
         const ui = [];
-        let x=5;
-        let y=80;
-        ui.push(<path key="commit" id="commit" transform={'translate('+x+','+y+') rotate(27,0,0) scale('+2+')'} fill="#ff5" stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=> { command({order:'commit', move:match.move}); match.move=''; }} d="M -1.7 -1 L 0 -2 L 1.7 -1 V 1 L 0 2 L -1.7 1 Z"></path>);
-        ui.push(text(x,y,0,1.5 ,0.01,'#000','#500','#000000ff 0.2px 0.2px 0.25px','.'+match.move.replace('~','~ ').replace('x','x '))); // x,y,r,sz,w,fc,sc,ds,text
-
-        x=5;
+        let x=95;        let y=80;
+        ui.push(<path key="resign" id="resign" transform={'translate('+x+','+y+') rotate(-27,0,0) scale('+2+')'} fill="#f93" stroke='#333' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=> { command({order:'resign', id:match.ID}); }} d={hex}></path>);
+        ui.push(text(x,y,0,1.5 ,0.01,'#000','#500','#000000ff 0.2px 0.2px 0.25px','resign')); // x,y,r,sz,w,fc,sc,ds,text
         y=20;
-        ui.push(<path key="retry" id="retry" transform={'translate('+x+','+y+') rotate(27,0,0) scale('+2+')'} fill="#ff5" stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=> { command({order:'loadMatch', id:match.ID}); }} d="M -1.7 -1 L 0 -2 L 1.7 -1 V 1 L 0 2 L -1.7 1 Z"></path>);
+        ui.push(<path key="draw" id="draw" transform={'translate('+x+','+y+') rotate(27,0,0) scale('+2+')'} fill="#333" stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=> { command({order:'offerDraw', id:match.ID}); }} d={hex}></path>);
+        ui.push(text(x,y,0,2.0 ,0.01,'#000','#500','#000000ff 0.2px 0.2px 0.25px','.offer ..draw')); // x,y,r,sz,w,fc,sc,ds,text
+   
+        return ui;
+    }
+    function commit() { //console.log('commit');
+        const ui = [];
+        let x=5;        let y=80;
+        ui.push(<path key="commit" id="commit" transform={'translate('+x+','+y+') rotate(27,0,0) scale('+2+')'} fill="#ff5" stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=> { command({order:'commit', move:match.move}); match.move=''; }} d={hex}></path>);
+        ui.push(text(x,y,0,1.5 ,0.01,'#000','#500','#000000ff 0.2px 0.2px 0.25px','.'+match.move.replace('~','~ ').replace('x','x '))); // x,y,r,sz,w,fc,sc,ds,text
+        y=20;
+        ui.push(<path key="retry" id="retry" transform={'translate('+x+','+y+') rotate(27,0,0) scale('+2+')'} fill="#ff5" stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=> { command({order:'loadMatch', id:match.ID}); }} d={hex}></path>);
         ui.push(text(x,y,0,2.0 ,0.01,'#000','#500','#000000ff 0.2px 0.2px 0.25px','.retry')); // x,y,r,sz,w,fc,sc,ds,text
    
         return ui;
     }
-    function offline() {
+    function offline() { //console.log('offline',user);
         const ui = [];
         let x=80;
         let y=95;
-        ui.push(<path key="editMatch" id="edit" transform={'translate('+x+','+y+') rotate(-2,0,0) scale('+2+')'} fill="#aa0" stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=>command({order:'menu', choice:(menu==='edit'?'offline':'edit')})} d="M -1.7 -1 L 0 -2 L 1.7 -1 V 1 L 0 2 L -1.7 1 Z"></path>);
+        ui.push(<path key="editMatch" id="edit" transform={'translate('+x+','+y+') rotate(-2,0,0) scale('+2+')'} fill="#aa0" stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=>command({order:'menu', choice:(menu==='edit'?'offline':'edit')})} d={hex}></path>);
         ui.push(text(x,y,-28,2,0.01,'#fff','#500','#ff0000ff 0.2px 0.2px 0.25px',menu==='edit'?'.play':'.edit')); // x,y,r,sz,w,fc,sc,ds,text
-        
+        if (!user || !user.ID || user.ID<1 || !user.property.vet) {
+            y=5;
+            ui.push(<path key="quickTour" id="tour" transform={'translate('+x+','+y+') rotate(2,0,0) scale('+2+')'} fill="#aaf" stroke='#111' strokeWidth={0.2} onMouseOver={hover} onMouseLeave={(e)=>leave('#111',e)} onClick={()=>command({order:'menu', choice:'tour'})} d={hex}></path>);
+            ui.push(text(x,y,28,2,0.01,'#fff','#500','#ff0000ff 0.2px 0.2px 0.25px','.tour')); // x,y,r,sz,w,fc,sc,ds,text
+        }
         if (menu==='offline') {
             x=5;
             y=20;
-            ui.push(<path key="cpu" id="cpu" transform={'translate('+x+','+y+') rotate(27,0,0) scale('+2+')'} fill="#8af" stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=> { command({order:'menu', choice:'cpu'}); match.move=''; }} d="M -1.7 -1 L 0 -2 L 1.7 -1 V 1 L 0 2 L -1.7 1 Z"></path>);
+            ui.push(<path key="cpu" id="cpu" transform={'translate('+x+','+y+') rotate(27,0,0) scale('+2+')'} fill="#8af" stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=> { command({order:'menu', choice:'cpu'}); match.move=''; }} d={hex}></path>);
             ui.push(text(x,y,0,2.0 ,0.01,'#000','#500','#000000ff 0.2px 0.2px 0.25px','..CPU')); // x,y,r,sz,w,fc,sc,ds,text
         }
         return ui;
@@ -270,7 +282,7 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
         const myGuy = moves?((moves[0][0]==='w')===whiteMove(match)):false;
         // console.log('validPiece',moves); console.log('myGuy',myGuy);
         if (special) {
-            if (here===march) { console.log('march');
+            if (here===march) { //console.log('march');
                 const copyMatch = {...match};
                 for (const ps of formation) {
                     const [dir,coord] = [whiteMove(match)?-1:1, revMap[ps].split('-')];
@@ -483,6 +495,7 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
             <circle fill="#000" cx="50" cy="50" r="50"/>
             { clocks() }
             { user.userid && users() }
+            { mode === 'match' && resign() }
             { mode === 'match' && match.move && commit() }
             { mode === 'offline' && offline() }
             { ledger(match) }

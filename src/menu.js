@@ -192,7 +192,7 @@ function matchSelect(match, item, command, update) {
     } 
 }
 //function Select(match, item, command, update) {}
-function menuSelect(match, item, command, update) { console.log('menuSelect('+item+')');
+function menuSelect(match, item, command, update) { //console.log('menuSelect('+item+')');
     if (item.startsWith('promote-')) {
         promoteSelect(match, item, command, update);
         return
@@ -279,7 +279,7 @@ function makeMenu(match, command, update, list, label, end, spin, bloom, size=2,
                 <path id={id} className={label} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={() => menuSelect(match, id, command, update)} transform={'rotate(30) scale('+size+')'} stroke='#000' strokeWidth='0.1' fill={color} d="M -1.7 -1 L 0 -2 L 1.7 -1 V 1 L 0 2 L -1.7 1 Z"></path>
                 <g transform={'rotate('+(-end-iter*4.5*size)+',0,0)'} filter='drop-shadow(rgba(0, 0, 0, 0.99) 0px 0px 0.3px)'>
                     { p[1] && <g transform={'translate(-15.8, -11.2)'} filter='drop-shadow(#000 0.3px 0.3px 0.03px)'><Piece type={'x'+p[1]} x={0} y={0} c={fill} s={draw} id='tutor' sc={0.2}/></g>}
-                    { !p[1] && text(0,0,0,font,0,fill,draw,'#00f 0.3px 0.3px 0.03px',txt[0]) }
+                    { !p[1] && text(0,0,0,font,0,fill,draw,'#00f 0.3px 0.3px 0.03px',txt[0], 'txt-'+id) }
                 </g></g></g>);
         }
         iter++;

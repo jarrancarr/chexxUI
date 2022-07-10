@@ -5,3 +5,4 @@ add +, ++ to checked log entries
 
 friends
 
+hangouts

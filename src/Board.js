@@ -9,7 +9,7 @@ import { waybackMenu, aiMenu, promMenu, editMenu, userMenu, matchMenu, items, pu
 //let editor = '';
 //let promote = [];
 
-function Board({color, user, match, update, view, menu, command, flip, mode, history}) { console.log('<Board>   menu['+menu+']    mode['+mode+']');
+function Board({color, user, match, update, view, menu, command, flip, mode, history, queue}) { //console.log('<Board>   menu['+menu+']    mode['+mode+']');
     //console.log('match', match);
     const board = analyse(match);  // console.log('board', board);
     let formation = [];
@@ -68,11 +68,11 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
         ui.push(<path key="user" id="user" transform={'translate('+x+','+y+') rotate(2,0,0) scale('+2+')'} fill="#359" stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=>command({order:'menu', choice:'users'})} d={hex}></path>);
         ui.push(text(x,y,0,2,0.01,'#fff','#500','#ff0000ff 0.2px 0.2px 0.25px','.'+user.userid)); // x,y,r,sz,w,fc,sc,ds,text
         if (match.white.player && match.white.player.ID !== 0 && match.white.player.ID !== user.ID) {
-            ui.push(<path key="opponent" id="opponent" transform={'translate('+x+','+(100-y)+') rotate(-2,0,0) scale('+2+')'} fill="#953" stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=>command({order:'menu', choice:'opponent'})} d={hex}></path>);
+            ui.push(<path key="opponent" id="opponent" transform={'translate('+x+','+(100-y)+') rotate(-2,0,0) scale('+2+')'} fill="#953" stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=>command({order:'opponent', id:match.white.player.ID})} d={hex}></path>);
             ui.push(text(x,(100-y),0,2,0.01,'#fff','#500','#ff0000ff 0.2px 0.2px 0.25px','.'+match.white.player.userid)); // x,y,r,sz,w,fc,sc,ds,text       
         }
         if (match.black.player && match.black.player.ID !== 0 && match.black.player.ID !== user.ID) {
-            ui.push(<path key="opponent" id="opponent" transform={'translate('+x+','+(100-y)+') rotate(-2,0,0) scale('+2+')'} fill="#953" stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=>command({order:'menu', choice:'opponent'})} d={hex}></path>);
+            ui.push(<path key="opponent" id="opponent" transform={'translate('+x+','+(100-y)+') rotate(-2,0,0) scale('+2+')'} fill="#953" stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=>command({order:'opponent', id:match.black.player.ID})} d={hex}></path>);
             ui.push(text(x,(100-y),0,2,0.01,'#fff','#500','#ff0000ff 0.2px 0.2px 0.25px','.'+match.black.player.userid)); // x,y,r,sz,w,fc,sc,ds,text
         }
         return ui;
@@ -481,6 +481,21 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
         }
         return notes;
     }
+    function showMessages() { console.log('showMessages', queue);
+        const messageQueue = [];
+        let idx = 72;
+        for (const m of queue.message) { console.log("   showing message "+m);
+            let rgx = new RegExp(/(\p{L}{1})\p{L}+/, 'gu');
+            let initials = [...m.from.matchAll(rgx)] || [];
+            initials = ((initials.shift()?.[1] || '') + (initials.pop()?.[1] || '')).toUpperCase();
+            messageQueue.push(<g key={'msg-'+idx} transform={'rotate('+idx*2+',0,0)'}>
+                <path id={'msg-'+idx} transform={'translate(52,0) scale(1.5)'} fill="#ccc" stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=> command({order:'read', id:m.ID}) } d={hex}></path>
+                {text(52,0,-idx*2,1.3,0,'#000','#ff8','#f80 0.2px 0.2px 0.5px',initials,'txt-'+idx)}
+                </g>);
+            idx += 8/queue.message.length;
+        }
+        return messageQueue;
+    }
     React.useEffect(() => {
         [...document.getElementsByClassName('spin')].forEach(e=>e.beginElement())
         //match.move = 'test';
@@ -492,6 +507,7 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
             <rect fill="#343" x="0" y="0" width="100" height="200"/>    
             <g transform={'translate(91, 8)'}> { help(command) } </g>   
             <g transform={'translate(91, 91)'}> { mainMenu(command, menu) } </g>
+            { queue.message && <g transform={'translate(50, 50)'}> { showMessages() } </g> }
             <circle fill="#000" cx="50" cy="50" r="50"/>
             { clocks() }
             { user.userid && users() }

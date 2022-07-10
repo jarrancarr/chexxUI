@@ -1,5 +1,5 @@
 import React from 'react';
-import useWebSocket, { ReadyState } from 'react-use-websocket';
+import useWebSocket from 'react-use-websocket';
 import $ from 'jquery';
 // import ReactDOM from 'react-dom';
 import FacebookLogin from 'react-facebook-login';
@@ -29,16 +29,17 @@ function App() { // console.log('App');
   let [drawing, scribble] = React.useState([]);
   let [flip, turn] = React.useState(false);
   let [hints, onoffHints] = React.useState(false);
-  const [messageHistory, setMessageHistory] = React.useState([]);
+  let [person, setProfile] = React.useState({});
+  let [queue, updateQueue] = React.useState({message:[]});
 
-  const { sendMessage, lastMessage, readyState } = useWebSocket(socketUrl);
-  const connectionStatus = {
-    [ReadyState.CONNECTING]: 'Connecting',
-    [ReadyState.OPEN]: 'Open',
-    [ReadyState.CLOSING]: 'Closing',
-    [ReadyState.CLOSED]: 'Closed',
-    [ReadyState.UNINSTANTIATED]: 'Uninstantiated',
-  }[readyState];
+  const { sendMessage, lastMessage } = useWebSocket(socketUrl);
+  // const connectionStatus = {
+  //   [ReadyState.CONNECTING]: 'Connecting',
+  //   [ReadyState.OPEN]: 'Open',
+  //   [ReadyState.CLOSING]: 'Closing',
+  //   [ReadyState.CLOSED]: 'Closed',
+  //   [ReadyState.UNINSTANTIATED]: 'Uninstantiated',
+  // }[readyState];
   
   const handleClickSendMessage = React.useCallback(() => {
     console.log('handleClickSendMessage');
@@ -64,7 +65,8 @@ function App() { // console.log('App');
         teach(0);
         break; 
       case 'flip': turn(!flip); handleClickSendMessage(); break;
-      case 'profile': setMode('profile'); break;
+      case 'profile': setMode('profile', user.ID); break;
+      case 'opponent': openProfile(data.id); setMode('other'); break;
       case 'zoom' : zoom(view==='0, 0, 100, 200'?'14 0 72 200':'0, 0, 100, 200'); break;
       case 'login' : loginUser(data.user); setMode('profile'); break;
       case 'logout' : loginUser({}); cmd({order:'dialog', title:'Thanks for Playing', text:['h2:::Hope to see you again soon.','h4:::Any social media attention would be appreciated.','h4:::Leaving comments is my best way to help improve Chexx.']}); break;
@@ -74,6 +76,7 @@ function App() { // console.log('App');
       case 'rewind' : goBack(data.event); break;
       case 'resign' : resign(data.id); break;
       case 'setup' : newGame(); break;
+      case 'read' : showMessage(data.id); break;
       case 'saveMatch' : saveMatch(data.match); break;
       case 'loadMatch' : loadMatch(data.id); break;
       case 'listMatches' : listMatches(); break;
@@ -134,7 +137,7 @@ function App() { // console.log('App');
     const copyMatch = {id:0, name:'offline', white:{pieces:['Rd54', 'Rd5', 'Rc52', 'Nd53', 'Nd51', 'Nc33', 'Bc53', 'Bc55', 'Bd52', 'Qd41', 'Kc44', 'Id31', 'Ed4', 'Pd55', 'Pd44', 'Pd33', 'Pd21', 'Pc22', 'Pc31', 'Pc41', 'Pc51', 'Sd43', 'Sd32', 'Sd2', 'Sc32', 'Sc42', 'Ad42', 'Ad3', 'Ac43'], time:300}, black:{pieces:['Ra5', 'Rf52', 'Ra54', 'Nf53', 'Nf55', 'Na31', 'Ba53', 'Ba51', 'Bf54', 'Qf44', 'Ka41', 'If33', 'Ea4', 'Pf51', 'Pf41', 'Pf31', 'Pf22', 'Pa21', 'Pa33', 'Pa44', 'Pa55', 'Sf42', 'Sf32', 'Sa2', 'Sa32', 'Sa43', 'Af43', 'Aa3', 'Aa42'], time:300}, log:[], type:{game:300, move:15}};
     for (const l in match.log) {
       if (l < event +1) {
-        const mvs = match.log[l].trim('+').split(/[x~]/);
+        const mvs = match.log[l].replace(/[+=]/,'').split(/[x~]/);
         movePiece(copyMatch, null, mvs)
       }
     }
@@ -187,6 +190,8 @@ function App() { // console.log('App');
   }
   function loadMatch(id) {
     clear();
+    setBoard('');
+    history = -1;
     fetch(serverUrl+'/match/load/'+id,{
       mode: 'cors',
       method: "GET",
@@ -205,7 +210,7 @@ function App() { // console.log('App');
         } else cmd({order:'dialog', title:'Error', text:['h2:::'+data.message]});
       });
   }
-  function previewMatch(id) { console.log('previewMatch',id);
+  function previewMatch(id) { //console.log('previewMatch',id);
     let open = {};
     fetch(serverUrl+'/match/load/'+id,{
       mode: 'cors',
@@ -366,7 +371,7 @@ function App() { // console.log('App');
     update({id:0, name:'offline', white:{pieces:['Rd54', 'Rd5', 'Rc52', 'Nd53', 'Nd51', 'Nc33', 'Bc53', 'Bc55', 'Bd52', 'Qd41', 'Kc44', 'Id31', 'Ed4', 'Pd55', 'Pd44', 'Pd33', 'Pd21', 'Pc22', 'Pc31', 'Pc41', 'Pc51', 'Sd43', 'Sd32', 'Sd2', 'Sc32', 'Sc42', 'Ad42', 'Ad3', 'Ac43'], time:300}, black:{pieces:['Ra5', 'Rf52', 'Ra54', 'Nf53', 'Nf55', 'Na31', 'Ba53', 'Ba51', 'Bf54', 'Qf44', 'Ka41', 'If33', 'Ea4', 'Pf51', 'Pf41', 'Pf31', 'Pf22', 'Pa21', 'Pa33', 'Pa44', 'Pa55', 'Sf42', 'Sf32', 'Sa2', 'Sa32', 'Sa43', 'Af43', 'Aa3', 'Aa42'], time:300}, log:[], type:{game:300, move:15}});
     resume();
   }
-  function resume() { setMode('offline'); }
+  function resume() { setMode('offline'); setBoard(''); history = -1; }
   function openChallenge() {
     const title = document.getElementById('title').value;
     const dpm = document.getElementById('dpm').value;
@@ -416,7 +421,7 @@ function App() { // console.log('App');
     return form;
 
   }
-  function showDialog(dialog) { // console.log('dialog', dialog);
+  function showDialog(dialog) { //console.log('dialog', dialog);
     return (
       <div className='Full Overlay'>
         <div className='Dialog' >
@@ -448,6 +453,7 @@ function App() { // console.log('App');
               { dialog.login && <button className='smButton' onClick={chexxLogin}>Email Password Link</button> }
               { dialog.register && <button className='smButton' onClick={chexxRegister}>Submit</button> }
               { !dialog.noClose && <button className='smButton' onClick={resume}>Close</button> }
+              { dialog.button && dialog.button.map((b, idx)=> <button className='smButton' onClick={()=>press(dialog.title, b, dialog.id)}>{b}</button>)}
             </div>
           </div> }
         </div>
@@ -461,9 +467,21 @@ function App() { // console.log('App');
               { dialog.login && <button className='lgButton' onClick={chexxLogin}>Email Password Link</button> }
               { dialog.register && <button className='lgButton' onClick={chexxRegister}>Submit</button> }
               { !dialog.noClose && <button className='lgButton' onClick={resume}>Close</button> }
+              { dialog.button && dialog.button.map((b, idx)=> <button className='lgButton' onClick={()=>press(dialog.title, b, dialog.id)}>{b}</button>)}
+
             </div></div> }
       </div>
     );
+  }
+  function press(context, button, data) {
+    console.log('button',button,'pressed',data);
+    switch (context) {
+      case 'Telegram': 
+        if (button==='Ok') updateQueue((prev)=> { prev.message = prev.message.filter(m=>m.ID!==data); return prev; });
+        resume();
+      break;
+      default: break;
+    }
   }
   function chexxLogin() { // console.log('chexxLogin');
     const user = {userid:document.getElementById('loginName').value, password:document.getElementById('loginPassword').value};
@@ -584,7 +602,15 @@ function App() { // console.log('App');
   function tdr(txt) { return <td className='right'>{textOut([txt])}</td>; }
   function tdl(txt) { return <td className='left'>{textOut([txt])}</td>; }
   function welcome() { }
-  function profile() { // console.log("profile",user);
+  function openProfile(id) {
+    fetch(serverUrl+'/user/'+id,{
+      mode: 'cors',
+      method: "GET",
+      headers: {"Content-Type": "application/json", "Authorization": user.token}
+    }).then(response => response.json() )
+      .then(data =>  setProfile(data.opponent));
+  }
+  function myProfile() { // console.log("profile",user);
     const table = [<table><tbody>
       <tr><td colSpan={2}><img src={serverUrl+'/pub/smiley.png'} alt="Smiley face" width="80" height="120" style={{border:'5px solid black'}}/></td></tr>
       <tr>{tdr('h3:::User Name:')}{tdl('h2:::'+user.userid)}{tdr('h3:::Email:')}{tdl('h2:::'+user.email)}</tr>
@@ -612,6 +638,61 @@ function App() { // console.log('App');
         </div>
       </div>
     );
+  }
+  function profile(user) { console.log("profile",user);
+    const table = [<table><tbody>
+      <tr><td colSpan={2}><img src={serverUrl+'/pub/smiley.png'} alt="Smiley face" width="80" height="120" style={{border:'5px solid black'}}/></td></tr>
+      <tr>{tdr('h3:::User Name:')}{tdl('h2:::'+user.userid)}{tdr('h3:::Rank:')}{tdl('h2:::'+user.rank)}{tdr('h3:::Account:')}{tdl('h2:::silver')}</tr>
+      <tr>{tdr('h3:::Rank:')}{tdl('h2:::'+user.rank)}{tdr('h3:::Account:')}{tdl('h2:::silver')}</tr>
+      <tr>{tdr('h3:::About:')}{tdl('xxxxxx')}</tr>
+      <tr><td>*</td><td>*</td><td colSpan={2}>Message</td><td>*</td><td>*</td></tr>
+      <tr><td></td><td colSpan={4}><input id="message" type="text" className='input' name="message" size="20" maxlength="35" defaultValue="Hello..."/></td> </tr>
+      <tr></tr>
+    </tbody></table>];
+    return (
+      <div className='Full Overlay'>
+        <div className='Dialog' style={{width:(4*m/5)+'px', top:(m/2)+'px', left:(m/2)+'px', backgroundColor: '#444444bb'}}>
+          <div className='topper'><h2>{user.fullName}</h2></div>
+          {table}
+          <div className='bottomer'>
+            <div className='group'>
+              <button className='smButton' onClick={resume}>Close</button>
+              <button className='smButton' onClick={()=>{message("*Wave*","",user.userid);}}>Wave</button>
+              <button className='smButton' onClick={()=>{message("Hi","",user.userid);}}>Hi</button>
+              <button className='smButton' onClick={()=>{message(document.getElementById('message').value,"",user.userid); document.getElementById('message').value='';}}>Send</button>
+              <button className='smButton' onClick={()=>{friendRequest(user.userid);}}>Friend Request</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  function friendRequest(id) {
+    const invite = {user:id, subject:'lets be friends'}
+    fetch(serverUrl+'/user/friendRequest',{
+      mode: 'cors',
+      method: "POST",
+      headers: {"Content-Type": "application/json", "Authorization": user.token},
+      body: JSON.stringify(invite)
+    }).then(response => response.json() )
+      .then(data => { if (!data.status) cmd({order:'dialog', title:'Error', text:['h2:::'+data.message]}); });
+  }
+  function message(topic, text, id) { //console.log('message',id);
+    const message = {topic:topic, body:text, recipient:id}
+    fetch(serverUrl+'/user/message',{
+      mode: 'cors',
+      method: "POST",
+      headers: {"Content-Type": "application/json", "Authorization": user.token},
+      body: JSON.stringify(message)
+    }).then(response => response.json() )
+      .then(data => { if (!data.status) cmd({order:'dialog', title:'Error', text:['h2:::'+data.message]}) });
+  }
+  function showMessage(id) {
+    for (const m of queue.message) {
+      if (m.ID === id) {
+        cmd({order:'dialog', title:'Telegram', text:['h3:::from: '+m.from, 'h2:::'+m.topic, m.text], noClose:true, button:['Reply', 'Save', 'Ok'], id:m.ID})
+      }
+    }
   }
   function storeProfile() {
     user.property.hints = hints?'true':'false';
@@ -653,19 +734,18 @@ function App() { // console.log('App');
   React.useEffect(() => { //  console.log('App useEffect:',state, mode, user);
 
     if (lastMessage !== null) {
-      setMessageHistory((prev) => prev.concat(lastMessage));
       const message = JSON.parse(lastMessage.data);
-      console.log("WEBSOCKET:::"+message.type);
       switch(message.type) {
-        case 'notify': console.log('match',message.match); 
-        hilite(['wait-'+message.match],'fill','#00ff00b0', false);
-        hilite(['txt-wait-'+message.match],'fill','#ffaaffb0', false);
-          // const update = $('#wait-'+message.match);
-          // if (update) update.style.fill='#00ff00ff';
+        case 'notify':
+          hilite(['wait-'+message.match],'fill',message.state==='Checkmate'?'#000000a0':message.state==='Stalemate'?'#999999a0':'#00ff00b0', false);
+          hilite(['txt-wait-'+message.match],'fill',message.state==='Checkmate'?'#d0d0f0e0':message.state==='Stalemate'?'#000000ff':'#ffaaffb0', false);
+          break;
+        case 'message':
+          if (!queue.message[queue.message.length-1] || queue.message[queue.message.length-1].ID !== message.message.ID)
+            updateQueue((prev)=> { prev.message.push(message.message); return prev; } );
           break;
         default: break;
       }
-      //$('#wait-rtyu:49').css({ fill:'#00ff00ff'});
     }
     if (user) {
       if (user.property) {
@@ -687,26 +767,19 @@ function App() { // console.log('App');
         onoffHints(user.property.hints === 'true')
       }
     }
-  }, [state, mode, user, lastMessage, setMessageHistory])
+  }, [state, mode, user, lastMessage, updateQueue, queue])
 
   return (
     <div className="App Full">
-      <Board color={['#555','#aaa','#111']} user={user} match={match} menu={state} update={update} view={view} command={cmd} flip={flip} mode={mode} history={history}/>
+      <Board color={['#555','#aaa','#111']} user={user} match={match} menu={state} update={update} view={view} command={cmd} flip={flip} mode={mode} history={history} queue={queue}/>
       { (mode === 'history' || mode === 'offline' || mode === 'tutor' || mode === 'match') &&  <Pieces white={match.white.pieces} black={match.black.pieces} light={flip?"#012":"#eeb"} dark={flip?"#eeb":"#012"} view={view} flip={flip}/>}
       { mode === 'dialog' && showDialog(dialog) }
       { mode === 'tutor' && teacher() }
-      { mode === 'profile' && profile() }
+      { mode === 'profile' && myProfile() }
+      { mode === 'other' && profile(person) }
       { mode === 'welcome' && welcome() }
 
       { drawing && <div className="Overlay Full"><svg viewBox={view} xmlns="http://www.w3.org/2000/svg"> { drawing } </svg></div> }
-      
-      <span>The WebSocket is currently {connectionStatus}</span>
-      {lastMessage ? <span>Last message: {lastMessage.data}</span> : null}
-      <ul>
-        {messageHistory.map((message, idx) => (
-          <span key={idx}>{message ? message.data : null}</span>
-        ))}
-      </ul>
     </div>
   );
 }

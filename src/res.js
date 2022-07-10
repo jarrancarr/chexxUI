@@ -77,7 +77,7 @@ function swapPieces(match, a, b) { // console.log('swapPieces',a,b);
     return true;
 }
 function marchOn(match, pos, left, right) {  // console.log("marchOn", pos, left, right)
-    const p = getPiece(match, pos); console.log("the p", p);
+    const p = getPiece(match, pos); // console.log("the p", p);
     if (p[1]) { // white
         const coord = revMap[p[0].substring(1)].split('-');
         const march = coord[0]+'-'+(parseInt(coord[1])-2);
@@ -95,7 +95,7 @@ function marchOn(match, pos, left, right) {  // console.log("marchOn", pos, left
             if (rp) marchOn(match, rp[0], 0, right-1);
             else {
                 const rs = getPiece(match,map[''+(parseInt(coord[0])+1)+'-'+(parseInt(coord[1])+3)]);
-                if (rs) marchOn(match, rp[0], 0, right-1);
+                if (rs) marchOn(match, rs[0], 0, right-1);
             }
         }
     } else { // black
@@ -121,6 +121,47 @@ function marchOn(match, pos, left, right) {  // console.log("marchOn", pos, left
 
     }
 }
+function formationSwitchArms(match, pos, left, right) {  // console.log("formationSwitchArms", pos, left, right)
+    const p = getPiece(match, pos); // console.log("the p", p);
+    const coord = revMap[p[0].substring(1)].split('-');
+    switchArms(match, p[0].substring(1));
+    if (p[1]) { // white
+        if (left > 0) {
+            const lp = getPiece(match,map[''+(parseInt(coord[0])-1)+'-'+(parseInt(coord[1])+1)]);
+            if (lp) formationSwitchArms(match, lp[0], left-1, 0);
+            else {
+                const ls = getPiece(match,map[''+(parseInt(coord[0])-1)+'-'+(parseInt(coord[1])+3)]);
+                if (ls) formationSwitchArms(match, ls[0], left-1, 0);
+            }
+        }
+        if (right > 0) {
+            const rp = getPiece(match,map[''+(parseInt(coord[0])+1)+'-'+(parseInt(coord[1])+1)]);
+            if (rp) formationSwitchArms(match, rp[0], 0, right-1);
+            else {
+                const rs = getPiece(match,map[''+(parseInt(coord[0])+1)+'-'+(parseInt(coord[1])+3)]);
+                if (rs) formationSwitchArms(match, rp[0], 0, right-1);
+            }
+        }
+    } else { // black
+        if (left > 0) {
+            const lp = getPiece(match,map[''+(parseInt(coord[0])-1)+'-'+(parseInt(coord[1])-1)]);
+            if (lp) formationSwitchArms(match, lp[0], left-1, 0);
+            else {
+                const ls = getPiece(match,map[''+(parseInt(coord[0])-1)+'-'+(parseInt(coord[1])-3)]);
+                if (ls) formationSwitchArms(match, ls[0], left-1, 0);
+            }
+        }
+        if (right > 0) {
+            const rp = getPiece(match,map[''+(parseInt(coord[0])+1)+'-'+(parseInt(coord[1])-1)]);
+            if (rp) formationSwitchArms(match, rp[0], 0, right-1);
+            else {
+                const rs = getPiece(match,map[''+(parseInt(coord[0])+1)+'-'+(parseInt(coord[1])-3)]);
+                if (rs) formationSwitchArms(match, rs[0], 0, right-1);
+            }
+        }
+
+    }
+}
 function switchArms(match, pos) {
     const p = getPiece(match, pos);
     if (p[1]) { // white
@@ -129,21 +170,23 @@ function switchArms(match, pos) {
         match.black.pieces[p[2]] = (p[0][0]==='P'?'S':'P')+p[0].substring(1)
     }
 }
-function movePiece(match, board, hexs) { // console.log('movePiece(match,', hexs,')');
+function movePiece(match, board, hexs) { //console.log('movePiece(match,', hexs,')');
     if (hexs.length === 1) { // formation moves
         const temp = [...match.log]
         const pos = hexs[0].match(/[/abcdef*]\d*/)[0];
         const leftright = hexs[0].split(pos);
         if (leftright[0].length===0 && leftright[1].length===0) {
             switchArms(match, pos);
+        } else if ((leftright[0]+leftright[1])[0]==='#') {
+            formationSwitchArms(match, pos, leftright[0].length, leftright[1].length);
         } else marchOn(match, pos, leftright[0].length, leftright[1].length);
         match.log = [...temp]
         match.log.push(hexs[0]);
     } else {
         const pos0 = hexs[0].replace(/[PSARBNKQIE]/,'');
         const pos1 = hexs[1].replace(/[PSARBNKQIE]/,'');
-        const p = getPiece(match, hexs[0]); // console.log('p',p);
-        const q = getPiece(match, hexs[1]); // console.log('q',q);
+        const p = getPiece(match, hexs[0]); //console.log('p',p);
+        const q = getPiece(match, hexs[1]); //console.log('q',q);
         if (p[1]) { // console.log('looking for',here,'in',match.black.pieces);
             // if pinned and not attacking skewerer... return
             const skewer = board?board.pinned.filter(p=>p[0]===pos0)[0]:false;
@@ -238,7 +281,7 @@ function pawnAttack(piece, pos, attacks, occupants) {
     const loc = map[pos.join('-')];
     if (isOnBoard(pos[0],pos[1]) && (!occupants[loc] || (occupants[loc] && occupants[loc][0]!==piece[0]))) attacks.push(loc);
 }
-function getAttacks(match,piece,occupants){ //console.log('getAttacks',match, piece);
+function getAttacks(match,piece,occupants){ // console.log('getAttacks',match, piece);
     const moves = [];
     const attacks = [];
     const [who, xy] = parsePiece(piece);
@@ -392,9 +435,9 @@ function analyse(match){ //console.log('analyse', match);
     }
 }
 
-function text(x,y,r,sz,w,fc,sc,ds,text) { // console.log('text',text);
+function text(x,y,r,sz,w,fc,sc,ds,text, id) { // console.log('text',text);
     if (!text) return [];
-    const id = ('t-'+text).replaceAll('.','').replaceAll(' ','').trim().toLowerCase();
+    if (!id) id = ('t-'+text).replaceAll('.','').replaceAll(' ','').trim().toLowerCase();
     const words = text.trim().split(' ').filter(w=>w&&w!=='.'); 
     const fs = [];
     const nudge = [];

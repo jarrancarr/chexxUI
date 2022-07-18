@@ -9,7 +9,7 @@ import { waybackMenu, aiMenu, promMenu, editMenu, userMenu, matchMenu, items, pu
 //let editor = '';
 //let promote = [];
 
-function Board({color, user, match, update, view, menu, command, flip, mode, history, queue}) { //console.log('<Board>   menu['+menu+']    mode['+mode+']');
+function Board({color, user, match, update, view, menu, command, flip, mode, history, queue}) { console.log('<Board>   menu['+menu+']    mode['+mode+']');
     //console.log('match', match);
     const board = analyse(match);  // console.log('board', board);
     let formation = [];
@@ -19,6 +19,7 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
     let special = false;
     let left = 0;
     let right = 0;
+    const grads = ["url(#grad1)", "url(#grad2)", "url(#grad3)"]
 
     // const chxPieces = Array.from(document.querySelectorAll('.chx-piece'));
     // chxPieces.forEach(p => { p.remove(); });
@@ -41,39 +42,40 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
         const sc=4;
         const clocks = [];
 
-        clocks.push(<path key="opponentClock" id="opponentClock" transform={'translate('+x+','+y+') rotate(-14,0,0) scale('+sc+')'} fill="#a53" stroke='#111' strokeWidth={0.1} d={hex}></path>);
-        clocks.push(<circle key="opponentClockFace" id="opponentClockFace" transform={'translate('+x+','+y+') scale('+sc+')'} fill="#bbb" stroke='#111' strokeWidth={0.1} cx={0} cy={0} r={1.6}></circle>);
+        clocks.push(<path key="theirClock" id="theirClock" transform={'translate('+x+','+y+') rotate(-14,0,0) scale('+sc+')'} fill="#a53" stroke='#111' strokeWidth={0.1} d={hex}></path>);
+        clocks.push(<circle key="theirClockFace" id="theirClockFace" transform={'translate('+x+','+y+') scale('+sc+')'} fill="#bbb" stroke='#111' strokeWidth={0.1} cx={0} cy={0} r={1.6}></circle>);
 
         clocks.push(<path key="myClock" id="myClock" transform={'translate('+x+','+(100-y)+') rotate(14,0,0) scale('+sc+')'} fill="#a53" stroke='#111' strokeWidth={0.1} d={hex}></path>);
         clocks.push(<circle key="myClockFace" id="myClockFace" transform={'translate('+x+','+(100-y)+') scale('+sc+')'} fill="#bbb" stroke='#111' strokeWidth={0.1} cx={0} cy={0} r={1.6}></circle>);
 
         clocks.push(    
-            <g key='whiteHands' transform={'translate('+x+','+(100-y)+') scale('+sc/2+')'} style={{ filter: 'drop-shadow(rgba(180, 180, 0, 0.5) 0.3px 0px 1px)'}}>
-                <path id='whiteMoveHand' transform={'rotate(180,0,0)'} className='noMouse' fill='#440' stroke='#000' strokeWidth={0.02} strokeOpacity={0.5} d="M 0 0 L 0.3 1 L 0 3 L -0.3 1 Z"></path>
-                <path id='whiteGameHand' transform={'rotate(0,0,0)'} className='noMouse' fill='#a00' stroke='#000' strokeWidth={0.02} strokeOpacity={0.5} d="M 0 0 L 0.5 1 L 0.1 2 L -0.1 2 L -0.5 1 Z"></path>
+            <g key='myHands' transform={'translate('+x+','+(100-y)+') scale('+sc/2+')'} style={{ filter: 'drop-shadow(rgba(180, 180, 0, 0.5) 0.3px 0px 1px)'}}>
+                <path id='myMoveHand' transform={'rotate(180,0,0)'} className='noMouse' fill='#440' stroke='#000' strokeWidth={0.02} strokeOpacity={0.5} d="M 0 0 L 0.3 1 L 0 3 L -0.3 1 Z"></path>
+                <path id='myGameHand' transform={'rotate(0,0,0)'} className='noMouse' fill='#a00' stroke='#000' strokeWidth={0.02} strokeOpacity={0.5} d="M 0 0 L 0.5 1 L 0.1 2 L -0.1 2 L -0.5 1 Z"></path>
                 <circle fill="#000" cx="0" cy="0" r="0.5"/>
             </g>);
         clocks.push(    
-            <g key='blackHands' transform={'translate('+x+','+y+') scale('+sc/2+')'} style={{ filter: 'drop-shadow(rgba(180, 180, 0, 0.5) 0.3px 0px 1px)'}}>
-                <path id='blackMoveHand' transform={'rotate(180,0,0)'} className='noMouse' fill='#220' stroke='#000' strokeWidth={0.02} strokeOpacity={0.5} d="M 0 0 L 0.3 1 L 0 3 L -0.3 1 Z"></path>
-                <path id='blackGameHand' transform={'rotate(0,0,0)'} className='noMouse' fill='#a00' stroke='#000' strokeWidth={0.02} strokeOpacity={0.5} d="M 0 0 L 0.5 1 L 0.1 2 L -0.1 2 L -0.5 1 Z"></path>
+            <g key='theirHands' transform={'translate('+x+','+y+') scale('+sc/2+')'} style={{ filter: 'drop-shadow(rgba(180, 180, 0, 0.5) 0.3px 0px 1px)'}}>
+                <path id='theirMoveHand' transform={'rotate(180,0,0)'} className='noMouse' fill='#220' stroke='#000' strokeWidth={0.02} strokeOpacity={0.5} d="M 0 0 L 0.3 1 L 0 3 L -0.3 1 Z"></path>
+                <path id='theirGameHand' transform={'rotate(0,0,0)'} className='noMouse' fill='#a00' stroke='#000' strokeWidth={0.02} strokeOpacity={0.5} d="M 0 0 L 0.5 1 L 0.1 2 L -0.1 2 L -0.5 1 Z"></path>
                 <circle fill="#000" cx="0" cy="0" r="0.5"/>
             </g>);
         return clocks;
     }
     function users() { // console.log('users',user, match);
         const ui = [];
-        const x=20;
-        const y=95;
-        ui.push(<path key="user" id="user" transform={'translate('+x+','+y+') rotate(2,0,0) scale('+2+')'} fill="#359" stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=>command({order:'menu', choice:'users'})} d={hex}></path>);
-        ui.push(text(x,y,0,2,0.01,'#fff','#500','#ff0000ff 0.2px 0.2px 0.25px','.'+user.userid)); // x,y,r,sz,w,fc,sc,ds,text
+        const x=(mode === 'blitz'?20:9);
+        const y=(mode === 'blitz'?95:91);
+        const sc=(mode === 'blitz'?2:4);
+        ui.push(<path key="user" id="user" transform={'translate('+x+','+y+') rotate(12,0,0) scale('+sc+')'} fill="#359" stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=>command({order:'menu', choice:'users'})} d={hex}></path>);
+        ui.push(text(x,y,0,sc,0.01,'#fff','#500','#ff0000ff 0.2px 0.2px 0.25px','...'+user.userid)); // x,y,r,sz,w,fc,sc,ds,text
         if (match.white.player && match.white.player.ID !== 0 && match.white.player.ID !== user.ID) {
             ui.push(<path key="opponent" id="opponent" transform={'translate('+x+','+(100-y)+') rotate(-2,0,0) scale('+2+')'} fill="#953" stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=>command({order:'opponent', id:match.white.player.ID})} d={hex}></path>);
-            ui.push(text(x,(100-y),0,2,0.01,'#fff','#500','#ff0000ff 0.2px 0.2px 0.25px','.'+match.white.player.userid)); // x,y,r,sz,w,fc,sc,ds,text       
+            ui.push(text(x,(100-y),0,sc,0.01,'#fff','#500','#ff0000ff 0.2px 0.2px 0.25px','.'+match.white.player.userid)); // x,y,r,sz,w,fc,sc,ds,text       
         }
         if (match.black.player && match.black.player.ID !== 0 && match.black.player.ID !== user.ID) {
-            ui.push(<path key="opponent" id="opponent" transform={'translate('+x+','+(100-y)+') rotate(-2,0,0) scale('+2+')'} fill="#953" stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=>command({order:'opponent', id:match.black.player.ID})} d={hex}></path>);
-            ui.push(text(x,(100-y),0,2,0.01,'#fff','#500','#ff0000ff 0.2px 0.2px 0.25px','.'+match.black.player.userid)); // x,y,r,sz,w,fc,sc,ds,text
+            ui.push(<path key="opponent" id="opponent" transform={'translate('+x+','+(100-y)+') rotate(-12,0,0) scale('+sc+')'} fill="#953" stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=>command({order:'opponent', id:match.black.player.ID})} d={hex}></path>);
+            ui.push(text(x,(100-y),0,sc,0.01,'#fff','#500','#ff0000ff 0.2px 0.2px 0.25px','.'+match.black.player.userid)); // x,y,r,sz,w,fc,sc,ds,text
         }
         return ui;
     }
@@ -118,11 +120,25 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
         }
         return ui;
     }
+    function hexDefs() {
+        function grads(color) {
+            let grad = [];
+            const stops = 100/(color.length-1);
+            for (let i=0;i<color.length;i++)
+                grad.push(<stop offset={''+stops*i+'%'} style={{'stopColor':color[i],'stopOpacity':'1'}}/>);
+            return grad;
+        }
+        let defs = [];
+        defs.push(<linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="100%">{grads(color['light'])}</linearGradient>);
+        defs.push(<linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">{grads(color['neutral'])}</linearGradient>);
+        defs.push(<linearGradient id="grad3" x1="0%" y1="0%" x2="100%" y2="100%">{grads(color['dark'])}</linearGradient>);
+        return defs;
+    }
     function tiles() {
         const hex = [];    
         for (let i = 0; i<13; i++) {
             for (let j = 0; j<25; j+=2) {
-                if (isOnBoard(i,j)) hex.push(<Hex key={'hex-'+i+'-'+(j + i%2)} x={i} y={j} color={color} action={hexClicked}/>);
+                if (isOnBoard(i,j)) hex.push(<Hex key={'hex-'+i+'-'+(j + i%2)} x={i} y={j} color={grads} action={hexClicked}/>);
             }
         }
         return hex;
@@ -219,7 +235,7 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
         left = 0;
         right = 0;
     }
-    function hexClicked(here) { // console.log('hexClicked  first:',first, '  here',here);
+    function hexClicked(here) { console.log('hexClicked  first:', match.first, '  here',here);
         if (history>-1) return;
         if (flip) here = flipped(here);
         if (menu==='tutor') {
@@ -303,6 +319,7 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
                 else copyMatch.move = 'vvvvvvvvv'.substring(0,left)+match.first+'vvvvvvvvv'.substring(0,right)
                 copyMatch.log.push(copyMatch.move);
                 update(copyMatch);
+                if (mode==='blitz') command({order:'blitz-move', move:copyMatch.move});
                 clean();
             } else if (here===formation[0]) { // console.log('switch arms');
                 const copyMatch = {...match};
@@ -321,6 +338,7 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
                 copyMatch.move ='#########'.substring(0,left)+here+'#########'.substring(0,right);
                 copyMatch.log.push(copyMatch.move);
                 update(copyMatch);
+                if (mode==='blitz') command({order:'blitz-move', move:copyMatch.move});
                 clean();
             } else { console.log('add soldier    march:', march, '    muster:', muster, '   sa:', switchArms);
                 if (!board.occupants[here]) {
@@ -362,7 +380,7 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
                 }
             }
         } else { // not special
-            if (match.first === '') { // console.log('first selection'); // no piece was selected
+            if (!match.first || match.first === '') { console.log('first selection'); // no piece was selected
                 selectPiece(moves, attacks, attacked, covered, board.occupants, board.pinned, here);
                 // console.log('moves',moves); console.log('attacks',attacks); console.log('attacked, covered',attacked, covered);
             } else { // console.log('second selection');  // piece had already been chosen...
@@ -403,6 +421,7 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
                             || ((!look.whiteInCheck || whiteMove(copyMatch)) && (!look.blackInCheck || !whiteMove(copyMatch)))) {
                                 if (!copyMatch.move) copyMatch.move = copyMatch.log[copyMatch.log.length-1];
                                 update(copyMatch);
+                                if (mode==='blitz') command({order:'blitz-move', move:copyMatch.move});
                         } else match = JSON.parse(store);
                         match.first = '';
                     }
@@ -436,10 +455,11 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
                     let t = "rotate("+(-l+end-1)*5+", 50, 50)";
                     let f ='#444';
                     let s = match.log[l].indexOf('+')>0?"#ff3":"#666";
+                    const lge = match.log[l].split('::')[0];
                     notes.push(
-                        <g key={'log-'+l} transform={t} onMouseOver={(e) => highlight(e, match.log[l],true, flip)} onMouseLeave={(e) => highlight(e, match.log[l],false, flip)} onClick={()=>command({order:'rewind', event:l})} style={{ filter: 'drop-shadow(rgba(180, 180, 0, 0.5) 0.3px 0px 1px)'}}>
-                            <rect id={'rect-'+match.log[l]} x="13" y="16" fill={f} stroke={s} strokeWidth={0.35} height="3" width="20"/>
-                            {text(16,17.8,0,2,0,l%2===0?'#fff':'#000','#888',(notes.length%2===0?'#80f':'#f80')+' 0.2px 0.2px 0.5px',match.log[l].split('=')[0])}
+                        <g key={'log-'+l} transform={t} onMouseOver={(e) => highlight(e, lge,true, flip)} onMouseLeave={(e) => highlight(e, lge,false, flip)} onClick={()=>command({order:'rewind', event:l})} style={{ filter: 'drop-shadow(rgba(180, 180, 0, 0.5) 0.3px 0px 1px)'}}>
+                            <rect id={'rect-'+lge} x="13" y="16" fill={f} stroke={s} strokeWidth={0.35} height="3" width="20"/>
+                            {text(16,17.8,0,2,0,l%2===0?'#fff':'#000','#888',(notes.length%2===0?'#80f':'#f80')+' 0.2px 0.2px 0.5px',lge)}
                         </g>);
                 }
             }
@@ -448,10 +468,11 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
                     let t = "rotate("+(-l+end-1)*5+", 50, 50)";
                     let f ='#444';
                     let s = match.log[l].indexOf('+')>0?"#ff3":"#666";
+                    const lge = match.log[l].split('::')[0];
                     notes.push(
-                        <g key={'log-'+l} transform={t} opacity={(7-l+end+25)/7} onMouseOver={(e) => highlight(e, match.log[l],true, flip)} onMouseLeave={(e) => highlight(e, match.log[l],false, flip)} onClick={()=>command({order:'rewind', event:l})} style={{ filter: 'drop-shadow(rgba(180, 180, 0, 0.5) 0.3px 0px 1px)'}}>
-                            <rect id={'rect-'+match.log[l]} x="13" y="16" fill={f} stroke={s} strokeWidth={0.35} height="3" width="20"/>
-                            {text(16,17.8,0,2,0,l%2===0?'#fff':'#000','#888',(l%2===0?'#80f':'#f80')+' 0.2px 0.2px 0.5px',match.log[l].split('=')[0])}
+                        <g key={'log-'+l} transform={t} opacity={(7-l+end+25)/7} onMouseOver={(e) => highlight(e, lge,true, flip)} onMouseLeave={(e) => highlight(e, lge,false, flip)} onClick={()=>command({order:'rewind', event:l})} style={{ filter: 'drop-shadow(rgba(180, 180, 0, 0.5) 0.3px 0px 1px)'}}>
+                            <rect id={'rect-'+lge} x="13" y="16" fill={f} stroke={s} strokeWidth={0.35} height="3" width="20"/>
+                            {text(16,17.8,0,2,0,l%2===0?'#fff':'#000','#888',(l%2===0?'#80f':'#f80')+' 0.2px 0.2px 0.5px',lge)}
                         </g>);
                 }
             }
@@ -461,11 +482,12 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
             let t = "rotate("+(-l+end-1)*5+", 50, 50)";
             let f = l===end-1?"#99f":match.log[l].indexOf('x')>0?"#a55":"#363";
             let s = match.log[l].indexOf('+')>0?"#ff3":"#666";
+            const lge = match.log[l].split('::')[0];
             notes.push(
-                <g key={'log-'+l} transform={t} onMouseOver={(e) => highlight(e, match.log[l],true, flip)} onMouseLeave={(e) => highlight(e, match.log[l],false, flip)} onClick={()=>command({order:'rewind', event:l})} style={{ filter: 'drop-shadow(rgba(180, 180, 0, 0.5) 0.3px 0px 1px)'}}>
-                    <rect id={'rect-'+match.log[l]} x="13" y="16" fill={f} stroke={s} strokeWidth={0.35} height="3" width="20"/>
-                    {text(16,17.8,0,2,0,l%2===0?'#fff':'#000','#888',(l%2===0?'#80f':'#f80')+' 0.2px 0.2px 0.5px',match.log[l].split('=')[0])}
-                </g>);
+                <g key={'log-'+l} transform={t} onMouseOver={(e) => highlight(e, lge,true, flip)} onMouseLeave={(e) => highlight(e, lge,false, flip)} onClick={()=>command({order:'rewind', event:l})} style={{ filter: 'drop-shadow(rgba(180, 180, 0, 0.5) 0.3px 0px 1px)'}}>
+                    <rect id={'rect-'+lge} x="13" y="16" fill={f} stroke={s} strokeWidth={0.35} height="3" width="20"/>
+                    {text(16,17.8,0,2,0,l%2===0?'#fff':'#000','#888',(l%2===0?'#80f':'#f80')+' 0.2px 0.2px 0.5px', lge)}
+                </g>); // .split('=')[0]
         }
         if (start>0) {
             for (let l=fade;l<start;l++) { // fade out past
@@ -474,18 +496,18 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
                 let s = match.log[l].indexOf('+')>0?"#ff3":"#666";
                 notes.push(
                     <g key={'log-'+l} transform={t} opacity={(10+l-start)/10} onMouseOver={(e) => highlight(e, match.log[l],true, flip)} onMouseLeave={(e) => highlight(e, match.log[l],false, flip)} onClick={()=>command({order:'rewind', event:l})} style={{ filter: 'drop-shadow(rgba(180, 180, 0, 0.5) 0.3px 0px 1px)'}}>
-                        <rect id={'rect-'+match.log[l]} x="13" y="16" fill={f} stroke={s} strokeWidth={0.35} height="3" width="20"/>
-                        {text(16,17.8,0,2,0,l%2===0?'#fff':'#000','#888',(l%2===0?'#80f':'#f80')+' 0.2px 0.2px 0.5px',match.log[l].split('=')[0])}
+                        <rect id={'rect-'+match.log[l].split('::')[0]} x="13" y="16" fill={f} stroke={s} strokeWidth={0.35} height="3" width="20"/>
+                        {text(16,17.8,0,2,0,l%2===0?'#fff':'#000','#888',(l%2===0?'#80f':'#f80')+' 0.2px 0.2px 0.5px',match.log[l].split('::')[0])}
                     </g>);
             }
         }
         return notes;
     }
-    function showMessages() { console.log('showMessages', queue);
+    function showMessages() { //console.log('showMessages', queue);
         const messageQueue = [];
+        let rgx = new RegExp(/(\p{L}{1})\p{L}+/, 'gu');
         let idx = 72;
-        for (const m of queue.message) { console.log("   showing message "+m);
-            let rgx = new RegExp(/(\p{L}{1})\p{L}+/, 'gu');
+        for (const m of queue.message) {
             let initials = [...m.from.matchAll(rgx)] || [];
             initials = ((initials.shift()?.[1] || '') + (initials.pop()?.[1] || '')).toUpperCase();
             messageQueue.push(<g key={'msg-'+idx} transform={'rotate('+idx*2+',0,0)'}>
@@ -493,6 +515,26 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
                 {text(52,0,-idx*2,1.3,0,'#000','#ff8','#f80 0.2px 0.2px 0.5px',initials,'txt-'+idx)}
                 </g>);
             idx += 8/queue.message.length;
+        }
+        idx = 102;
+        for (const fr of queue.friendRequest) {
+            let initials = [...fr.from.matchAll(rgx)] || [];
+            initials = ((initials.shift()?.[1] || '') + (initials.pop()?.[1] || '')).toUpperCase();
+            messageQueue.push(<g key={'fr-'+idx} transform={'rotate('+idx*2+',0,0)'}>
+                <path id={'fr-'+idx} transform={'translate(52,0) scale(1.5)'} fill="#a4e" stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=> command({order:'befriend', id:fr.ID}) } d={hex}></path>
+                {text(52,0,-idx*2,1.3,0,'#000','#ff8','#f80 0.2px 0.2px 0.5px',initials,'fr-txt-'+idx)}
+                </g>);
+            idx += 8/queue.friendRequest.length;
+        }
+        idx = 344;
+        for (const f of queue.friend) { //console.log('friend', f);
+            let initials = [...f.name.matchAll(rgx)] || [];
+            initials = ((initials.shift()?.[1] || '') + (initials.pop()?.[1] || '')).toUpperCase();
+            messageQueue.push(<g key={'friend-'+idx} transform={'rotate('+idx*2+',0,0)'}>
+                <path id={'friend-'+idx} transform={'translate(52,0) scale(1.5)'} fill={f.colors.split('|')[0]} stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=> command({order:'buddy', id:f.ID}) } d={hex}></path>
+                {text(52,0,-idx*2,1.3,0,'#000','#ff8','#f80 0.2px 0.2px 0.5px',initials,'f-txt-'+idx)}
+                </g>);
+            idx += 8/queue.friend.length;
         }
         return messageQueue;
     }
@@ -504,14 +546,16 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
     return (
       <div className="App">
         <svg id='board' viewBox={view} xmlns="http://www.w3.org/2000/svg">
+            <defs> { hexDefs() }
+            </defs>
             <rect fill="#343" x="0" y="0" width="100" height="200"/>    
             <g transform={'translate(91, 8)'}> { help(command) } </g>   
             <g transform={'translate(91, 91)'}> { mainMenu(command, menu) } </g>
-            { queue.message && <g transform={'translate(50, 50)'}> { showMessages() } </g> }
+            { <g transform={'translate(50, 50)'}> { showMessages() } </g> }
             <circle fill="#000" cx="50" cy="50" r="50"/>
-            { clocks() }
+            { mode === 'blitz' && clocks() }
             { user.userid && users() }
-            { mode === 'match' && resign() }
+            { (mode === 'match' || mode === 'blitz') && resign() }
             { mode === 'match' && match.move && commit() }
             { mode === 'offline' && offline() }
             { ledger(match) }

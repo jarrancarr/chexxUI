@@ -103,7 +103,7 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  padding: 2vw;
+  padding: 2vw 0vw;
   min-width: 29vw;
   pointer-events: all;
 }
@@ -197,4 +197,30 @@
 
 .left {
   text-align:left;
+}
+
+li {
+  font-size: 2.5em;
+  margin: 0.1em;
+  padding: 0.3em;
+  border: 0.1em solid #ff0;
+  border-radius: 1em;
+  min-width: 10em;
+}
+li > p {
+  margin: 0em;
+  padding: 0em;
+}
+.talk {
+  background-color: #007;
+  float: right;
+  clear: both;
+  color: #aaa;
+  
+}
+.listen {
+  background-color: #aa5;
+  float: left;
+  clear: both;
+  color: #226;
 }

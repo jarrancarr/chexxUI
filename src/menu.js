@@ -182,10 +182,11 @@ function lessonSelect(match, item, command, update) {
         default: lesson('Unimplemented'); break;
     } 
 }
-function matchSelect(match, item, command, update) {
+function matchSelect(match, item, command, update) { console.log('matchSelect', item);
     switch(item) {
         case 'match-playcomputer':  command({order:'dialog', title:'New Game vs AI?', text:['Play against computer...'], yesno:true}); break;
         case 'match-save': command({order:'saveMatch', match:match}); break;
+        case 'match-blitzmatch': command({order:'blitz-start'}); break;
         case 'match-openchallenge': command({order:'dialog', title:'Open Challenge', text:['Only opponents within 200 points of your rank will be allowed to accept your challenge.'], challenge:true}); break;
         case 'match-delete': command({order:'dialog', title:'Delete Match', text:['h1:::'+match.name], yesno:true, openId:match.ID}); break;
         default: break;

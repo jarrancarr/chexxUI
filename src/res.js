@@ -1,7 +1,7 @@
 
 // const serverUrl = 'http://localhost:8000';
 // const serverUrl = 'http://192.168.1.152:8000';
-const serverUrl = 'http://96.231.58.180:6085';
+const serverUrl = 'http://96.231.45.134:6085';
 const socketUrl = 'ws://192.168.1.152:8000/ws';
 
 const hex = "M -1.7 -1 L 0 -2 L 1.7 -1 V 1 L 0 2 L -1.7 1 Z";

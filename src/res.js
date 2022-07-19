@@ -37,8 +37,8 @@ function flipped(here) {
 function inStartPos(piece) { // console.log('inStartPos',piece);
     return 'wPd55 wPd44 wPd33 wPd21 wPc22 wPc31 wPc41 wPc51 wSd43 wSd32 wSd2 wSc32 wSc42 bPf51 bPf41 bPf31 bPf22 bPa21 bPa33 bPa44 bPa55 bSf42 bSf32 bSa2 bSa32 bSa43 '.includes(piece+' ');
 }
-function inPromotePos(piece) {
-    return 'f5 f51 f52 f53 f54 f55 a5 a51 a52 a53 a54 a55 b5 c5 c51 c52 c53 c54 c55 d5 d51 d52 d53 d54 d55 e5 '.includes(piece+' ');
+function inPromotePos(piece, white) {
+    return (white?'f5 f51 f52 f53 f54 f55 a5 a51 a52 a53 a54 a55 b5 ':'c5 c51 c52 c53 c54 c55 d5 d51 d52 d53 d54 d55 e5 ').includes(piece+' ');
 }
 function whiteMove(match) {
     return match.log.length%2===0;

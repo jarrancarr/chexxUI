@@ -51,7 +51,10 @@ function disselect() {
     [...document.getElementsByClassName('edit-w')].forEach(e=>e.setAttribute('fill','#ff909060'));
     [...document.getElementsByClassName('edit')].forEach(e=>e.setAttribute('fill','#ff909060'));
 }
-function promoteSelect(match, item, command, update) {
+function promoteSelect(match, item, command, update, flip) { console.log('promoteSelect',match.promotions);
+    hilite([match.promotions[0]],'stroke','#000', flip);
+    hilite([match.promotions[0]],'strokeWidth','0.4', flip);
+    hilite([match.promotions[0]],'strokeOpacity','0.5', flip);
     let q = 'P';
     let copyMatch = {...match};
     const store = JSON.stringify(match);
@@ -65,19 +68,24 @@ function promoteSelect(match, item, command, update) {
         case 'promote-queen': q='Q'; break;
         default: break;            
     }
-    const p = getPiece(copyMatch, match.promote[0]);
+    const p = getPiece(copyMatch, match.promotions[0]);
     if (p[1]) { // white
-        copyMatch.white.pieces = copyMatch.white.pieces.filter(f => f.substring(1)!==match.promote[0]);
-        copyMatch.white.pieces.push(q+match.promote[1]);
+        const promote = copyMatch.white.pieces.findIndex(f => f.substring(1)===match.promotions[0]);
+        copyMatch.white.pieces[promote] = q+match.promotions[0];
     } else { // black
-        copyMatch.black.pieces = copyMatch.black.pieces.filter(f => f.substring(1)!==match.promote[0]);
-        copyMatch.black.pieces.push(q+match.promote[1]);
+        const promote = copyMatch.black.pieces.findIndex(f => f.substring(1)===match.promotions[0]);
+        copyMatch.black.pieces[promote] = q+match.promotions[0];
     }
-    copyMatch.log.push(p[0]+'~'+q+match.promote[1]);
+    const last = copyMatch.log.length-1;
+    if (copyMatch.log[last].match(/[v^]/)) {
+        if (copyMatch.log[last].match('=')) copyMatch.log[last]+=q;
+        else copyMatch.log[last]+='='+q;
+    } else copyMatch.log[last] = copyMatch.log[last].replace(match.promotions[0], q+match.promotions[0]).replace('S'+match.promotions[0], q+match.promotions[0]);
+    copyMatch.promotions.shift();
     const look = analyse(copyMatch);
     if ((!look.whiteInCheck && !look.blackInCheck)
         || ((!look.whiteInCheck || whiteMove(copyMatch)) && (!look.blackInCheck || !whiteMove(copyMatch)))) {
-            if (!match.move) match.move = copyMatch.log[copyMatch.log.length-1];
+            if (!match.move) match.move = copyMatch.log[last];
             update(copyMatch);
     } else match = JSON.parse(store);
     match.first = '';
@@ -193,9 +201,9 @@ function matchSelect(match, item, command, update) { console.log('matchSelect', 
     } 
 }
 //function Select(match, item, command, update) {}
-function menuSelect(match, item, command, update) { //console.log('menuSelect('+item+')');
+function menuSelect(match, item, command, update, flip) { //console.log('menuSelect('+item+')');
     if (item.startsWith('promote-')) {
-        promoteSelect(match, item, command, update);
+        promoteSelect(match, item, command, update, flip);
         return
     }
     if (item.startsWith('ai-')) { 
@@ -265,7 +273,7 @@ function help(command) { // console.log('help');
     
     return help;
 }
-function makeMenu(match, command, update, list, label, end, spin, bloom, size=2, font=4, color='#880', draw='#110', fill='#cc4') { // console.log('tutorials');
+function makeMenu(match, command, update, list, label, end, spin, bloom, size=2, font=4, color='#880', draw='#110', fill='#cc4', flip) { // console.log('tutorials');
     const items=[];
     if (!list || list.length===0) return [];
     let iter = 0;
@@ -277,7 +285,7 @@ function makeMenu(match, command, update, list, label, end, spin, bloom, size=2,
             items.push(<g key={id} transform={'rotate('+(end+iter*4.5*size)+',0,0) '}>
                 <animateTransform className='spin' attributeName="transform" attributeType="XML" type="rotate" from={''+(spin+iter*bloom)+' 0 0'} to={''+(end+iter*4.5*size)+' 0 0'} dur='0.4s' begin='indefinite' repeatCount="1"/>
                 <g transform={'translate(47, 0)'}>
-                <path id={id} className={label} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={() => menuSelect(match, id, command, update)} transform={'rotate(30) scale('+size+')'} stroke='#000' strokeWidth='0.1' fill={color} d="M -1.7 -1 L 0 -2 L 1.7 -1 V 1 L 0 2 L -1.7 1 Z"></path>
+                <path id={id} className={label} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={() => menuSelect(match, id, command, update, flip)} transform={'rotate(30) scale('+size+')'} stroke='#000' strokeWidth='0.1' fill={color} d="M -1.7 -1 L 0 -2 L 1.7 -1 V 1 L 0 2 L -1.7 1 Z"></path>
                 <g transform={'rotate('+(-end-iter*4.5*size)+',0,0)'} filter='drop-shadow(rgba(0, 0, 0, 0.99) 0px 0px 0.3px)'>
                     { p[1] && <g transform={'translate(-15.8, -11.2)'} filter='drop-shadow(#000 0.3px 0.3px 0.03px)'><Piece type={'x'+p[1]} x={0} y={0} c={fill} s={draw} id='tutor' sc={0.2}/></g>}
                     { !p[1] && text(0,0,0,font,0,fill,draw,'#00f 0.3px 0.3px 0.03px',txt[0], 'txt-'+id) }
@@ -320,8 +328,11 @@ function editMenu(match, command, update) {
     editMenu = editMenu.concat(makeMenu(match, command, update, [['pawn','P'],['spear','S'],['knight','N'],['bishop','B'],['rook','R'],['queen','Q'],['archer','A'],['prince','I'],['princess','E'],['king','K']],'edit-w', 72, 72, 9, 2, 1.5,'#ff909060','#444','#eee'));
     return editMenu;
 }
-function promMenu(match, command, update) {
-    return makeMenu(match, command, update, [['knight','N'],['bishop','B'],['rook','R'],['queen','Q'],['archer','A'],['prince','I'],['princess','E']],'promote', 236, 246, 8, 2.5, 1.5,'#fe6','#fff','#779');
+function promMenu(match, command, update, flip) {
+    hilite([match.promotions[0]],'stroke','#ff0', flip);
+    hilite([match.promotions[0]],'strokeWidth','0.9', flip);
+    hilite([match.promotions[0]],'strokeOpacity','0.99', flip);
+    return makeMenu(match, command, update, [['knight','N'],['bishop','B'],['rook','R'],['queen','Q'],['archer','A'],['prince','I'],['princess','E']],'promote', 236, 246, 8, 2.5, 1.5,'#fe6','#fff','#779', flip);
 }
 function waybackMenu(match, command, update) {
     return makeMenu(match, command, update, [['From Here']],'wayback', 50, 50, 10, 2, 1.5,'#8080c090','#fff','#779');

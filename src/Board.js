@@ -10,7 +10,7 @@ import { waybackMenu, aiMenu, promMenu, editMenu, userMenu, matchMenu, items, pu
 //let promote = [];
 
 function Board({color, user, match, update, view, menu, command, flip, mode, history, queue}) { console.log('<Board>   menu['+menu+']    mode['+mode+']');
-    //console.log('match', match);
+    console.log('match', match);
     const board = analyse(match);  // console.log('board', board);
     let formation = [];
     let muster = [];
@@ -132,6 +132,10 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
         defs.push(<linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="100%">{grads(color['light'])}</linearGradient>);
         defs.push(<linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">{grads(color['neutral'])}</linearGradient>);
         defs.push(<linearGradient id="grad3" x1="0%" y1="0%" x2="100%" y2="100%">{grads(color['dark'])}</linearGradient>);
+        defs.push(<radialGradient id="feltPattern1" cx="2.9" cy="0.5" r="0.02" fx="2.912" fy="0.5" spreadMethod="repeat"><stop offset="0%" stop-color={color['felt'][0]}/><stop offset="25%" stop-color={color['felt'][1]}/><stop offset="50%" stop-color={color['felt'][2]}/><stop offset="75%" stop-color={color['felt'][3]}/><stop offset="100%" stop-color={color['felt'][4]}/></radialGradient>);
+        defs.push(<radialGradient id="feltPattern2" cx="2.8" cy="0.3" r="0.025" fx="2.8" fy="0.312" spreadMethod="repeat"><stop offset="0%" stop-color={color['felt'][0]}/><stop offset="25%" stop-color={color['felt'][1]}/><stop offset="50%" stop-color={color['felt'][2]}/><stop offset="75%" stop-color={color['felt'][3]}/><stop offset="100%" stop-color={color['felt'][4]}/></radialGradient>);
+        defs.push(<radialGradient id="feltPattern3" cx="2.3" cy="0.4" r="0.027" fx="2.308" fy="0.407" spreadMethod="repeat"><stop offset="0%" stop-color={color['felt'][0]}/><stop offset="25%" stop-color={color['felt'][1]}/><stop offset="50%" stop-color={color['felt'][2]}/><stop offset="75%" stop-color={color['felt'][3]}/><stop offset="100%" stop-color={color['felt'][4]}/></radialGradient>);
+        defs.push(<radialGradient id="feltPattern4" cx="2.2" cy="0.65" r="0.023" fx="2.403" fy="0.651" spreadMethod="repeat"><stop offset="0%" stop-color={color['felt'][0]}/><stop offset="25%" stop-color={color['felt'][1]}/><stop offset="50%" stop-color={color['felt'][2]}/><stop offset="75%" stop-color={color['felt'][3]}/><stop offset="100%" stop-color={color['felt'][4]}/></radialGradient>);
         return defs;
     }
     function tiles() {
@@ -300,6 +304,7 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
         if (special) {
             if (here===march) { //console.log('march');
                 const copyMatch = {...match};
+                copyMatch.promotions = [];
                 for (const ps of formation) {
                     const [dir,coord] = [whiteMove(match)?-1:1, revMap[ps].split('-')];
                     const [x, y] = [parseInt(coord[0]),parseInt(coord[1])];
@@ -307,20 +312,40 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
                     // console.log(march,'to',fm);
                     if (whiteMove(match)) {
                         for (const idx in match.white.pieces)
-                            if (match.white.pieces[idx].substring(1)===ps) // { console.log('ps',ps);
+                            if (match.white.pieces[idx].substring(1)===ps) {
+                                if (inPromotePos(fm, true)) copyMatch.promotions.push(fm);
                                 copyMatch.white.pieces[idx]=match.white.pieces[idx][0]+fm;
+                            }
                     } else {
                         for (const idx in match.black.pieces)
-                            if (match.black.pieces[idx].substring(1)===ps) 
+                            if (match.black.pieces[idx].substring(1)===ps) {                                
+                                if (inPromotePos(fm, false)) copyMatch.promotions.push(fm);
                                 copyMatch.black.pieces[idx]=match.black.pieces[idx][0]+fm;
+                            }
                     }
                 }
+                // order promotions from left to right.
+                const sorter = (x)=>parseInt(x.replace('f','2').replace('a','3').replace('b','4').replace('c','2').replace('d','3').replace('e','4'))*(x.length===2?10:1);
+                if (whiteMove(match)) copyMatch.promotions = copyMatch.promotions.sort((a,b)=> sorter(a)-sorter(b));
+                else copyMatch.promotions = copyMatch.promotions.sort((a,b)=> sorter(b)-sorter(a));
                 if (whiteMove(match)) copyMatch.move = '^^^^^^^^^'.substring(0,left)+match.first+'^^^^^^^^'.substring(0,right)
                 else copyMatch.move = 'vvvvvvvvv'.substring(0,left)+match.first+'vvvvvvvvv'.substring(0,right)
                 copyMatch.log.push(copyMatch.move);
                 update(copyMatch);
                 if (mode==='blitz') command({order:'blitz-move', move:copyMatch.move});
                 clean();
+                // if ((match.white.pieces[idx][0]==='P' || match.white.pieces[idx][0]==='S') && inPromotePos(fm, true)) {
+                //     match.promote = [ps, fm]; // [match.first, here];
+                //     match.first = ps;
+                //     console.log('ps:',ps,'    fs:',fm); 
+                //     command({order:'menu', choice:'promote'})
+                // }
+                // console.log('inPromotePos(piece, white)',inPromotePos(fm, true));
+
+
+
+
+
             } else if (here===formation[0]) { // console.log('switch arms');
                 const copyMatch = {...match};
                 for (const ps of formation) {
@@ -406,25 +431,24 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
                     selectPiece(moves, attacks, attacked, covered, board.occupants, board.pinned, here);
                 } else if (board.moves[match.first][1].includes(here) || board.attacks[match.first][1].includes(here)) { // console.log('valid move');
                     const me = getPiece(match, match.first);
-                    //console.log('me', me);
+                    //console.log('me', me, 'here', here);
                     //if (me && (me[1]==='P' || me[1]==='S') && inPromotePos(here)) {
 
-                    if (me && (me[0][0]==='P' || me[0][0]==='S') && inPromotePos(here)) {
-                        match.promote = [match.first, here];
-                        command({order:'menu', choice:'promote'})
-                    } else {
-                        let copyMatch = {...match};
-                        const store = JSON.stringify(match);
-                        movePiece(copyMatch, board, [match.first, here]);
-                        const look = analyse(copyMatch);
-                        if ((!look.whiteInCheck && !look.blackInCheck)
-                            || ((!look.whiteInCheck || whiteMove(copyMatch)) && (!look.blackInCheck || !whiteMove(copyMatch)))) {
-                                if (!copyMatch.move) copyMatch.move = copyMatch.log[copyMatch.log.length-1];
-                                update(copyMatch);
-                                if (mode==='blitz') command({order:'blitz-move', move:copyMatch.move});
-                        } else match = JSON.parse(store);
-                        match.first = '';
+                    let copyMatch = {...match};
+                    if (me && (me[0][0]==='P' || me[0][0]==='S') && inPromotePos(here, whiteMove(match))) {
+                        //command({order:'menu', choice:'promote', pos:[match.first, here]})
+                        copyMatch.promotions = [here];
                     }
+                    const store = JSON.stringify(match);
+                    movePiece(copyMatch, board, [match.first, here]);
+                    const look = analyse(copyMatch);
+                    if ((!look.whiteInCheck && !look.blackInCheck)
+                        || ((!look.whiteInCheck || whiteMove(copyMatch)) && (!look.blackInCheck || !whiteMove(copyMatch)))) {
+                            if (!copyMatch.move) copyMatch.move = copyMatch.log[copyMatch.log.length-1];
+                            update(copyMatch);
+                            if (mode==='blitz') command({order:'blitz-move', move:copyMatch.move});
+                    } else match = JSON.parse(store);
+                    match.first = '';
                 } else { // console.log('invalid move');
                     match.first = '';
                     selectPiece(moves, attacks, attacked, covered, board.occupants, board.pinned, here);
@@ -566,10 +590,13 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
             { menu==='users' && <g transform={'translate(50, 50)'}> { userMenu(match, command, update) } </g>}
             { menu==='edit' && <g transform={'translate(50, 50)'}> { editMenu(match, command, update) } </g>}
             { menu==='cpu' && <g transform={'translate(50, 50)'}> { aiMenu(match, command, update) } </g>}
-            { menu==='promote' && <g transform={'translate(50, 50)'}> { promMenu(match, command, update) } </g>}
+            { match.promotions && match.promotions.length>0 && <g transform={'translate(50, 50)'}> { promMenu(match, command, update, flip) } </g>}
             { menu==='wayback' && <g transform={'translate(50, 50)'}> { waybackMenu(match, command, update) } </g>}
             <circle fill={board.whiteInCheck||board.blackInCheck?'#F33':'#321'} cx="50" cy="50" r="43"/>
-            <circle fill="#131" cx="50" cy="50" r="42"/>
+            <circle fill="url(#feltPattern1)" cx="50" cy="50" r="42"/>
+            <circle fill="url(#feltPattern2)" cx="50" cy="50" r="42" opacity={0.5}/>
+            <circle fill="url(#feltPattern3)" cx="50" cy="50" r="42" opacity={0.25}/>
+            <circle fill="url(#feltPattern4)" cx="50" cy="50" r="42" opacity={0.125}/>
             { tiles() }
             <g transform={"translate(50,50) scale(1.5)"} style={{ filter: 'drop-shadow(rgba(210, 128, 210, 0.4) 0px 0px 2px)'}}>
                 { rose() }

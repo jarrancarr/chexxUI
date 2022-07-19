@@ -18,7 +18,7 @@ let stdGetRequest = {}; // fetch(serverUrl+'/'+data, stdGetRequest).then(respons
                         // fetch(serverUrl+'/xxx',post({data})).then(response => response.json())
                         //   .then(x => { if (x.status) { } else cmd({order:'dialog', title:'Error', text:['h2:::'+data.message]}); })
                         //   .catch((e) => { cmd({order:'dialog',title:'Error', text:['h3:::Server error.', ''+error]}); });
-let boardColor = {neutral:['#555','#585','#545'],light:['#aab','#aa8','#aaa'], dark:['#011','#111','#012'], white:['#eeb'], black:['#012'], table:[]};
+let boardColor = {neutral:['#555','#585','#545'],light:['#aab','#aa8','#aaa'], dark:['#011','#111','#012'], white:['#eeb'], black:['#012'], felt:['#131','#444','#131','#131','#000'], table:['#000']};
 
 function post(data) {
   let request = {...stdGetRequest}
@@ -496,6 +496,12 @@ function App() { // console.log('App');
         if (data.user.property.board) boardColor = JSON.parse(data.user.property.board);
         if (!boardColor.white) boardColor.white=['#012'];
         if (!boardColor.black) boardColor.black=['#0e0'];
+        if (!boardColor.felt) boardColor.felt=['#131','#444','#131','#131','#000'];
+        if (!boardColor.table) boardColor.table=['#000'];
+        if (!boardColor.neutral) boardColor.neutral=['#555','#585','#545'];
+        if (!boardColor.light) boardColor.light=['#aab','#aa8','#aaa'];
+        if (!boardColor.dark) boardColor.dark=['#011','#111','#012'];
+
         cmd(data.status?{order:'login',user:data.user}:{order:'dialog', title:'Not Authorized', text:['h2:::Please check you login credentials and try again.']});
         sendMessage(JSON.stringify({type:'login', token:data.user.token})); 
       });
@@ -620,11 +626,26 @@ function App() { // console.log('App');
           { <tr><td>dark</td>{makeHexColors('dark',2)}</tr> }
         </table>
       </td></tr>
-      <tr><td colSpan={2} rowSpan={2}><table style={{'border':'2px solid black','margin':'auto'}}>
-          <caption>Piece Colors</caption>
-          { <tr><td>White</td><td><input type='color' id='whitePiece' name='whitePiece' defaultValue={boardColor['white'][0]}/></td></tr> }
-          { <tr><td>Black</td><td><input type='color' id='blackPiece' name='blackPiece' defaultValue={boardColor['black'][0]}/></td></tr> }
-        </table></td></tr>
+      <tr>
+        <td colSpan={2} rowSpan={2}>
+          <table style={{'border':'2px solid black','margin':'auto'}}>
+            <caption>Table Colors</caption>
+            { <tr><td>
+              <input type='color' id='feltA' name='feltA' defaultValue={boardColor['felt'][0]}/>
+              <input type='color' id='feltB' name='feltB' defaultValue={boardColor['felt'][1]}/>
+              <input type='color' id='feltC' name='feltC' defaultValue={boardColor['felt'][2]}/>
+              <input type='color' id='feltD' name='feltD' defaultValue={boardColor['felt'][3]}/>
+              <input type='color' id='feltE' name='feltE' defaultValue={boardColor['felt'][4]}/>
+              </td></tr> }
+            { <tr><td><input type='color' id='table' name='table' defaultValue={boardColor['table'][0]}/></td></tr> }
+          </table></td>
+        <td colSpan={2} rowSpan={2}>
+          <table style={{'border':'2px solid black','margin':'auto'}}>
+            <caption>Piece Colors</caption>
+            { <tr><td>White</td><td><input type='color' id='whitePiece' name='whitePiece' defaultValue={boardColor['white'][0]}/></td></tr> }
+            { <tr><td>Black</td><td><input type='color' id='blackPiece' name='blackPiece' defaultValue={boardColor['black'][0]}/></td></tr> }
+          </table></td>
+      </tr>
       <tr></tr>
     </tbody></table>];
     return (
@@ -749,7 +770,7 @@ function App() { // console.log('App');
         cmd({order:'dialog', title:'Telegram', text:['h3:::from: '+m.from, 'h2:::'+m.topic, m.text], noClose:true, button:['Reply', 'Save', 'Ok'], id:m.ID})
   } } }
   function storeProfile() {
-    boardColor = {neutral:[],light:[], dark:[], white:[], black:[], table:[]};
+    boardColor = {neutral:[],light:[], dark:[], white:[], black:[], table:[], felt:[]};
     for (let i=0;i<2;i++) {
       const l = $('#light-'+i).val();
       const n = $('#neutral-'+i).val();
@@ -760,6 +781,12 @@ function App() { // console.log('App');
     }
     boardColor['white'].push($('#whitePiece').val());
     boardColor['black'].push($('#blackPiece').val());
+    boardColor['felt'].push($('#feltA').val());
+    boardColor['felt'].push($('#feltB').val());
+    boardColor['felt'].push($('#feltC').val());
+    boardColor['felt'].push($('#feltD').val());
+    boardColor['felt'].push($('#feltE').val());
+    boardColor['table'].push($('#table').val());
     user.property = {hints:hints?'true':'false', board:JSON.stringify(boardColor)};
     fetch(serverUrl+'/user/save',post(user)).then(response => response.json() )
       .then(data => cmd(data.status?{order:'dialog', title:'Profile Saved', text:[], ok:true, noClose:true}:{order:'dialog', title:'Error', text:['h2:::'+data.message]}));

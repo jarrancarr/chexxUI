@@ -1,0 +1,3 @@
+pawn capture to c5, e5, f5, and b5 promotes.
+promotion capture doesn't remove opponents piece
+multiple promotion on march

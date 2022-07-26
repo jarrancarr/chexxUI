@@ -40,6 +40,17 @@
   border-radius: 2vw;
   border: 0.5vw solid rgb(22, 24, 24);
 }
+.footer {
+  position: absolute;
+  bottom: 0;
+  margin: 1vh;
+  height: 10vh;
+  width: 96vw;
+  background-color: rgb(77, 67, 4);
+  border-radius: 2vw;
+  border: 0.5vw solid rgb(22, 24, 24);
+  pointer-events: all;
+}
 .topper {
   position: absolute;
   top: 0;
@@ -92,7 +103,7 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  padding: 2vw;
+  padding: 2vw 0vw;
   min-width: 29vw;
   pointer-events: all;
 }
@@ -106,6 +117,9 @@
 }
 
 .input {
+  font-size: 40px;
+}
+.subInput {
   font-size: 30px;
 }
 
@@ -159,6 +173,18 @@
   margin: 0.3vw; 
   border-radius: 0.8vw;
 }
+.lgButton {
+  background-color: rgb(38, 39, 1); /* Green */
+  border: none;
+  color: rgb(194, 200, 18);
+  padding: 5px 20px;
+  text-align: center;
+  text-decoration: none;
+  display: flex;
+  font-size: 20px;
+  margin: 12px; 
+  border-radius: 8px;
+}
 .group {
   display: inline-flex;
   margin: 1vw; 
@@ -171,4 +197,30 @@
 
 .left {
   text-align:left;
+}
+
+li {
+  font-size: 2.5em;
+  margin: 0.1em;
+  padding: 0.3em;
+  border: 0.1em solid #ff0;
+  border-radius: 1em;
+  min-width: 10em;
+}
+li > p {
+  margin: 0em;
+  padding: 0em;
+}
+.talk {
+  background-color: #007;
+  float: right;
+  clear: both;
+  color: #aaa;
+  
+}
+.listen {
+  background-color: #aa5;
+  float: left;
+  clear: both;
+  color: #226;
 }

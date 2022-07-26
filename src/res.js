@@ -1,3 +1,10 @@
+
+// const serverUrl = 'http://localhost:8000';
+// const serverUrl = 'http://192.168.1.152:8000';
+const serverUrl = 'http://96.231.45.134:6085';
+const socketUrl = 'ws://192.168.1.152:8000/ws';
+
+const hex = "M -1.7 -1 L 0 -2 L 1.7 -1 V 1 L 0 2 L -1.7 1 Z";
 const map = {"6-12":"*", "6-10":"a", "7-11":"b", "7-13":"c", "6-14":"d", "5-13":"e", "5-11":"f"};
 for (let i=1;i<6;i++) {
   map["6-"+(10-2*i)] = "a"+i;
@@ -22,17 +29,17 @@ const keys = Object.keys(map);
 for (const hex of keys) revMap[map[hex]] = hex; 
 const off = 'drop-shadow(rgba(210, 128, 210, 0.4) 0px 0px 2px)';
 
+function flipped(here) {
+    const coord = revMap[here].split('-');
+    const flip = coord[0]+'-'+(24-parseInt(coord[1]));
+    return map[flip];
+}
 function inStartPos(piece) { // console.log('inStartPos',piece);
     return 'wPd55 wPd44 wPd33 wPd21 wPc22 wPc31 wPc41 wPc51 wSd43 wSd32 wSd2 wSc32 wSc42 bPf51 bPf41 bPf31 bPf22 bPa21 bPa33 bPa44 bPa55 bSf42 bSf32 bSa2 bSa32 bSa43 '.includes(piece+' ');
 }
-
-function hilite(idList, what, to) { //console.log('hilite',idList, what, to);
-    for (const id of idList) {
-        let ele = document.getElementById(id.replace(/[ABEIKNPQRS]/, ''));
-        if (ele) ele.setAttribute(what, to);
-    }
+function inPromotePos(piece, white) {
+    return (white?'f5 f51 f52 f53 f54 f55 a5 a51 a52 a53 a54 a55 b5 ':'c5 c51 c52 c53 c54 c55 d5 d51 d52 d53 d54 d55 e5 ').includes(piece+' ');
 }
-
 function whiteMove(match) {
     return match.log.length%2===0;
 }
@@ -41,30 +48,162 @@ function get(who, match) { // console.log('get(',who,')');
     else return match.black.pieces.filter(f => f[0]===who[1]);
 
 }
-function getPiece(match, here) { // console.log('getPiece', here);
-    for (const p of match.white.pieces) if (p.substring(1)===here) return [p, true];
-    for (const p of match.black.pieces) if (p.substring(1)===here) return [p, false];
+function getPiece(match, here) { //console.log('getPiece', match, here);
+    const h = here.replace(/[PSARBNKQIE]/,'');
+    for (const p in match.white.pieces) if (match.white.pieces[p].substring(1)===h) return [match.white.pieces[p], true, p];
+    for (const p in match.black.pieces) if (match.black.pieces[p].substring(1)===h) return [match.black.pieces[p], false, p];
     return null;
 }
-function movePiece(match, board,first,here) { // console.log('movePiece(match,', board,first,here,')');
-    const p = getPiece(match, first); // console.log('p',p);
-    const q = getPiece(match, here); // console.log('q',q);
-    if (p[1]) { // console.log('looking for',here,'in',match.black.pieces);
-        // if pinned and not attacking skewerer... return
-        const skewer = board?board.pinned.filter(p=>p[0]===first)[0]:false;
-        if (skewer && skewer[1] !== q[0]) return;
-        const index = match.white.pieces.indexOf(p[0]);
-        match.white.pieces[index]=p[0][0]+here;
-        match.log.push(p[0]+(match.black.pieces.filter(f => f.substring(1)===here).length>0?'x':'~')+(q?q[0]:here));
-        match.black.pieces = match.black.pieces.filter(f => f.substring(1)!==here);
-    } else { // console.log('looking for',here,'in',match.white.pieces);
-        const index = match.black.pieces.indexOf(p[0]);
-        const skewer = board?board.pinned.filter(p=>p[0]===first)[0]:false;
-        if (skewer && skewer[1] !== q[0]) return;
-        // if (board.pinned.filter(p=>p[0]===first && p[1]!==q[0])) console.log('pinned piece dint attack skewer!');
-        match.black.pieces[index]=p[0][0]+here;
-        match.log.push(p[0]+(match.white.pieces.filter(f => f.substring(1)===here).length>0?'x':'~')+(q?q[0]:here));
-        match.white.pieces = match.white.pieces.filter(f => f.substring(1)!==here);
+function swapPieces(match, a, b) { // console.log('swapPieces',a,b);
+    const p = getPiece(match, a); console.log('p',p);
+    if (!p) return false;
+    const q = getPiece(match, b); console.log('q',q);
+    if (p) // first selected on piece
+        if (p[1]) match.white.pieces = match.white.pieces.filter(f => f.substring(1)!==a);
+        else match.black.pieces = match.black.pieces.filter(f => f.substring(1)!==a);
+    if (q) // second selected on piece
+        if (q[1]) match.white.pieces = match.white.pieces.filter(f => f.substring(1)!==b);
+        else match.black.pieces = match.black.pieces.filter(f => f.substring(1)!==b);     
+
+    if (p && q) {
+        if (q[1]) match.white.pieces.push(q[0][0]+p[0].substring(1));
+        else match.black.pieces.push(q[0][0]+p[0].substring(1));
+        if (p[1]) match.white.pieces.push(p[0][0]+q[0].substring(1));
+        else match.black.pieces.push(p[0][0]+q[0].substring(1));
+    } else if (p) {
+        if (p[1]) match.white.pieces.push(p[0][0]+b);
+        else match.black.pieces.push(p[0][0]+b);
+    }
+    return true;
+}
+function marchOn(match, pos, left, right) {  // console.log("marchOn", pos, left, right)
+    const p = getPiece(match, pos); // console.log("the p", p);
+    if (p[1]) { // white
+        const coord = revMap[p[0].substring(1)].split('-');
+        const march = coord[0]+'-'+(parseInt(coord[1])-2);
+        movePiece(match, null, [p[0].substring(1), map[march]])
+        if (left > 0) {
+            const lp = getPiece(match,map[''+(parseInt(coord[0])-1)+'-'+(parseInt(coord[1])+1)]);
+            if (lp) marchOn(match, lp[0], left-1, 0);
+            else {
+                const ls = getPiece(match,map[''+(parseInt(coord[0])-1)+'-'+(parseInt(coord[1])+3)]);
+                if (ls) marchOn(match, ls[0], left-1, 0);
+            }
+        }
+        if (right > 0) {
+            const rp = getPiece(match,map[''+(parseInt(coord[0])+1)+'-'+(parseInt(coord[1])+1)]);
+            if (rp) marchOn(match, rp[0], 0, right-1);
+            else {
+                const rs = getPiece(match,map[''+(parseInt(coord[0])+1)+'-'+(parseInt(coord[1])+3)]);
+                if (rs) marchOn(match, rs[0], 0, right-1);
+            }
+        }
+    } else { // black
+        const coord = revMap[p[0].substring(1)].split('-');
+        const march = coord[0]+'-'+(parseInt(coord[1])+2);
+        movePiece(match, null, [p[0], map[march]])
+        if (left > 0) {
+            const lp = getPiece(match,map[''+(parseInt(coord[0])-1)+'-'+(parseInt(coord[1])-1)]);
+            if (lp) marchOn(match, lp[0], left-1, 0);
+            else {
+                const ls = getPiece(match,map[''+(parseInt(coord[0])-1)+'-'+(parseInt(coord[1])-3)]);
+                if (ls) marchOn(match, ls[0], left-1, 0);
+            }
+        }
+        if (right > 0) {
+            const rp = getPiece(match,map[''+(parseInt(coord[0])+1)+'-'+(parseInt(coord[1])-1)]);
+            if (rp) marchOn(match, rp[0], 0, right-1);
+            else {
+                const rs = getPiece(match,map[''+(parseInt(coord[0])+1)+'-'+(parseInt(coord[1])-3)]);
+                if (rs) marchOn(match, rs[0], 0, right-1);
+            }
+        }
+
+    }
+}
+function formationSwitchArms(match, pos, left, right) {  // console.log("formationSwitchArms", pos, left, right)
+    const p = getPiece(match, pos); // console.log("the p", p);
+    const coord = revMap[p[0].substring(1)].split('-');
+    switchArms(match, p[0].substring(1));
+    if (p[1]) { // white
+        if (left > 0) {
+            const lp = getPiece(match,map[''+(parseInt(coord[0])-1)+'-'+(parseInt(coord[1])+1)]);
+            if (lp) formationSwitchArms(match, lp[0], left-1, 0);
+            else {
+                const ls = getPiece(match,map[''+(parseInt(coord[0])-1)+'-'+(parseInt(coord[1])+3)]);
+                if (ls) formationSwitchArms(match, ls[0], left-1, 0);
+            }
+        }
+        if (right > 0) {
+            const rp = getPiece(match,map[''+(parseInt(coord[0])+1)+'-'+(parseInt(coord[1])+1)]);
+            if (rp) formationSwitchArms(match, rp[0], 0, right-1);
+            else {
+                const rs = getPiece(match,map[''+(parseInt(coord[0])+1)+'-'+(parseInt(coord[1])+3)]);
+                if (rs) formationSwitchArms(match, rp[0], 0, right-1);
+            }
+        }
+    } else { // black
+        if (left > 0) {
+            const lp = getPiece(match,map[''+(parseInt(coord[0])-1)+'-'+(parseInt(coord[1])-1)]);
+            if (lp) formationSwitchArms(match, lp[0], left-1, 0);
+            else {
+                const ls = getPiece(match,map[''+(parseInt(coord[0])-1)+'-'+(parseInt(coord[1])-3)]);
+                if (ls) formationSwitchArms(match, ls[0], left-1, 0);
+            }
+        }
+        if (right > 0) {
+            const rp = getPiece(match,map[''+(parseInt(coord[0])+1)+'-'+(parseInt(coord[1])-1)]);
+            if (rp) formationSwitchArms(match, rp[0], 0, right-1);
+            else {
+                const rs = getPiece(match,map[''+(parseInt(coord[0])+1)+'-'+(parseInt(coord[1])-3)]);
+                if (rs) formationSwitchArms(match, rs[0], 0, right-1);
+            }
+        }
+
+    }
+}
+function switchArms(match, pos) {
+    const p = getPiece(match, pos);
+    if (p[1]) { // white
+        match.white.pieces[p[2]] = (p[0][0]==='P'?'S':'P')+p[0].substring(1)
+    } else { // black
+        match.black.pieces[p[2]] = (p[0][0]==='P'?'S':'P')+p[0].substring(1)
+    }
+}
+function movePiece(match, board, hexs) { //console.log('movePiece(match,', hexs,')');
+    if (hexs.length === 1) { // formation moves
+        const temp = [...match.log]
+        const pos = hexs[0].match(/[/abcdef*]\d*/)[0];
+        const leftright = hexs[0].split(pos);
+        if (leftright[0].length===0 && leftright[1].length===0) {
+            switchArms(match, pos);
+        } else if ((leftright[0]+leftright[1])[0]==='#') {
+            formationSwitchArms(match, pos, leftright[0].length, leftright[1].length);
+        } else marchOn(match, pos, leftright[0].length, leftright[1].length);
+        match.log = [...temp]
+        match.log.push(hexs[0]);
+    } else {
+        const pos0 = hexs[0].replace(/[PSARBNKQIE]/,'');
+        const pos1 = hexs[1].replace(/[PSARBNKQIE]/,'');
+        const p = getPiece(match, hexs[0]); //console.log('p',p);
+        const q = getPiece(match, hexs[1]); //console.log('q',q);
+        if (p[1]) { // console.log('looking for',here,'in',match.black.pieces);
+            // if pinned and not attacking skewerer... return
+            const skewer = board?board.pinned.filter(p=>p[0]===pos0)[0]:false;
+            if (skewer && skewer[1] !== q[0]) return;
+            const index = match.white.pieces.indexOf(p[0]);
+            match.white.pieces[index]=p[0][0]+pos1;
+            match.log.push(p[0]+(match.black.pieces.filter(f => f.substring(1)===pos1).length>0?'x':'~')+(q?q[0]:pos1));
+            match.black.pieces = match.black.pieces.filter(f => f.substring(1)!==pos1);
+        } else { // console.log('looking for',pos1,'in',match.white.pieces);
+            const index = match.black.pieces.indexOf(p[0]);
+            const skewer = board?board.pinned.filter(p=>p[0]===pos0)[0]:false;
+            if (skewer && skewer[1] !== q[0]) return;
+            // if (board.pinned.filter(p=>p[0]===pos0 && p[1]!==q[0])) console.log('pinned piece dint attack skewer!');
+            match.black.pieces[index]=p[0][0]+pos1;
+            match.log.push(p[0]+(match.white.pieces.filter(f => f.substring(1)===pos1).length>0?'x':'~')+(q?q[0]:pos1));
+            match.white.pieces = match.white.pieces.filter(f => f.substring(1)!==pos1);
+        }
     }
 }
 function clear() {
@@ -81,7 +220,7 @@ function isOnBoard(i,j) { //console.log('isOnBoard',i,j);
     if (x<0 || x>12 || x+y<6 || x+y>31 || x-y>6 || y-x>19) return false;
     return true;
 }
-function parsePiece(piece) { // console.log('parsePiece', piece);
+function parsePiece(piece) { //console.log('parsePiece', piece);
     const where = piece.substring(2);
     const start = revMap[where].split('-'); // console.log('start',start)
     const xy = [parseInt(start[0]),parseInt(start[1])]
@@ -100,15 +239,22 @@ function slide(piece,occupants,direction) { // console.log('slide',piece,occupan
             const occupant = occupants[loc];
             if (!occupant) moves.push(loc);
             else {
-                go = false;
-                if (occupant[0]!==piece[0]) {
+                if (occupant[0]!==piece[0]) { // enemy piece
                     attacks.push(loc);
-                    for (let cont = [pos[0]+d[0],pos[1]+d[1]];isOnBoard(cont[0],cont[1]);cont=[cont[0]+d[0],cont[1]+d[1]]) {
+                    for (let cont = [pos[0]+d[0],pos[1]+d[1]];isOnBoard(cont[0],cont[1])&&go;cont=[cont[0]+d[0],cont[1]+d[1]]) {
                         const isKing = occupants[map[cont.join('-')]];
                         //console.log('isKing',isKing);
-                        if (isKing && isKing[1]==='K') pinned.push([loc, piece.substring(1),d[0],d[1]]);
-    }   }   }   }   }
+                        if (isKing) {
+                            if (isKing[1]==='K') pinned.push([loc, piece.substring(1),d[0],d[1]]);
+                            go = false;
+                        }
+                    }   
+                } else { // friendly piece
+                    go = false;
+                }
+}   }   }
     //console.log('    slide moves',moves,'    attacks',attacks,'    pinned',pinned);
+    //console.log('    occupants:', occupants);
     return [moves, attacks, pinned];
 }
 function jump(piece,occupants,direction) { //console.log('jump',piece,occupants,direction);
@@ -193,16 +339,13 @@ function surrounded(match, board, king, isWhite) { // console.log('surrounded',b
     return true;
 }
 function killAttacker(match, board, king, isWhite) { // console.log('killAttacker',board,king, isWhite);
-    // console.log('attacker',board.attacked[king][isWhite?1:0][0]);
-    // console.log('defenders',board.attacked[board.attacked[king][isWhite?1:0][0].substring(1)]);
     if (!board.attacked[board.attacked[king][isWhite?1:0][0].substring(1)]) return false;
-    // console.log(board.attacked[board.attacked[king][isWhite?1:0][0].substring(1)][isWhite?0:1]);
     for (const attacker of board.attacked[board.attacked[king][isWhite?1:0][0].substring(1)][isWhite?0:1]) {
         if (!board.pinned.includes(attacker.substring(1))) return true;
     }
     return false;   
 }
-function analyse(match){ // console.log('analyse', match);
+function analyse(match){ //console.log('analyse', match);
     const board = {};
     board.occupants = {};
     board.attacks = {}; // 'd41':['wR',['d31','d21','d11'...]]
@@ -214,6 +357,7 @@ function analyse(match){ // console.log('analyse', match);
     board.blackInCheck = false;
     board.mate = false;
     board.stale = false;
+    if (match.white.pieces.length === 0 || match.black.pieces.length === 0) return board;
 
     for (const m of match.white.pieces) {
         const where = m.substring(1);
@@ -260,23 +404,23 @@ function analyse(match){ // console.log('analyse', match);
         }
     }
     if (get('wK',match).length>0) {
-        const wKing = get('wK',match)[0].substring(1); // console.log('white king is at',wKing);
+        const wKing = get('wK',match)[0].substring(1); 
         if (wKing.length>0 && board.attacked[wKing] && board.attacked[wKing][1].length>0) {
             board.whiteInCheck=true;
-            if (!surrounded(match, board, wKing, true)) return board;
-            console.log('board.attacked[wKing][1].length',board.attacked[wKing][1].length);
-            if (killAttacker(match, board, wKing, true)) return board;
-            board.mate = true;
+            // if (!surrounded(match, board, wKing, true)) return board;
+            // console.log('board.attacked[wKing][1].length',board.attacked[wKing][1].length);
+            // if (killAttacker(match, board, wKing, true)) return board;
+            // board.mate = true;
         }
     }
     if (get('bK',match).length>0) {
         const bKing = get('bK',match)[0].substring(1); // console.log('black king is at',bKing);
         if (bKing.length>0 && board.attacked[bKing] && board.attacked[bKing][0].length>0) {
             board.blackInCheck=true;
-            if (!surrounded(match, board, bKing, false)) return board;
-            if (board.attacked[bKing][0].length===1){ // console.log('One attacker');
-                if (killAttacker(match, board, bKing, false)) return board;
-            }
+            // if (!surrounded(match, board, bKing, false)) return board;
+            // if (board.attacked[bKing][0].length===1){ // console.log('One attacker');
+            //     if (killAttacker(match, board, bKing, false)) return board;
+            // }
             board.mate = true;
         }
     }
@@ -291,9 +435,10 @@ function analyse(match){ // console.log('analyse', match);
     }
 }
 
-function text(x,y,r,sz,w,fc,sc,ds,text) {
-    const id = ('t-'+text).replaceAll('.','').replaceAll(' ','').trim().toLowerCase();
-    const words = text.trim().split(' '); 
+function text(x,y,r,sz,w,fc,sc,ds,text, id) { // console.log('text',text);
+    if (!text) return [];
+    if (!id) id = ('t-'+text).replaceAll('.','').replaceAll(' ','').trim().toLowerCase();
+    const words = text.trim().split(' ').filter(w=>w&&w!=='.'); 
     const fs = [];
     const nudge = [];
     for (const w of words) {
@@ -301,14 +446,37 @@ function text(x,y,r,sz,w,fc,sc,ds,text) {
         nudge.push((t[1].length-t[0].length)/3-2-w.length/50);
         fs.push(sz*20/(8+w.length));
     }
-    return <g id={id} transform={'rotate('+r+','+x+','+y+')'} filter={'drop-shadow('+ds+')'}>
-        { words.length === 1 && <text className='noMouse' x={x+nudge[0]} y={y+fs[0]/4} fontFamily="Verdana" fontSize={fs[0]} fill={fc} stroke={sc} strokeWidth={w}>{words[0].replaceAll('.','')}</text> }
-        { words.length === 2 && <text className='noMouse' x={x+nudge[0]} y={y-fs[0]/5} fontFamily="Verdana" fontSize={fs[0]} fill={fc} stroke={sc} strokeWidth={w}>{words[0].replaceAll('.','')}</text> }
-        { words.length === 2 && <text className='noMouse' x={x+nudge[1]} y={y+(fs[0]+fs[1])/3} fontFamily="Verdana" fontSize={fs[1]} fill={fc} stroke={sc} strokeWidth={w}>{words[1].replaceAll('.','')}</text> }
-        { words.length === 3 && <text className='noMouse' x={x+nudge[0]} y={y-(fs[1]+fs[2])/5} fontFamily="Verdana" fontSize={fs[0]} fill={fc} stroke={sc} strokeWidth={w}>{words[0].replaceAll('.','')}</text> }
-        { words.length === 3 && <text className='noMouse' x={x+nudge[1]} y={y+fs[2]/3} fontFamily="Verdana" fontSize={fs[1]} fill={fc} stroke={sc} strokeWidth={w}>{words[1].replaceAll('.','')}</text> }
-        { words.length === 3 && <text className='noMouse' x={x+nudge[2]} y={y+2*(fs[1]+fs[2])/3} fontFamily="Verdana" fontSize={fs[2]} fill={fc} stroke={sc} strokeWidth={w}>{words[2].replaceAll('.','')}</text> }
+    return <g key={id} id={id} transform={'rotate('+r+','+x+','+y+')'} filter={'drop-shadow('+ds+')'} fill={fc}>
+        { words.length === 1 && <text className='noMouse' x={x+nudge[0]} y={y+fs[0]/4} fontFamily="Verdana" fontSize={fs[0]} stroke={sc} strokeWidth={w}>{words[0].replaceAll('.','')}</text> }
+        { words.length === 2 && <text className='noMouse' x={x+nudge[0]} y={y-fs[0]/5} fontFamily="Verdana" fontSize={fs[0]} stroke={sc} strokeWidth={w}>{words[0].replaceAll('.','')}</text> }
+        { words.length === 2 && <text className='noMouse' x={x+nudge[1]} y={y+(fs[0]+fs[1])/3} fontFamily="Verdana" fontSize={fs[1]} stroke={sc} strokeWidth={w}>{words[1].replaceAll('.','')}</text> }
+        { words.length >2 && <text className='noMouse' x={x+nudge[0]} y={y-(fs[1]+fs[2])/5} fontFamily="Verdana" fontSize={fs[0]} stroke={sc} strokeWidth={w}>{words[0].replaceAll('.','')}</text> }
+        { words.length >2 && <text className='noMouse' x={x+nudge[1]} y={y+fs[2]/3} fontFamily="Verdana" fontSize={fs[1]} stroke={sc} strokeWidth={w}>{words[1].replaceAll('.','')}</text> }
+        { words.length >2 && <text className='noMouse' x={x+nudge[2]} y={y+2*(fs[1]+fs[2])/3} fontFamily="Verdana" fontSize={fs[2]} stroke={sc} strokeWidth={w}>{words[2].replaceAll('.','')}</text> }
     </g>
 }
+function hilite(idList, what, to, flip) { //console.log('hilite',idList, what, to);
+    for (const id of idList) {
+        if (id) {
+            let ele = document.getElementById(flip?flipped(id.replace(/[ABEIKNPQRS]/, '')):id.replace(/[ABEIKNPQRS]/, ''));
+            if (ele) ele.setAttribute(what, to);
+    }   }
+}
+function genDefs(color) { //console.log('genDefs',color);
+    function grads(color) {
+        let grad = [];
+        const stops = 100/(color.length-1);
+        for (let i=0;i<color.length;i++)
+            grad.push(<stop offset={''+stops*i+'%'} style={{'stopColor':color[i],'stopOpacity':'1'}}/>);
+        return grad;
+    }
+    let defs = [];
+    defs.push(<linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="100%">{grads(color['light'])}</linearGradient>);
+    defs.push(<linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">{grads(color['neutral'])}</linearGradient>);
+    defs.push(<linearGradient id="grad3" x1="0%" y1="0%" x2="100%" y2="100%">{grads(color['dark'])}</linearGradient>);
+    for (let i=0;i<4;i++) //cx="2.9" cy="0.5" r="0.02" fx="2.912" fy="0.505"
+        defs.push(<radialGradient id={"feltPattern"+i} cx={color['grain'][i][0]} cy={color['grain'][i][1]} r={color['grain'][i][2]} fx={color['grain'][i][3]} fy={color['grain'][i][4]} spreadMethod="repeat">{grads(color['felt'])}</radialGradient>);
+    return defs;
+}
        
-export {whiteMove, inStartPos, map, revMap, hilite, getPiece, movePiece, clear, off, analyse,isOnBoard, text}
+export {hex, genDefs, whiteMove, inStartPos, inPromotePos, map, revMap, flipped, hilite, getPiece, swapPieces, movePiece, clear, off, analyse,isOnBoard, text, serverUrl, socketUrl}

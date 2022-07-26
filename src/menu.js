@@ -35,7 +35,7 @@ function highlight(e, log, on, flip) { // console.log('highlight',log,on);
     e.target.nextSibling.firstChild.setAttribute('x',on?9:14);
 }
 function toggleMain(command, menu) { // console.log('toggleMain',menu);
-    command({order:'menu', choice:menu==='main'?'offline':'main'})
+    command({order:'menu', choice:menu==='main'?'':'main'})
 }
 function about(command) {
     command ({order:'dialog', title:'About Chexx', 
@@ -190,22 +190,38 @@ function lessonSelect(match, item, command, update) {
         default: lesson('Unimplemented'); break;
     } 
 }
-function matchSelect(match, item, command, update) { console.log('matchSelect', item);
+function matchSelect(match, item, command, update) { // console.log('matchSelect', item);
     switch(item) {
         case 'match-playcomputer':  command({order:'dialog', title:'New Game vs AI?', text:['Play against computer...'], yesno:true}); break;
         case 'match-save': command({order:'saveMatch', match:match}); break;
-        case 'match-blitzmatch': command({order:'blitz-start'}); break;
+        //case 'match-blitzmatch': command({order:'blitz-start', type:'10/60'}); break;
+        case 'match-blitzmatch': command({order:'menu', choice:'blitz'}); break;
         case 'match-openchallenge': command({order:'dialog', title:'Open Challenge', text:['Only opponents within 200 points of your rank will be allowed to accept your challenge.'], challenge:true}); break;
         case 'match-delete': command({order:'dialog', title:'Delete Match', text:['h1:::'+match.name], yesno:true, openId:match.ID}); break;
         default: break;
     } 
 }
+function blitzSelect(match, item, command, update) { console.log('blitzSelect', item);
+    switch(item) {
+        case 'blitz-3-900': command({order:'blitz-start', type:'3/900'}); break;
+        case 'blitz-5-600': command({order:'blitz-start', type:'5/600'}); break;
+        case 'blitz-15-360': command({order:'blitz-start', type:'15/360'}); break;
+        case 'blitz-10-60': command({order:'blitz-start', type:'10/60'}); break;
+        case 'blitz-720': command({order:'blitz-start', type:'720'}); break;
+        case 'blitz-1500': command({order:'blitz-start', type:'1500'}); break;
+        default: break;
+    } 
+}
 //function Select(match, item, command, update) {}
-function menuSelect(match, item, command, update, flip) { //console.log('menuSelect('+item+')');
+function menuSelect(match, item, command, update, flip) { console.log('menuSelect('+item+')');
+    if (item.startsWith('blitz-')) {
+        blitzSelect(match, item, command, update, flip);
+        return
+    }
     if (item.startsWith('promote-')) {
         promoteSelect(match, item, command, update, flip);
         return
-    }
+}
     if (item.startsWith('ai-')) { 
         aiSelect(match, item, command, update);
         return
@@ -273,7 +289,7 @@ function help(command) { // console.log('help');
     
     return help;
 }
-function makeMenu(match, command, update, list, label, end, spin, bloom, size=2, font=4, color='#880', draw='#110', fill='#cc4', flip) { // console.log('tutorials');
+function makeMenu(match, command, update, list, label, spin, size=2, font=4, color='#880', draw='#110', fill='#cc4', flip) { // console.log('tutorials');
     const items=[];
     if (!list || list.length===0) return [];
     let iter = 0;
@@ -282,11 +298,11 @@ function makeMenu(match, command, update, list, label, end, spin, bloom, size=2,
         if (p[1]!=='spacer') {
             const id = (label+'-'+p[0]).replaceAll('.','').replaceAll(' ','').replaceAll(':','-').trim().toLowerCase();
             
-            items.push(<g key={id} transform={'rotate('+(end+iter*4.5*size)+',0,0) '}>
-                <animateTransform className='spin' attributeName="transform" attributeType="XML" type="rotate" from={''+(spin+iter*bloom)+' 0 0'} to={''+(end+iter*4.5*size)+' 0 0'} dur='0.4s' begin='indefinite' repeatCount="1"/>
+            items.push(<g key={id} transform={'rotate('+(spin+iter*4.5*size)+',0,0) '}>
+                <animate className='spin' attributeName="opacity" attributeType="XML" from={0} to={1} dur='0.6s' begin='indefinite' repeatCount="1"/>
                 <g transform={'translate(47, 0)'}>
                 <path id={id} className={label} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={() => menuSelect(match, id, command, update, flip)} transform={'rotate(30) scale('+size+')'} stroke='#000' strokeWidth='0.1' fill={color} d="M -1.7 -1 L 0 -2 L 1.7 -1 V 1 L 0 2 L -1.7 1 Z"></path>
-                <g transform={'rotate('+(-end-iter*4.5*size)+',0,0)'} filter='drop-shadow(rgba(0, 0, 0, 0.99) 0px 0px 0.3px)'>
+                <g transform={'rotate('+(-spin-iter*4.5*size)+',0,0)'} filter='drop-shadow(rgba(0, 0, 0, 0.99) 0px 0px 0.3px)'>
                     { p[1] && <g transform={'translate(-15.8, -11.2)'} filter='drop-shadow(#000 0.3px 0.3px 0.03px)'><Piece type={'x'+p[1]} x={0} y={0} c={fill} s={draw} id='tutor' sc={0.2}/></g>}
                     { !p[1] && text(0,0,0,font,0,fill,draw,'#00f 0.3px 0.3px 0.03px',txt[0], 'txt-'+id) }
                 </g></g></g>);
@@ -296,52 +312,55 @@ function makeMenu(match, command, update, list, label, end, spin, bloom, size=2,
     return items;
 }
 function tutorials(match, command, update) { // console.log('tutorials');
-    return makeMenu(match, command, update, [['..Start. ..Here.',''],['...Quick.. .Start.',''],['....Interface.',''],['...Board..',''],['..Rules.',''],['pawn','P'],['spear','S'],['knight','N'],['bishop','B'],['rook','R'],['queen','Q'],['archer','A'],['prince','I'],['princess','E'],['king','K'],['...Special.',''],['......Promotion..',''],['...Forks.',''],['....Skewers.',''],['.Pins.',''],['...Tactics.','']], 'lesson', -110, -110, 9,2,2);
+    return makeMenu(match, command, update, [['..Start. ..Here.',''],['...Quick.. .Start.',''],['....Interface.',''],['...Board..',''],['..Rules.',''],['pawn','P'],['spear','S'],['knight','N'],['bishop','B'],['rook','R'],['queen','Q'],['archer','A'],['prince','I'],['princess','E'],['king','K'],['...Special.',''],['......Promotion..',''],['...Forks.',''],['....Skewers.',''],['.Pins.',''],['...Tactics.','']], 'lesson', -110, 2,2);
 }
 function puzzles(match, command, update) { // console.log('puzzles');
-    return makeMenu(match, command, update, [['Mate in... One'],['Mate in... Two'],['Mate in.... Three'],['Mate in.... More']],'puzzle', -10, -6, 1,2,1.4);
+    return makeMenu(match, command, update, [['Mate in... One'],['Mate in... Two'],['Mate in.... Three'],['Mate in.... More']],'puzzle', -10,2,1.4);
 }
 function items(match, command, update, user) { // console.log('main items');
     const items = [['..About',''],['..Puzzles',''],['.Reset .Board','','']];
     if (!user.userid) items.push(['.Login','']);
-    return makeMenu(match, command, update, items,'items', 20, 22, 7, 2, 1.6,'#884');
+    return makeMenu(match, command, update, items,'items', 20, 2, 1.6,'#884');
 }
 function matchMenu(match, command, update, user) { // console.log('match');
     const items = [['.Open ..Challenge',''],['.Save',''],['.Blitz ..Match',''],['Play ...Computer',''],['..History',''],['..Live']];
     if (match.move) items.unshift(['..Undo','']);
     if (match.ID>0 && match.white.player.ID === user.ID && match.black.player.ID===user.ID) items.unshift(['..Delete','']);
-    let matchMenu = makeMenu(match, command, update, items,'match', 110, 112, 8,2,1.6,'#88a');
-    if (user.savedMatches) matchMenu = matchMenu.concat(makeMenu(match, command, update, user.savedMatches,'load', 205, 205+user.savedMatches.length/2, 8, 2, 1.7,'#088','#888','#ff5'));
-    if (user.myOpen) matchMenu = matchMenu.concat(makeMenu(match, command, update, user.myOpen,'myOpen', 325, 325+user.myOpen.length/2, 8, 2, 1.5,'#00a0f070','#000','#aaa'));
-    if (user.open) matchMenu = matchMenu.concat(makeMenu(match, command, update, user.open,'open', 325+user.myOpen.length*9, 325+user.myOpen.length*9+user.open.length/2, 8, 2, 1.5,'#ffff4488','#fff','#000'));
-    if (user.ready) matchMenu = matchMenu.concat(makeMenu(match, command, update, user.ready,'ready', 325+(user.open.length+user.myOpen.length)*9, 325+(user.open.length+user.myOpen.length)*9+user.ready.length/2, 8, 2, 1.7,'#60ff6070','#000','#f9f'));
-    if (user.waiting) matchMenu = matchMenu.concat(makeMenu(match, command, update, user.waiting,'wait', 325+(user.open.length+user.myOpen.length+user.ready.length)*9, 325+(user.open.length+user.myOpen.length+user.ready.length)*9+user.waiting.length/2, 8, 2, 1.7,'#ff606070','#000','#9ff'));
-    if (user.finished) matchMenu = matchMenu.concat(makeMenu(match, command, update, user.finished,'done', 325+(user.open.length+user.myOpen.length+user.ready.length+user.waiting.length)*9, 325+(user.open.length+user.myOpen.length+user.ready.length+user.ready.length+user.waiting.length)*9+user.finished.length/2, 8, 2, 1.7,'#002020a0','#000','#9ff'));
+    let matchMenu = makeMenu(match, command, update, items,'match', 110, 2, 1.6,'#88a');
+    if (user.savedMatches) matchMenu = matchMenu.concat(makeMenu(match, command, update, user.savedMatches,'load', 205+user.savedMatches.length/2, 2, 1.7,'#088','#888','#ff5'));
+    if (user.myOpen) matchMenu = matchMenu.concat(makeMenu(match, command, update, user.myOpen,'myOpen', 325+user.myOpen.length/2, 2, 1.5,'#00a0f070','#000','#aaa'));
+    if (user.open) matchMenu = matchMenu.concat(makeMenu(match, command, update, user.open,'open', 325+user.myOpen.length*9+user.open.length/2, 2, 1.5,'#ffff4488','#fff','#000'));
+    if (user.ready) matchMenu = matchMenu.concat(makeMenu(match, command, update, user.ready,'ready', 325+(user.open.length+user.myOpen.length)*9+user.ready.length/2, 2, 1.7,'#60ff6070','#000','#f9f'));
+    if (user.waiting) matchMenu = matchMenu.concat(makeMenu(match, command, update, user.waiting,'wait', 325+(user.open.length+user.myOpen.length+user.ready.length)*9+user.waiting.length/2, 2, 1.7,'#ff606070','#000','#9ff'));
+    if (user.finished) matchMenu = matchMenu.concat(makeMenu(match, command, update, user.finished,'done', 325+(user.open.length+user.myOpen.length+user.ready.length+user.ready.length+user.waiting.length)*9+user.finished.length/2, 2, 1.7,'#002020a0','#000','#9ff'));
     return matchMenu;
 }
 function userMenu(match, command, update) {
-    return makeMenu(match, command, update, [['...Friends.'],['...Coaches.'],['...Conquest',''],['..Teams/. ....Tournaments.',''],['.Leagues.',''],['.Ladders.',''],['..Matches',''],['..Profile',''],['..Logout','']],'user', 99.6, 108, 8,2.7,1.4,'#8080c050');
+    return makeMenu(match, command, update, [['...Friends.'],['...Coaches.'],['...Conquest',''],['..Teams/. ....Tournaments.',''],['.Leagues.',''],['.Ladders.',''],['..Matches',''],['..Profile',''],['..Logout','']],'user', 108, 2.7, 1.4,'#8080c050');
+}
+function blitzMenu(match, command, update, user) {
+    return makeMenu(match, command, update, [['10-60'],['15-360'],['5-600'],['3-900'],['720'],['1500']],'blitz', 108, 2.7, 1.4,'#8080c050');
 }
 function editMenu(match, command, update) {
-    let editMenu = makeMenu(match, command, update, [['pawn','P'],['spear','S'],['knight','N'],['bishop','B'],['rook','R'],['queen','Q'],['archer','A'],['prince','I'],['princess','E'],['king','K']],'edit-b', -65, -65, 9, 2, 1.5,'#ff909060','#ddd','#210');
-    editMenu = editMenu.concat(makeMenu(match, command, update, [['Trash','X'],["Flip","F"],['Clear','C'],['Details','D']],'edit', 30, 30, 9, 2, 1.5,'#ff909060'));
-    editMenu = editMenu.concat(makeMenu(match, command, update, [['pawn','P'],['spear','S'],['knight','N'],['bishop','B'],['rook','R'],['queen','Q'],['archer','A'],['prince','I'],['princess','E'],['king','K']],'edit-w', 72, 72, 9, 2, 1.5,'#ff909060','#444','#eee'));
+    let editMenu = makeMenu(match, command, update, [['pawn','P'],['spear','S'],['knight','N'],['bishop','B'],['rook','R'],['queen','Q'],['archer','A'],['prince','I'],['princess','E'],['king','K']],'edit-b', -65, 2, 1.5,'#ff909060','#ddd','#210');
+    editMenu = editMenu.concat(makeMenu(match, command, update, [['Trash','X'],["Flip","F"],['Clear','C'],['Details','D']],'edit', 30, 2, 1.5,'#ff909060'));
+    editMenu = editMenu.concat(makeMenu(match, command, update, [['pawn','P'],['spear','S'],['knight','N'],['bishop','B'],['rook','R'],['queen','Q'],['archer','A'],['prince','I'],['princess','E'],['king','K']],'edit-w', 72, 2, 1.5,'#ff909060','#444','#eee'));
     return editMenu;
 }
 function promMenu(match, command, update, flip) {
     hilite([match.promotions[0]],'stroke','#ff0', flip);
     hilite([match.promotions[0]],'strokeWidth','0.9', flip);
     hilite([match.promotions[0]],'strokeOpacity','0.99', flip);
-    return makeMenu(match, command, update, [['knight','N'],['bishop','B'],['rook','R'],['queen','Q'],['archer','A'],['prince','I'],['princess','E']],'promote', 236, 246, 8, 2.5, 1.5,'#fe6','#fff','#779', flip);
+    return makeMenu(match, command, update, [['knight','N'],['bishop','B'],['rook','R'],['queen','Q'],['archer','A'],['prince','I'],['princess','E']],'promote', 246, 2.5, 1.5,'#fe6','#fff','#779', flip);
 }
 function waybackMenu(match, command, update) {
-    return makeMenu(match, command, update, [['From Here']],'wayback', 50, 50, 10, 2, 1.5,'#8080c090','#fff','#779');
+    return makeMenu(match, command, update, [['From Here']],'wayback', 50, 2, 1.5,'#8080c090','#fff','#779');
 }
 function aiMenu(match, command, update) {
-    let items = makeMenu(match, command, update, [['Very Easy',''],['Easy','']],'ai', 163, 166, 5, 2.3, 1.3,'#50c05060','#f00','#fff');
-    items = items.concat(makeMenu(match, command, update, [['Medium',''],['Hard','']],'ai', 184, 187, 5, 2.3, 1.3,'#80a07060','#f00','#fff'));
-    items = items.concat(makeMenu(match, command, update, [['Very Hard',''],['Best','']],'ai', 205, 208, 5, 2.3, 1.3,'#b0607060','#f00','#fff'));
+    let items = makeMenu(match, command, update, [['Very Easy',''],['Easy','']],'ai', 166, 2.3, 1.3,'#50c05060','#f00','#fff');
+    items = items.concat(makeMenu(match, command, update, [['Medium',''],['Hard','']],'ai', 187, 2.3, 1.3,'#80a07060','#f00','#fff'));
+    items = items.concat(makeMenu(match, command, update, [['Very Hard',''],['Best','']],'ai', 208, 2.3, 1.3,'#b0607060','#f00','#fff'));
     return items;
 }
 
-export { waybackMenu, aiMenu, promMenu, editMenu, userMenu, matchMenu, items, puzzles, tutorials, help, mainMenu, highlight, hover, leave}
+export { blitzMenu, waybackMenu, aiMenu, promMenu, editMenu, userMenu, matchMenu, items, puzzles, tutorials, help, mainMenu, highlight, hover, leave}

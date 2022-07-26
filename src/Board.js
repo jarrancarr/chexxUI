@@ -1,15 +1,16 @@
 // import { logDOM } from '@testing-library/react';
 import React from 'react';
 import Hex from "./Hex"
+import $ from 'jquery';
 import {map, revMap, flipped, inPromotePos, getPiece} from './res';
 
-import {hex, whiteMove, hilite, movePiece, swapPieces, analyse,isOnBoard, clear, text} from './res';
-import { waybackMenu, aiMenu, promMenu, editMenu, userMenu, matchMenu, items, puzzles, tutorials, help, mainMenu, leave, hover, highlight} from './menu'
+import {hex, genDefs, whiteMove, hilite, movePiece, swapPieces, analyse,isOnBoard, clear, text} from './res';
+import { blitzMenu, waybackMenu, aiMenu, promMenu, editMenu, userMenu, matchMenu, items, puzzles, tutorials, help, mainMenu, leave, hover, highlight} from './menu'
 //let move = '';
 //let editor = '';
 //let promote = [];
 
-function Board({color, user, match, update, view, menu, command, flip, mode, history, queue}) { console.log('<Board>   menu['+menu+']    mode['+mode+']');
+function Board({color, user, match, update, view, menu, command, flip, mode, history, queue}) { //console.log('<Board>   menu['+menu+']    mode['+mode+']');
     console.log('match', match);
     const board = analyse(match);  // console.log('board', board);
     let formation = [];
@@ -62,7 +63,7 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
             </g>);
         return clocks;
     }
-    function users() { // console.log('users',user, match);
+    function users() { //console.log('users',user, match);
         const ui = [];
         const x=(mode === 'blitz'?20:9);
         const y=(mode === 'blitz'?95:91);
@@ -105,38 +106,20 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
         const ui = [];
         let x=80;
         let y=95;
-        ui.push(<path key="editMatch" id="edit" transform={'translate('+x+','+y+') rotate(-2,0,0) scale('+2+')'} fill="#aa0" stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=>command({order:'menu', choice:(menu==='edit'?'offline':'edit')})} d={hex}></path>);
+        ui.push(<path key="editMatch" id="edit" transform={'translate('+x+','+y+') rotate(-2,0,0) scale('+2+')'} fill="#aa0" stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=>command({order:'menu', choice:(menu==='edit'?'':'edit')})} d={hex}></path>);
         ui.push(text(x,y,-28,2,0.01,'#fff','#500','#ff0000ff 0.2px 0.2px 0.25px',menu==='edit'?'.play':'.edit')); // x,y,r,sz,w,fc,sc,ds,text
-        if (!user || !user.ID || user.ID<1 || !user.property.vet) {
-            y=5;
-            ui.push(<path key="quickTour" id="tour" transform={'translate('+x+','+y+') rotate(2,0,0) scale('+2+')'} fill="#aaf" stroke='#111' strokeWidth={0.2} onMouseOver={hover} onMouseLeave={(e)=>leave('#111',e)} onClick={()=>command({order:'menu', choice:'tour'})} d={hex}></path>);
-            ui.push(text(x,y,28,2,0.01,'#fff','#500','#ff0000ff 0.2px 0.2px 0.25px','.tour')); // x,y,r,sz,w,fc,sc,ds,text
-        }
-        if (menu==='offline') {
+        // if (!user || !user.ID || user.ID<1 || !user.property.vet) {
+        //     y=5;
+        //     ui.push(<path key="quickTour" id="tour" transform={'translate('+x+','+y+') rotate(2,0,0) scale('+2+')'} fill="#aaf" stroke='#111' strokeWidth={0.2} onMouseOver={hover} onMouseLeave={(e)=>leave('#111',e)} onClick={()=>command({order:'menu', choice:'tour'})} d={hex}></path>);
+        //     ui.push(text(x,y,28,2,0.01,'#fff','#500','#ff0000ff 0.2px 0.2px 0.25px','.tour')); // x,y,r,sz,w,fc,sc,ds,text
+        // }
+        if (menu==='') {
             x=5;
             y=20;
             ui.push(<path key="cpu" id="cpu" transform={'translate('+x+','+y+') rotate(27,0,0) scale('+2+')'} fill="#8af" stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=> { command({order:'menu', choice:'cpu'}); match.move=''; }} d={hex}></path>);
             ui.push(text(x,y,0,2.0 ,0.01,'#000','#500','#000000ff 0.2px 0.2px 0.25px','..CPU')); // x,y,r,sz,w,fc,sc,ds,text
         }
         return ui;
-    }
-    function hexDefs() {
-        function grads(color) {
-            let grad = [];
-            const stops = 100/(color.length-1);
-            for (let i=0;i<color.length;i++)
-                grad.push(<stop offset={''+stops*i+'%'} style={{'stopColor':color[i],'stopOpacity':'1'}}/>);
-            return grad;
-        }
-        let defs = [];
-        defs.push(<linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="100%">{grads(color['light'])}</linearGradient>);
-        defs.push(<linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">{grads(color['neutral'])}</linearGradient>);
-        defs.push(<linearGradient id="grad3" x1="0%" y1="0%" x2="100%" y2="100%">{grads(color['dark'])}</linearGradient>);
-        defs.push(<radialGradient id="feltPattern1" cx="2.9" cy="0.5" r="0.02" fx="2.912" fy="0.5" spreadMethod="repeat"><stop offset="0%" stop-color={color['felt'][0]}/><stop offset="25%" stop-color={color['felt'][1]}/><stop offset="50%" stop-color={color['felt'][2]}/><stop offset="75%" stop-color={color['felt'][3]}/><stop offset="100%" stop-color={color['felt'][4]}/></radialGradient>);
-        defs.push(<radialGradient id="feltPattern2" cx="2.8" cy="0.3" r="0.025" fx="2.8" fy="0.312" spreadMethod="repeat"><stop offset="0%" stop-color={color['felt'][0]}/><stop offset="25%" stop-color={color['felt'][1]}/><stop offset="50%" stop-color={color['felt'][2]}/><stop offset="75%" stop-color={color['felt'][3]}/><stop offset="100%" stop-color={color['felt'][4]}/></radialGradient>);
-        defs.push(<radialGradient id="feltPattern3" cx="2.3" cy="0.4" r="0.027" fx="2.308" fy="0.407" spreadMethod="repeat"><stop offset="0%" stop-color={color['felt'][0]}/><stop offset="25%" stop-color={color['felt'][1]}/><stop offset="50%" stop-color={color['felt'][2]}/><stop offset="75%" stop-color={color['felt'][3]}/><stop offset="100%" stop-color={color['felt'][4]}/></radialGradient>);
-        defs.push(<radialGradient id="feltPattern4" cx="2.2" cy="0.65" r="0.023" fx="2.403" fy="0.651" spreadMethod="repeat"><stop offset="0%" stop-color={color['felt'][0]}/><stop offset="25%" stop-color={color['felt'][1]}/><stop offset="50%" stop-color={color['felt'][2]}/><stop offset="75%" stop-color={color['felt'][3]}/><stop offset="100%" stop-color={color['felt'][4]}/></radialGradient>);
-        return defs;
     }
     function tiles() {
         const hex = [];    
@@ -562,15 +545,18 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
         }
         return messageQueue;
     }
-    React.useEffect(() => {
+    React.useEffect(() => { console.log('menu',menu);
         [...document.getElementsByClassName('spin')].forEach(e=>e.beginElement())
-        //match.move = 'test';
+        hilite(['ledgerList'],'opacity',menu===''?'0.9':'0.2');
+
+        // const ledge = document.getElementById('ledgerList');
+        // if (ledge) ledge.setAttribute('opacity',menu?'0.1':'0.2');
     }, [match, menu])
 
     return (
       <div className="App">
         <svg id='board' viewBox={view} xmlns="http://www.w3.org/2000/svg">
-            <defs> { hexDefs() }
+            <defs> { genDefs(color) }
             </defs>
             <rect fill="#343" x="0" y="0" width="100" height="200"/>    
             <g transform={'translate(91, 8)'}> { help(command) } </g>   
@@ -581,8 +567,8 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
             { user.userid && users() }
             { (mode === 'match' || mode === 'blitz') && resign() }
             { mode === 'match' && match.move && commit() }
-            { mode === 'offline' && offline() }
-            { ledger(match) }
+            { mode === '' && offline() }
+            <g id='ledgerList' opacity={0.5}>{ledger(match)}</g>
             { menu==='puzzles' && <g transform={'translate(50, 50)'}> { puzzles(match, command, update) } </g>}
             { menu==='tutor' && <g transform={'translate(50, 50)'}> { tutorials(match, command, update) } </g>}
             { menu==='main' && <g transform={'translate(50, 50)'}> { items(match, command, update, user) } </g>}
@@ -590,6 +576,7 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
             { menu==='users' && <g transform={'translate(50, 50)'}> { userMenu(match, command, update) } </g>}
             { menu==='edit' && <g transform={'translate(50, 50)'}> { editMenu(match, command, update) } </g>}
             { menu==='cpu' && <g transform={'translate(50, 50)'}> { aiMenu(match, command, update) } </g>}
+            { menu==='blitz' && <g transform={'translate(50, 50)'}> { blitzMenu(match, command, update, user) } </g>}
             { match.promotions && match.promotions.length>0 && <g transform={'translate(50, 50)'}> { promMenu(match, command, update, flip) } </g>}
             { menu==='wayback' && <g transform={'translate(50, 50)'}> { waybackMenu(match, command, update) } </g>}
             <circle fill={board.whiteInCheck||board.blackInCheck?'#F33':'#321'} cx="50" cy="50" r="43"/>

@@ -6,7 +6,7 @@ import GoogleLogin from 'react-google-login';
 import './App.css';
 import Board from "./Board"
 import Pieces from "./Pieces"
-import { serverUrl, socketUrl, clear, hilite, movePiece, analyse } from './res';
+import { genDefs, serverUrl, socketUrl, clear, hilite, movePiece, analyse } from './res';
 let onHint = 0;
 let lesson = {};
 const zoomed = false;
@@ -18,7 +18,9 @@ let stdGetRequest = {}; // fetch(serverUrl+'/'+data, stdGetRequest).then(respons
                         // fetch(serverUrl+'/xxx',post({data})).then(response => response.json())
                         //   .then(x => { if (x.status) { } else cmd({order:'dialog', title:'Error', text:['h2:::'+data.message]}); })
                         //   .catch((e) => { cmd({order:'dialog',title:'Error', text:['h3:::Server error.', ''+error]}); });
-let boardColor = {neutral:['#555','#585','#545'],light:['#aab','#aa8','#aaa'], dark:['#011','#111','#012'], white:['#eeb'], black:['#012'], felt:['#131','#444','#131','#131','#000'], table:['#000']};
+let boardColor = {neutral:['#555','#585','#545'],light:['#aab','#aa8','#aaa'], dark:['#011','#111','#012'], 
+  white:['#eeb'], black:['#012'], felt:['#131','#444','#131','#131','#000'], table:['#000'],
+  grain:[[2.9, 0.5, 0.02, 2.912, 0.505],[-2.8, 0.3, 0.025, -2.8, 0.312],[0.9, 0.4, 0.027, 0.908, 0.407],[2.7, -0.65, 0.023, 2.703, -0.651]]};
 
 function post(data) {
   let request = {...stdGetRequest}
@@ -30,7 +32,7 @@ function post(data) {
 function App() { // console.log('App');
   const [match, update] = React.useState({id:0, name:'offline', white:{pieces:['Rd54', 'Rd5', 'Rc52', 'Nd53', 'Nd51', 'Nc33', 'Bc53', 'Bc55', 'Bd52', 'Qd41', 'Kc44', 'Id31', 'Ed4', 'Pd55', 'Pd44', 'Pd33', 'Pd21', 'Pc22', 'Pc31', 'Pc41', 'Pc51', 'Sd43', 'Sd32', 'Sd2', 'Sc32', 'Sc42', 'Ad42', 'Ad3', 'Ac43'], time:300}, black:{pieces:['Ra5', 'Rf52', 'Ra54', 'Nf53', 'Nf55', 'Na31', 'Ba53', 'Ba51', 'Bf54', 'Qf44', 'Ka41', 'If33', 'Ea4', 'Pf51', 'Pf41', 'Pf31', 'Pf22', 'Pa21', 'Pa33', 'Pa44', 'Pa55', 'Sf42', 'Sf32', 'Sa2', 'Sa32', 'Sa43', 'Af43', 'Aa3', 'Aa42'], time:300}, log:[], type:{game:300, move:15}});
   let [view, zoom] = React.useState(zoomed?'14 0 72 200':'0, -4, 100, 200');
-  let [mode, setMode] = React.useState('offline');
+  let [mode, setMode] = React.useState('');
   let [dialog, setDialog] = React.useState({});
   let [user, loginUser] = React.useState({});
   let [idx, move] = React.useState(0);
@@ -47,7 +49,7 @@ function App() { // console.log('App');
   const w = $(window).width();
   const m = h<w?h:w;
 
-  function cmd(data) { console.log('command', data);
+  function cmd(data) { //console.log('command', data);
     switch(data.order) {
       case 'dialog': // console.log('opening dialog');
         setDialog(data)
@@ -63,12 +65,12 @@ function App() { // console.log('App');
       case 'profile': setMode('profile', user.ID); break;
       case 'opponent': openProfile(data.id); setMode('other'); break;
       case 'zoom' : zoom(view==='0, 0, 100, 200'?'14 0 72 200':'0, 0, 100, 200'); break;
-      case 'login' : loginUser(data.user); getQueues(data.user); setMode('profile'); break;
+      case 'login' : loginUser(data.user); getQueues(data.user); setMode(''); break;
       case 'logout' : loginUser({}); cmd({order:'dialog', title:'Thanks for Playing', text:['h2:::Hope to see you again soon.','h4:::Any social media attention would be appreciated.','h4:::Leaving comments is my best way to help improve Chexx.']}); break;
       case 'menu' : setBoard(data.choice); break;
       case 'users' : setBoard(data.choice); break;
       case 'cpu' : cpuMove(data.level); break;
-      case 'blitz-start' : startBlitz(); break;
+      case 'blitz-start' : startBlitz(data.type); break;
       case 'blitz-move' : blitzMove(data.move); break;
       case 'rewind' : goBack(data.event); break;
       case 'befriend' : befriend(data.id); break;
@@ -133,10 +135,10 @@ function App() { // console.log('App');
     }
   }
   function goBack(event) { // console.log('goBack',event, match.log.length);
-    const copyMatch = {id:0, name:'offline', white:{pieces:['Rd54', 'Rd5', 'Rc52', 'Nd53', 'Nd51', 'Nc33', 'Bc53', 'Bc55', 'Bd52', 'Qd41', 'Kc44', 'Id31', 'Ed4', 'Pd55', 'Pd44', 'Pd33', 'Pd21', 'Pc22', 'Pc31', 'Pc41', 'Pc51', 'Sd43', 'Sd32', 'Sd2', 'Sc32', 'Sc42', 'Ad42', 'Ad3', 'Ac43'], time:300}, black:{pieces:['Ra5', 'Rf52', 'Ra54', 'Nf53', 'Nf55', 'Na31', 'Ba53', 'Ba51', 'Bf54', 'Qf44', 'Ka41', 'If33', 'Ea4', 'Pf51', 'Pf41', 'Pf31', 'Pf22', 'Pa21', 'Pa33', 'Pa44', 'Pa55', 'Sf42', 'Sf32', 'Sa2', 'Sa32', 'Sa43', 'Af43', 'Aa3', 'Aa42'], time:300}, log:[], type:{game:300, move:15}};
+    const copyMatch = {id:0, name:'history', white:{pieces:['Rd54', 'Rd5', 'Rc52', 'Nd53', 'Nd51', 'Nc33', 'Bc53', 'Bc55', 'Bd52', 'Qd41', 'Kc44', 'Id31', 'Ed4', 'Pd55', 'Pd44', 'Pd33', 'Pd21', 'Pc22', 'Pc31', 'Pc41', 'Pc51', 'Sd43', 'Sd32', 'Sd2', 'Sc32', 'Sc42', 'Ad42', 'Ad3', 'Ac43'], time:300}, black:{pieces:['Ra5', 'Rf52', 'Ra54', 'Nf53', 'Nf55', 'Na31', 'Ba53', 'Ba51', 'Bf54', 'Qf44', 'Ka41', 'If33', 'Ea4', 'Pf51', 'Pf41', 'Pf31', 'Pf22', 'Pa21', 'Pa33', 'Pa44', 'Pa55', 'Sf42', 'Sf32', 'Sa2', 'Sa32', 'Sa43', 'Af43', 'Aa3', 'Aa42'], time:300}, log:[], type:{game:300, move:15}};
     for (const l in match.log) {
       if (l < event +1) {
-        const mvs = match.log[l].replace(/[+=]/,'').split(/[x~]/);
+        const mvs = match.log[l].split('::')[0].replace(/[+=]/,'').split(/[x~]/);
         movePiece(copyMatch, null, mvs)
       }
     }
@@ -148,7 +150,7 @@ function App() { // console.log('App');
 
     } else {
       setBoard('');
-      setMode('offline');
+      setMode('');
       
     }
     update(copyMatch);
@@ -166,13 +168,14 @@ function App() { // console.log('App');
       }
     );
   }
-  function startBlitz() {
-    sendMessage(JSON.stringify({type:'blitz', token:user.token})); 
+  function startBlitz(type) {
+    sendMessage(JSON.stringify({type:'blitz', game:type, token:user.token})); 
+    setBoard('');
     setMode('wait-blitz');
   }
   function abortBlitz() {
     sendMessage(JSON.stringify({type:'abort-blitz', token:user.token})); 
-    setMode('offline');
+    setMode('');
   }
   function blitzMove(move) {
     clickClock(match, false);
@@ -236,7 +239,7 @@ function App() { // console.log('App');
         if (data.black) data.match.black.player = data.black;
         if ((data.match.white.ID !== user.ID && data.match.white.ID !== 0)
           || (data.match.black.ID !== user.ID && data.match.black.ID !== 0)) setMode("match");
-        else setMode("offline");
+        else setMode('');
         turn(data.match.black.player && data.match.black.player.ID === user.ID);
         update(data.match); 
       } else cmd({order:'dialog', title:'Error', text:['h2:::'+data.message]});
@@ -292,7 +295,7 @@ function App() { // console.log('App');
   function resign(match) {
     if (mode==='blitz') {
       sendMessage(JSON.stringify({type:'resign', token:user.token})); 
-      setMode('offline');
+      setMode('');
       // loop closed when message returned with new rating.
     }
     if (mode==='match') {
@@ -389,7 +392,7 @@ function App() { // console.log('App');
     update({id:0, name:'offline', white:{pieces:['Rd54', 'Rd5', 'Rc52', 'Nd53', 'Nd51', 'Nc33', 'Bc53', 'Bc55', 'Bd52', 'Qd41', 'Kc44', 'Id31', 'Ed4', 'Pd55', 'Pd44', 'Pd33', 'Pd21', 'Pc22', 'Pc31', 'Pc41', 'Pc51', 'Sd43', 'Sd32', 'Sd2', 'Sc32', 'Sc42', 'Ad42', 'Ad3', 'Ac43'], time:300}, black:{pieces:['Ra5', 'Rf52', 'Ra54', 'Nf53', 'Nf55', 'Na31', 'Ba53', 'Ba51', 'Bf54', 'Qf44', 'Ka41', 'If33', 'Ea4', 'Pf51', 'Pf41', 'Pf31', 'Pf22', 'Pa21', 'Pa33', 'Pa44', 'Pa55', 'Sf42', 'Sf32', 'Sa2', 'Sa32', 'Sa43', 'Af43', 'Aa3', 'Aa42'], time:300}, log:[], type:{game:300, move:15}});
     resume();
   }
-  function resume() { setMode('offline'); setBoard(''); history = -1; }
+  function resume() { setMode(''); setBoard(''); history = -1; }
   function openChallenge() {
     const title = document.getElementById('title').value;
     const dpm = document.getElementById('dpm').value;
@@ -501,6 +504,8 @@ function App() { // console.log('App');
         if (!boardColor.neutral) boardColor.neutral=['#555','#585','#545'];
         if (!boardColor.light) boardColor.light=['#aab','#aa8','#aaa'];
         if (!boardColor.dark) boardColor.dark=['#011','#111','#012'];
+        if (!boardColor.grain) boardColor.grain=grain(); //[[2.9, 0.5, 0.02, 2.912, 0.505],[-2.8, 0.3, 0.025, -2.8, 0.312],[0.9, 0.4, 0.027, 0.908, 0.407],[2.7, -0.65, 0.023, 2.703, -0.651]];
+
 
         cmd(data.status?{order:'login',user:data.user}:{order:'dialog', title:'Not Authorized', text:['h2:::Please check you login credentials and try again.']});
         sendMessage(JSON.stringify({type:'login', token:data.user.token})); 
@@ -508,6 +513,16 @@ function App() { // console.log('App');
     } else { // highlight error
       document.getElementById('chexxLogin').style.border='2px solid #f00';
     }
+  }
+  function grain() {
+    const grain = [];
+    for (let i=0;i<4;i+=1) {
+      const x = 3-Math.random()*6;
+      const y = 3-Math.random()*6;
+      grain.push([x, y, 0.02+Math.random()/50, x+0.01-Math.random()/150, y+0.01-Math.random()/150]);
+    }
+    console.log('grain',grain);
+    return grain;
   }
   function chexxLogout() {
     fetch(serverUrl+'/user/logout',post({token:user.token})).then(response => response.json() )
@@ -637,7 +652,11 @@ function App() { // console.log('App');
               <input type='color' id='feltD' name='feltD' defaultValue={boardColor['felt'][3]}/>
               <input type='color' id='feltE' name='feltE' defaultValue={boardColor['felt'][4]}/>
               </td></tr> }
-            { <tr><td><input type='color' id='table' name='table' defaultValue={boardColor['table'][0]}/></td></tr> }
+            { <tr><td><svg viewBox='48 48 4 4' xmlns="http://www.w3.org/2000/svg"><defs> { genDefs(boardColor) }
+            </defs><circle fill="url(#feltPattern1)" cx="50" cy="50" r="2"/>
+            <circle fill="url(#feltPattern2)" cx="50" cy="50" r="2" opacity={0.5}/>
+            <circle fill="url(#feltPattern3)" cx="50" cy="50" r="2" opacity={0.25}/>
+            <circle fill="url(#feltPattern4)" cx="50" cy="50" r="2" opacity={0.125}/></svg></td></tr> }
           </table></td>
         <td colSpan={2} rowSpan={2}>
           <table style={{'border':'2px solid black','margin':'auto'}}>
@@ -786,7 +805,9 @@ function App() { // console.log('App');
     boardColor['felt'].push($('#feltC').val());
     boardColor['felt'].push($('#feltD').val());
     boardColor['felt'].push($('#feltE').val());
-    boardColor['table'].push($('#table').val());
+    //boardColor['table'].push($('#table').val());
+    boardColor.table=['#000'];
+    boardColor.grain=grain();
     user.property = {hints:hints?'true':'false', board:JSON.stringify(boardColor)};
     fetch(serverUrl+'/user/save',post(user)).then(response => response.json() )
       .then(data => cmd(data.status?{order:'dialog', title:'Profile Saved', text:[], ok:true, noClose:true}:{order:'dialog', title:'Error', text:['h2:::'+data.message]}));
@@ -818,7 +839,7 @@ function App() { // console.log('App');
     );
   }
 
-  React.useEffect(() => { console.log('App useEffect:',state, mode, user);
+  React.useEffect(() => { //console.log('App useEffect:',state, mode, user);
     if (lastMessage !== null && lastMessage !== lastReadMessage) {
       lastReadMessage = lastMessage;
       const message = JSON.parse(lastMessage.data);
@@ -838,10 +859,10 @@ function App() { // console.log('App');
           } else if (!queue.message[queue.message.length-1] || queue.message[queue.message.length-1].ID !== mm.ID)
             updateQueue((prev)=> { prev.message.push(mm); return prev; } );
           break;
-        case 'blitz': console.log('user',user); console.log('message',message);
+        case 'blitz': // console.log('user',user); console.log('message',message);
           message.match.log = message.match.log.filter(l=>l!=='');
-          // if (message.match.white) message.match.white.player = message.match.white;
-          // if (message.match.black) message.match.black.player = message.match.black;
+          if (message.white) message.match.white.player = message.white;
+          if (message.black) message.match.black.player = message.black;
           turn(message.match.black.userid === user.ID);
           update(message.match);
           setMode('blitz');
@@ -863,7 +884,7 @@ function App() { // console.log('App');
         if (user.property.hints === 'true') {
           let sketch = [];
           switch(state+':'+mode) { // M -35,0 A 35,35 0 0 0 0,35 35,35 0 0 0 35,0 35,35 0 0 0 0,-35 35,35 0 0 0 -35,0 Z // M 40,0 A 40,40 0 0 1 0,40 40,40 0 0 1 -40,0 40,40 0 0 1 0,-40 40,40 0 0 1 40,0 Z
-            case 'match:offline': sketch.push(<defs><path id="hintPath1" transform={'translate(50,50) rotate(220,0,0)'} d="M -42,0 A 42,42 0 0 0 0,42 42,42 0 0 0 42,0 42,42 0 0 0 0,-42 42,42 0 0 0 -42,0 Z"></path></defs>); 
+            case 'match:': sketch.push(<defs><path id="hintPath1" transform={'translate(50,50) rotate(220,0,0)'} d="M -42,0 A 42,42 0 0 0 0,42 42,42 0 0 0 42,0 42,42 0 0 0 0,-42 42,42 0 0 0 -42,0 Z"></path></defs>); 
               sketch.push(<defs><path id="hintPath2" transform={'translate(50,50) rotate(215,0,0)'} d="M 38,0 A 38,38 0 0 1 0,38 38,38 0 0 1 -38,0 38,38 0 0 1 0,-38 38,38 0 0 1 38,0 Z"></path></defs>); 
               sketch.push(<text className='noMouse' fontFamily='Verdana' fontSize={7} fill='#ff9'><textPath href="#hintPath1">Current Matches</textPath></text>);
               sketch.push(<text className='noMouse' fontFamily='Verdana' fontSize={7} fill='#ff9'><textPath href="#hintPath2">Saved Games</textPath></text>);
@@ -883,7 +904,7 @@ function App() { // console.log('App');
   return (
     <div className="App Full">
       <Board color={boardColor} user={user} match={match} menu={state} update={update} view={view} command={cmd} flip={flip} mode={mode} history={history} queue={queue}/>
-      { (mode === 'history' || mode === 'offline' || mode === 'tutor' || mode === 'match' || mode === 'blitz') &&  <Pieces white={match.white.pieces} black={match.black.pieces} light={flip?boardColor.black:boardColor.white} dark={flip?boardColor.white:boardColor.black} view={view} flip={flip}/>}
+      { (mode === 'history' || mode === '' || mode === 'tutor' || mode === 'match' || mode === 'blitz') &&  <Pieces white={match.white.pieces} black={match.black.pieces} light={flip?boardColor.black:boardColor.white} dark={flip?boardColor.white:boardColor.black} view={view} flip={flip}/>}
       { mode === 'dialog' && showDialog(dialog) }
       { mode === 'tutor' && teacher() }
       { mode === 'profile' && myProfile() }

@@ -462,5 +462,21 @@ function hilite(idList, what, to, flip) { //console.log('hilite',idList, what, t
             if (ele) ele.setAttribute(what, to);
     }   }
 }
+function genDefs(color) { //console.log('genDefs',color);
+    function grads(color) {
+        let grad = [];
+        const stops = 100/(color.length-1);
+        for (let i=0;i<color.length;i++)
+            grad.push(<stop offset={''+stops*i+'%'} style={{'stopColor':color[i],'stopOpacity':'1'}}/>);
+        return grad;
+    }
+    let defs = [];
+    defs.push(<linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="100%">{grads(color['light'])}</linearGradient>);
+    defs.push(<linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">{grads(color['neutral'])}</linearGradient>);
+    defs.push(<linearGradient id="grad3" x1="0%" y1="0%" x2="100%" y2="100%">{grads(color['dark'])}</linearGradient>);
+    for (let i=0;i<4;i++) //cx="2.9" cy="0.5" r="0.02" fx="2.912" fy="0.505"
+        defs.push(<radialGradient id={"feltPattern"+i} cx={color['grain'][i][0]} cy={color['grain'][i][1]} r={color['grain'][i][2]} fx={color['grain'][i][3]} fy={color['grain'][i][4]} spreadMethod="repeat">{grads(color['felt'])}</radialGradient>);
+    return defs;
+}
        
-export {hex, whiteMove, inStartPos, inPromotePos, map, revMap, flipped, hilite, getPiece, swapPieces, movePiece, clear, off, analyse,isOnBoard, text, serverUrl, socketUrl}
+export {hex, genDefs, whiteMove, inStartPos, inPromotePos, map, revMap, flipped, hilite, getPiece, swapPieces, movePiece, clear, off, analyse,isOnBoard, text, serverUrl, socketUrl}

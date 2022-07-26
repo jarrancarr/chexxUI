@@ -1,0 +1,8 @@
+{
+  "appId": "io.ionic.chexxUI",
+  "appName": "chexx",
+  "bundledWebRuntime": false,
+  "npmClient": "npm",
+  "webDir": "build",
+  "cordova": {}
+}

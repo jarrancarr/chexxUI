@@ -10,6 +10,7 @@ import { genDefs, serverUrl, socketUrl, clear, hilite, movePiece, analyse } from
 let onHint = 0;
 let lesson = {};
 const zoomed = false;
+let cpuPlayer = 0;
 let timer = null;
 let tutor = '';
 let history = -1;
@@ -69,7 +70,7 @@ function App() { // console.log('App');
       case 'logout' : loginUser({}); cmd({order:'dialog', title:'Thanks for Playing', text:['h2:::Hope to see you again soon.','h4:::Any social media attention would be appreciated.','h4:::Leaving comments is my best way to help improve Chexx.']}); break;
       case 'menu' : setBoard(data.choice); break;
       case 'users' : setBoard(data.choice); break;
-      case 'cpu' : cpuMove(data.level); break;
+      case 'cpu' : cpuPlayer=data.level; setMode(''); setBoard(''); cpuMove(); break;
       case 'blitz-start' : startBlitz(data.type); break;
       case 'blitz-move' : blitzMove(data.move); break;
       case 'rewind' : goBack(data.event); break;
@@ -155,16 +156,21 @@ function App() { // console.log('App');
     }
     update(copyMatch);
   }
-  function cpuMove(level) {
-    fetch(serverUrl+'/match/cpu/'+level, post(match)).then(response => response.json() ).then(data => {
-        if (data.move === 'Checkmate') console.log("That was checkmate..");
-        else if (data.move === 'Stalemate') console.log("That was stalemate..");
-        else {
-          let copyMatch = {...match};
-          const board = analyse(match); 
-          movePiece(copyMatch, board, data.move.split('~'));
-          update(copyMatch);
-        }
+  function cpuMove() { console.log('cpuMove');
+    if ((flip && match.log.length%2===1) || (!flip && match.log.length%2===0)) return;
+    document.getElementById('think').beginElement();
+    fetch(serverUrl+'/match/cpu/'+cpuPlayer, post(match)).then(response => response.json() ).then(data => {
+        document.getElementById('think').endElement();
+        let copyMatch = {...match};
+        const board = analyse(match); 
+        if (data.move === 'Checkmate') {
+          copyMatch.checkmate = true;
+          cpuPlayer = 0;
+        } else if (data.move === 'Stalemate') {
+          copyMatch.stalemate = true;
+          cpuPlayer = 0;
+        } else movePiece(copyMatch, board, data.move.split('~'));
+        update(copyMatch);
       }
     );
   }
@@ -839,8 +845,16 @@ function App() { // console.log('App');
     );
   }
 
-  React.useEffect(() => { //console.log('App useEffect:',state, mode, user);
-    if (lastMessage !== null && lastMessage !== lastReadMessage) {
+  React.useEffect(() => { console.log('App useEffect:',state, mode, user, cpuPlayer);
+  
+  if (cpuPlayer>0) cpuMove();
+  else {
+    const e = document.getElementById('think');
+    if (e) { console.log('stopping cpu');
+      e.endElement();
+    }
+  }  
+  if (lastMessage !== null && lastMessage !== lastReadMessage) {
       lastReadMessage = lastMessage;
       const message = JSON.parse(lastMessage.data);
       switch(message.type) {
@@ -899,7 +913,7 @@ function App() { // console.log('App');
         onoffHints(user.property.hints === 'true')
       }
     }
-  }, [state, mode, user, lastMessage, updateQueue, queue])
+  }, [state, mode, user, lastMessage, updateQueue, queue, match])
 
   return (
     <div className="App Full">

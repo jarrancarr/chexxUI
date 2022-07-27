@@ -11,7 +11,7 @@ import { blitzMenu, waybackMenu, aiMenu, promMenu, editMenu, userMenu, matchMenu
 //let promote = [];
 
 function Board({color, user, match, update, view, menu, command, flip, mode, history, queue}) { //console.log('<Board>   menu['+menu+']    mode['+mode+']');
-    console.log('match', match);
+    //console.log('match', match);
     const board = analyse(match);  // console.log('board', board);
     let formation = [];
     let muster = [];
@@ -113,12 +113,10 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
         //     ui.push(<path key="quickTour" id="tour" transform={'translate('+x+','+y+') rotate(2,0,0) scale('+2+')'} fill="#aaf" stroke='#111' strokeWidth={0.2} onMouseOver={hover} onMouseLeave={(e)=>leave('#111',e)} onClick={()=>command({order:'menu', choice:'tour'})} d={hex}></path>);
         //     ui.push(text(x,y,28,2,0.01,'#fff','#500','#ff0000ff 0.2px 0.2px 0.25px','.tour')); // x,y,r,sz,w,fc,sc,ds,text
         // }
-        if (menu==='') {
-            x=5;
-            y=20;
-            ui.push(<path key="cpu" id="cpu" transform={'translate('+x+','+y+') rotate(27,0,0) scale('+2+')'} fill="#8af" stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=> { command({order:'menu', choice:'cpu'}); match.move=''; }} d={hex}></path>);
-            ui.push(text(x,y,0,2.0 ,0.01,'#000','#500','#000000ff 0.2px 0.2px 0.25px','..CPU')); // x,y,r,sz,w,fc,sc,ds,text
-        }
+        x=9;
+        y=9;
+        ui.push(<g transform={'translate('+x+','+y+') scale(4)'} ><path key="cpu" id="cpu" transform={'rotate(27,0,0)'} fill="#8af" stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=> { command({order:'menu', choice:'cpu'}); match.move=''; }} d={hex}><animateTransform id='think' attributeName="transform" attributeType="XML" type="rotate" from="27 0 0" to="387 0 0" dur='1s' repeatCount='indefinite'/></path></g>);
+        ui.push(text(x-3,y,0,3.0 ,0.01,'#000','#500','#000000ff 0.2px 0.2px 0.25px','CPU')); // x,y,r,sz,w,fc,sc,ds,text
         return ui;
     }
     function tiles() {
@@ -222,7 +220,7 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
         left = 0;
         right = 0;
     }
-    function hexClicked(here) { console.log('hexClicked  first:', match.first, '  here',here);
+    function hexClicked(here) { // console.log('hexClicked  first:', match.first, '  here',here);
         if (history>-1) return;
         if (flip) here = flipped(here);
         if (menu==='tutor') {
@@ -348,7 +346,7 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
                 update(copyMatch);
                 if (mode==='blitz') command({order:'blitz-move', move:copyMatch.move});
                 clean();
-            } else { console.log('add soldier    march:', march, '    muster:', muster, '   sa:', switchArms);
+            } else { //console.log('add soldier    march:', march, '    muster:', muster, '   sa:', switchArms);
                 if (!board.occupants[here]) {
                     clean();
                 } else {
@@ -388,7 +386,7 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
                 }
             }
         } else { // not special
-            if (!match.first || match.first === '') { console.log('first selection'); // no piece was selected
+            if (!match.first || match.first === '') { //console.log('first selection'); // no piece was selected
                 selectPiece(moves, attacks, attacked, covered, board.occupants, board.pinned, here);
                 // console.log('moves',moves); console.log('attacks',attacks); console.log('attacked, covered',attacked, covered);
             } else { // console.log('second selection');  // piece had already been chosen...
@@ -545,9 +543,15 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
         }
         return messageQueue;
     }
-    React.useEffect(() => { console.log('menu',menu);
+    function message(msg, sz=7, r=180, t=0, c='#f80') { console.log('message:',msg);
+        const message = [];
+        message.push(<text transform={'translate(50,50) rotate('+(r-t)+',0,0)'} className='noMouse' fontFamily='Verdana' fontSize={sz} fill={c}><textPath href="#infoup-45">{msg}</textPath></text>);
+        message.push(<text transform={'translate(50,50) rotate('+(r+t)+',0,0)'} className='noMouse' fontFamily='Verdana' fontSize={sz} fill={c}><textPath href="#infodown-50">{msg}</textPath></text>);
+        return message;
+    }
+    React.useEffect(() => { //console.log('menu',menu);
         [...document.getElementsByClassName('spin')].forEach(e=>e.beginElement())
-        hilite(['ledgerList'],'opacity',menu===''?'0.9':'0.2');
+        hilite(['ledgerList'],'opacity',menu===''||menu==='wayback'?'0.9':'0.2');
 
         // const ledge = document.getElementById('ledgerList');
         // if (ledge) ledge.setAttribute('opacity',menu?'0.1':'0.2');
@@ -587,8 +591,10 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
             { tiles() }
             <g transform={"translate(50,50) scale(1.5)"} style={{ filter: 'drop-shadow(rgba(210, 128, 210, 0.4) 0px 0px 2px)'}}>
                 { rose() }
-            </g>
-            { board.mate && text(25,53,11,0.3,'#f0f','#f20','Checkmate') }
+            </g> 
+            { match.checkmate && message("Checkmate!", 10, 270, 30,'#f40') }
+            { match.stalemate && message("Stalemate.", 10, 270, 30,'#aa8') }
+            { match.stalemate && message("Draw.", 10, 270, 30,'#8aa') }           
         </svg>
       </div>
     );

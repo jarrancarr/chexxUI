@@ -471,6 +471,10 @@ function genDefs(color) { //console.log('genDefs',color);
         return grad;
     }
     let defs = [];
+    for (let i=25;i<51;i+=5) {
+        defs.push(<g transform={'translate(50,50)'}><path id={"infoup-"+i} d={"M "+i+",0 A "+i+","+i+" 0 0 1 0,"+i+" "+i+","+i+" 0 0 1 -"+i+",0 "+i+","+i+" 0 0 1 0,-"+i+" "+i+","+i+" 0 0 1 "+i+",0 Z"}></path></g>);
+        defs.push(<g transform={'translate(50,50)'}><path id={"infodown-"+i} d={"M -"+i+",0 A "+i+","+i+" 0 0 0 0,"+i+" "+i+","+i+" 0 0 0 "+i+",0 "+i+","+i+" 0 0 0 0,-"+i+" "+i+","+i+" 0 0 0 -"+i+",0 Z"}></path></g>);
+    }
     defs.push(<linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="100%">{grads(color['light'])}</linearGradient>);
     defs.push(<linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">{grads(color['neutral'])}</linearGradient>);
     defs.push(<linearGradient id="grad3" x1="0%" y1="0%" x2="100%" y2="100%">{grads(color['dark'])}</linearGradient>);

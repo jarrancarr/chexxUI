@@ -6,11 +6,12 @@ import GoogleLogin from 'react-google-login';
 import './App.css';
 import Board from "./Board"
 import Pieces from "./Pieces"
-import { genDefs, serverUrl, socketUrl, clear, hilite, movePiece, analyse } from './res';
+import { setLetterWidths, display, genDefs, serverUrl, socketUrl, clear, hilite, movePiece, analyse } from './res';
 let onHint = 0;
 let lesson = {};
 const zoomed = false;
 let cpuPlayer = 0;
+let cpu=['CPU','cpu very easy','cpu easy','cpu moderate','cpu hard','cpu very hard','cpu master']
 let timer = null;
 let tutor = '';
 let history = -1;
@@ -49,6 +50,13 @@ function App() { // console.log('App');
   const h = $(window).height();
   const w = $(window).width();
   const m = h<w?h:w;
+
+  const alphabet = [];
+  const letters = [];
+
+  for (let i=31;i<128;i++) {
+    alphabet.push(<text id={'alpha-'+i} x='20px' y='15px' fontFamily="Verdana" fontSize={10}>{String.fromCharCode(i)}</text>);
+  }
 
   function cmd(data) { //console.log('command', data);
     switch(data.order) {
@@ -156,7 +164,7 @@ function App() { // console.log('App');
     }
     update(copyMatch);
   }
-  function cpuMove() { console.log('cpuMove');
+  function cpuMove() { // console.log('cpuMove');
     if ((flip && match.log.length%2===1) || (!flip && match.log.length%2===0)) return;
     document.getElementById('think').beginElement();
     fetch(serverUrl+'/match/cpu/'+cpuPlayer, post(match)).then(response => response.json() ).then(data => {
@@ -419,7 +427,7 @@ function App() { // console.log('App');
     form.push(<div className='subPanel'><GoogleLogin clientId="1326440067839844" buttonText="Login" onSuccess={responseGoogle} onFailure={responseGoogle} cookiePolicy={'single_host_origin'}/></div>);
     form.push(<div className='subPanel' id='chexxLogin'><table><tbody>
       <tr><td>Login Id:</td><td><input id='loginName' className='input' type="text" name="username" size="18" maxLength="40"/></td></tr>
-      <tr><td>Password:</td><td><input id='loginPassword' className='input' type="password" name="password" size="18" maxLength="40"/></td></tr>
+      <tr><td>Password:</td><td><input id='loginPassword' className='input' type="password" name="password" size="18" maxLength="40"  onKeyPress={enterPass}/></td></tr>
       </tbody></table></div>);
     return form;
   }
@@ -465,13 +473,13 @@ function App() { // console.log('App');
             <div className='group'>
               { dialog.challenge && <button className='smButton' onClick={openChallenge}>Post Game</button>}
               { dialog.yesno && <div className='group'><button className='smButton' onClick={yes}>Yes</button><button className='smButton' onClick={no}>No</button></div> }
-              { dialog.ok && <button className='smButton' onClick={ok}>OK</button> }
+              { dialog.ok && <button id='ok' className='smButton' onClick={ok}>OK</button> }
               { dialog.login && <button className='smButton' onClick={chexxLogin}>Login</button> }
               { dialog.login && <button className='smButton' onClick={()=> cmd({order:'dialog', register:true, title:'Register', text:['h2:::Kindly fill out the following form to experience the rich experience of Chexx.']})}>Register</button> }
               { dialog.login && <button className='smButton' onClick={chexxLogin}>Email Password Link</button> }
               { dialog.register && <button className='smButton' onClick={chexxRegister}>Submit</button> }
               { !dialog.noClose && <button className='smButton' onClick={resume}>Close</button> }
-              { dialog.button && dialog.button.map((b, idx)=> <button className='smButton' onClick={()=>press(dialog.title, b, dialog.id)}>{b}</button>)}
+              { dialog.button && dialog.button.map((b, idx)=> <button id={b} className='smButton' onClick={()=>press(dialog.title, b, dialog.id)}>{b}</button>)}
             </div>
           </div> }
         </div>
@@ -497,6 +505,7 @@ function App() { // console.log('App');
       else updateQueue((prev)=> {return {message:data.messages, friendRequest:data.requests, friend:user.friend}});
     });
   }
+  function enterPass(key) { if (key.charCode === 13) chexxLogin(); }
   function chexxLogin() { // console.log('chexxLogin');
     const user = {userid:document.getElementById('loginName').value, password:document.getElementById('loginPassword').value};
     if (user.userid && user.password) {
@@ -638,13 +647,21 @@ function App() { // console.log('App');
       <tr>{tdr('h3:::Rank:')}{tdl('h2:::'+user.rank)}{tdr('h3:::Account:')}{tdl('h2:::silver')}</tr>
       <tr>{tdr('h3:::History:')}{tdl('-------')}{tdr('h3:::About:')}{tdl('xxxxxx')}</tr>
       <tr></tr>
-      <tr>{tdr('h3:::Show Hints')}<td><input type="checkbox" id="showHints" className='left'tname="showHints" checked={hints} onChange={()=>{onoffHints(!hints)}}/></td>
-      <td colSpan={2} rowSpan={3}>
+      <tr>{tdr('h3:::Show Hints')}<td><input type="checkbox" id="showHints" className='left'tname="showHints" checked={hints} onChange={()=>{onoffHints(!hints)}}/></td></tr>
+      <tr>{tdr('h3:::Show Moves')}<td><input type="checkbox" id="showMoves" className='left'tname="showMoves" checked={hints} onChange={()=>{onoffHints(!hints)}}/></td></tr>
+      <tr>{tdr('h3:::Show Notation')}<td><input type="checkbox" id="showNotation" className='left'tname="showNotation" checked={hints} onChange={()=>{onoffHints(!hints)}}/></td></tr>
+      <tr><td colSpan={2} rowSpan={3}>
         <table style={{'border':'2px solid black','margin':'auto'}}>
           <caption>Board Colors</caption>
           { <tr><td>light</td>{makeHexColors('light',2)}</tr> }
           { <tr><td>neutral</td>{makeHexColors('neutral',2)}</tr> }
           { <tr><td>dark</td>{makeHexColors('dark',2)}</tr> }
+        </table>
+        <table style={{'border':'2px solid black','margin':'auto'}}>
+          <caption>Chexx Set Options</caption>
+          { <tr><td>White</td><td><input type='color' id='whitePiece' name='whitePiece' defaultValue={boardColor['white'][0]}/></td></tr> }
+          { <tr><td>Black</td><td><input type='color' id='blackPiece' name='blackPiece' defaultValue={boardColor['black'][0]}/></td></tr> }
+          <tr><td>Set:</td><td><select id='set' name="set"><option value="default">default</option><option value="minimal">minimalistic</option></select></td></tr>
         </table>
       </td></tr>
       <tr>
@@ -663,12 +680,6 @@ function App() { // console.log('App');
             <circle fill="url(#feltPattern2)" cx="50" cy="50" r="2" opacity={0.5}/>
             <circle fill="url(#feltPattern3)" cx="50" cy="50" r="2" opacity={0.25}/>
             <circle fill="url(#feltPattern4)" cx="50" cy="50" r="2" opacity={0.125}/></svg></td></tr> }
-          </table></td>
-        <td colSpan={2} rowSpan={2}>
-          <table style={{'border':'2px solid black','margin':'auto'}}>
-            <caption>Piece Colors</caption>
-            { <tr><td>White</td><td><input type='color' id='whitePiece' name='whitePiece' defaultValue={boardColor['white'][0]}/></td></tr> }
-            { <tr><td>Black</td><td><input type='color' id='blackPiece' name='blackPiece' defaultValue={boardColor['black'][0]}/></td></tr> }
           </table></td>
       </tr>
       <tr></tr>
@@ -739,10 +750,10 @@ function App() { // console.log('App');
     fetch(serverUrl+'/user/friendReject',post(reject)).then(response => response.json() )
       .then(data => { if (!data.status) cmd({order:'dialog', title:'Error', text:['h2:::'+data.message]}); });
   }
-  function openChat(id) { console.log('openChat',id);
+  function openChat(id) { //console.log('openChat',id);
     let bud=-1;
     for (const i in user.friend) {
-      console.log(i,user.friend[i]);
+      //console.log(i,user.friend[i]);
       if (user.friend[i].ID===id) bud=i;
     }
     if (bud > -1) {
@@ -758,16 +769,32 @@ function App() { // console.log('App');
       $('#chatArea').scrollTop(99999);
     }
   }
-  function hear(incoming) {
-    if (!$('#chatArea')) return false;
-    if ($('#chatArea li:last-child').hasClass('listen')) $('#chatArea li:last-child').append("<p>"+incoming+"</p>");
-    else $('#chatArea').append("<li class='listen'><p>"+incoming+"</p></li>");
+  function hear(incoming) { // console.log('hear!',incoming);
+    if (!$('#chatArea').length) {
+      const copyQ = {...queue};
+      let isFriend = false;
+      for (const f in copyQ.friend) { 
+        if (copyQ.friend[f].userid===incoming.userid) {
+          if (!copyQ.friend[f].incoming) copyQ.friend[f].incoming = [];
+          copyQ.friend[f].incoming.push(incoming.text); 
+          isFriend = true;
+        }
+      }
+      if (!isFriend) copyQ.message.push(incoming);
+      updateQueue(copyQ);
+      return false;
+    }
+    if ($('#chatArea li:last-child').hasClass('listen')) $('#chatArea li:last-child').append("<p>"+incoming.text+"</p>");
+    else $('#chatArea').append("<li class='listen'><p>"+incoming.text+"</p></li>");
     $('#chatArea').scrollTop(99999);
     return true;
   }
-  function showChat(bud) { console.log('showChat',bud);
+  function showChat(bud) { //console.log('showChat',bud);
+    //sendMessage(JSON.stringify({type:'chat', game:type, token:user.token})); 
+    const backlog = [];
+    if (bud.incoming) for (const m of bud.incoming) backlog.push(<p>{m}</p>);
     const table = [<table><tbody>
-      <tr><td colSpan={4}><ul id='chatArea' style={{'height':'16em','overflow':'auto', 'list-style':'none'}}></ul></td></tr>
+      <tr><td colSpan={4}><ul id='chatArea' style={{'height':'16em','overflow':'auto', 'listStyle':'none'}}><li className='listen'>{backlog}</li></ul></td></tr>
       <tr><td colSpan={4}><input id="chat" type="text" className='input' name="message" size="20" maxLength="255" onKeyPress={(e)=>chat(e,bud)}/></td> </tr>
       <tr></tr>
     </tbody></table>];
@@ -779,9 +806,8 @@ function App() { // console.log('App');
           <div className='bottomer'>
             <div className='group'>
               <button className='smButton' onClick={resume}>Close</button>
-              <button className='smButton' onClick={()=>{message("emoji","Wave","",user.userid);}}>Wave</button>
-              <button className='smButton' onClick={()=>{message("emoji","Hi 5","",user.userid);}}>Hi 5</button>
-              <button className='smButton' onClick={()=>{message("text",document.getElementById('message').value,"",user.userid); document.getElementById('message').value='';}}>Send</button>
+              <button className='smButton' onClick={()=>{message("emoji","Wave","",bud.userid);}}>Wave</button>
+              <button className='smButton' onClick={()=>{message("emoji","Hi 5","",bud.userid);}}>Hi 5</button>
             </div>
           </div>
         </div>
@@ -845,18 +871,19 @@ function App() { // console.log('App');
     );
   }
 
-  React.useEffect(() => { console.log('App useEffect:',state, mode, user, cpuPlayer);
-  
-  if (cpuPlayer>0) cpuMove();
-  else {
-    const e = document.getElementById('think');
-    if (e) { console.log('stopping cpu');
-      e.endElement();
-    }
-  }  
-  if (lastMessage !== null && lastMessage !== lastReadMessage) {
+  // document.addEventListener('keydown', function(event){
+	// 	console.log(`Key: ${event.key} with keycode ${event.keyCode} has been pressed`);
+  //   if (event.keyCode===13) { console.log('success');
+  //     $('#Ok').trigger();
+  //   }
+  // });
+
+  React.useEffect(() => { console.log('App useEffect#1:',state, mode, user, cpuPlayer);
+    if (lastMessage !== null && lastMessage !== lastReadMessage) {
       lastReadMessage = lastMessage;
       const message = JSON.parse(lastMessage.data);
+      console.log('new message:',message);
+      const copyQ = {...queue};
       switch(message.type) {
         case 'notify':
           hilite(['wait-'+message.match],'fill',message.state==='Checkmate'?'#000000a0':message.state==='Stalemate'?'#999999a0':'#00ff00b0', false);
@@ -868,8 +895,9 @@ function App() { // console.log('App');
             if (!queue.friendRequest[queue.friendRequest.length-1] || queue.friendRequest[queue.friendRequest.length-1].ID !== mm.ID)
               updateQueue((prev)=> { prev.friendRequest.push(mm); return prev; } );
           } else if (mm.meta && mm.meta==="chat") { // console.log('incoming chat',mm, person);
-            if (person.userid===mm.userid) hear(mm.text);
-            else updateQueue((prev)=> { prev.message.push(mm); return prev; } );
+            hear(mm);
+            // if (person.userid===mm.userid) hear(mm);
+            // else updateQueue((prev)=> { prev.message.push(mm); return prev; } );
           } else if (!queue.message[queue.message.length-1] || queue.message[queue.message.length-1].ID !== mm.ID)
             updateQueue((prev)=> { prev.message.push(mm); return prev; } );
           break;
@@ -890,21 +918,38 @@ function App() { // console.log('App');
           clearInterval(timer); 
           cmd({order:'dialog', title:'Condolences', text:['h2:::You lost!','h3:::'+message.info,'h3::: Your new rating is: '+message.rating], ok:true, noClose:true});
         break;
+        case 'online': for (const f in copyQ.friend) { if (copyQ.friend[f].userid===message.friend) copyQ.friend[f].online=true; } console.log(copyQ); updateQueue(copyQ); break;
+        case 'offline': for (const f in copyQ.friend) { if (copyQ.friend[f].userid===message.friend) copyQ.friend[f].online=false; } updateQueue(copyQ); break;
         default: break;
       }
     }
+  }, [lastMessage, person.userid, user.ID])
+  React.useEffect(() => { console.log('App useEffect#2:',state, mode, user, cpuPlayer);
+    if (letters.length===0) {
+      for(let i=31;i<128;i++) {
+        const l = document.getElementById('alpha-'+i);
+        letters.push([l.getComputedTextLength(), l.width]);
+      }
+      setLetterWidths(letters);
+    }
+    if (cpuPlayer>0) cpuMove();
+    else {
+      const e = document.getElementById('think');
+      if (e) { // console.log('stopping cpu');
+        e.endElement();
+      }
+    }  
     if (user) {
       if (user.property) {
         if (user.property.hints === 'true') {
           let sketch = [];
           switch(state+':'+mode) { // M -35,0 A 35,35 0 0 0 0,35 35,35 0 0 0 35,0 35,35 0 0 0 0,-35 35,35 0 0 0 -35,0 Z // M 40,0 A 40,40 0 0 1 0,40 40,40 0 0 1 -40,0 40,40 0 0 1 0,-40 40,40 0 0 1 40,0 Z
-            case 'match:': sketch.push(<defs><path id="hintPath1" transform={'translate(50,50) rotate(220,0,0)'} d="M -42,0 A 42,42 0 0 0 0,42 42,42 0 0 0 42,0 42,42 0 0 0 0,-42 42,42 0 0 0 -42,0 Z"></path></defs>); 
-              sketch.push(<defs><path id="hintPath2" transform={'translate(50,50) rotate(215,0,0)'} d="M 38,0 A 38,38 0 0 1 0,38 38,38 0 0 1 -38,0 38,38 0 0 1 0,-38 38,38 0 0 1 38,0 Z"></path></defs>); 
-              sketch.push(<text className='noMouse' fontFamily='Verdana' fontSize={7} fill='#ff9'><textPath href="#hintPath1">Current Matches</textPath></text>);
-              sketch.push(<text className='noMouse' fontFamily='Verdana' fontSize={7} fill='#ff9'><textPath href="#hintPath2">Saved Games</textPath></text>);
-              for (let i=0;i<12;i+=1)  
-                sketch.push(<g class='noMouse' transform={'translate('+(40+30*Math.sin(i*3.1416/6))+', '+(50-30*Math.cos(i*3.1416/6))+')'}>
-                  <text id={'hint'+i} className='noMouse hint' fontFamily="Verdana" fontSize={5} fill='#ff9'></text></g>);
+            case 'match:': 
+            sketch = display([["Current Matches", 40, 302, '#f40', 7],["Saved Games", 40, 212, '#f40', 7]])
+              // sketch.push(<defs><path id="hintPath1" transform={'translate(50,50) rotate(220,0,0)'} d="M -42,0 A 42,42 0 0 0 0,42 42,42 0 0 0 42,0 42,42 0 0 0 0,-42 42,42 0 0 0 -42,0 Z"></path></defs>); 
+              // sketch.push(<defs><path id="hintPath2" transform={'translate(50,50) rotate(215,0,0)'} d="M 38,0 A 38,38 0 0 1 0,38 38,38 0 0 1 -38,0 38,38 0 0 1 0,-38 38,38 0 0 1 38,0 Z"></path></defs>); 
+              // sketch.push(<text className='noMouse' fontFamily='Verdana' fontSize={7} fill='#ff9'><textPath href="#hintPath1">Current Matches</textPath></text>);
+              // sketch.push(<text className='noMouse' fontFamily='Verdana' fontSize={7} fill='#ff9'><textPath href="#hintPath2">Saved Games</textPath></text>);
               break;
             default: break;
           }
@@ -913,11 +958,11 @@ function App() { // console.log('App');
         onoffHints(user.property.hints === 'true')
       }
     }
-  }, [state, mode, user, lastMessage, updateQueue, queue, match])
+  }, [state, mode, user, match]);
 
   return (
     <div className="App Full">
-      <Board color={boardColor} user={user} match={match} menu={state} update={update} view={view} command={cmd} flip={flip} mode={mode} history={history} queue={queue}/>
+      <Board color={boardColor} user={user} match={match} menu={state} update={update} view={view} command={cmd} flip={flip} mode={mode} history={history} queue={queue} cpu={cpu[cpuPlayer]}/>
       { (mode === 'history' || mode === '' || mode === 'tutor' || mode === 'match' || mode === 'blitz') &&  <Pieces white={match.white.pieces} black={match.black.pieces} light={flip?boardColor.black:boardColor.white} dark={flip?boardColor.white:boardColor.black} view={view} flip={flip}/>}
       { mode === 'dialog' && showDialog(dialog) }
       { mode === 'tutor' && teacher() }
@@ -928,6 +973,8 @@ function App() { // console.log('App');
       { mode === 'wait-blitz' && waitBlitz() }
 
       { drawing && <div className="Overlay Full"><svg viewBox={view} xmlns="http://www.w3.org/2000/svg"> { drawing } </svg></div> }
+    
+      {letters.length===0 && <svg viewBox={view} xmlns="http://www.w3.org/2000/svg">{alphabet} </svg> }
     </div>
   );
 }

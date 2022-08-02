@@ -31,8 +31,8 @@ function highlight(e, log, on, flip) { // console.log('highlight',log,on);
             }
         }
     }
-    e.target.setAttribute('x',on?8:13);
-    e.target.nextSibling.firstChild.setAttribute('x',on?9:14);
+    e.target.setAttribute('x',on?3:13);
+    e.target.nextSibling.firstChild.setAttribute('x',on?3:13);
 }
 function toggleMain(command, menu) { // console.log('toggleMain',menu);
     command({order:'menu', choice:menu==='main'?'':'main'})
@@ -50,57 +50,6 @@ function disselect() {
     [...document.getElementsByClassName('edit-b')].forEach(e=>e.setAttribute('fill','#ff909060'));
     [...document.getElementsByClassName('edit-w')].forEach(e=>e.setAttribute('fill','#ff909060'));
     [...document.getElementsByClassName('edit')].forEach(e=>e.setAttribute('fill','#ff909060'));
-}
-function promoteSelect(match, item, command, update, flip) { console.log('promoteSelect',match.promotions);
-    hilite([match.promotions[0]],'stroke','#000', flip);
-    hilite([match.promotions[0]],'strokeWidth','0.4', flip);
-    hilite([match.promotions[0]],'strokeOpacity','0.5', flip);
-    let q = 'P';
-    let copyMatch = {...match};
-    const store = JSON.stringify(match);
-    switch(item) {
-        case 'promote-bishop': q='B'; break;
-        case 'promote-knight': q='N'; break;
-        case 'promote-archer': q='A'; break;
-        case 'promote-rook': q='R'; break;
-        case 'promote-prince': q='I'; break;
-        case 'promote-princess': q='E'; break;
-        case 'promote-queen': q='Q'; break;
-        default: break;            
-    }
-    const p = getPiece(copyMatch, match.promotions[0]);
-    if (p[1]) { // white
-        const promote = copyMatch.white.pieces.findIndex(f => f.substring(1)===match.promotions[0]);
-        copyMatch.white.pieces[promote] = q+match.promotions[0];
-    } else { // black
-        const promote = copyMatch.black.pieces.findIndex(f => f.substring(1)===match.promotions[0]);
-        copyMatch.black.pieces[promote] = q+match.promotions[0];
-    }
-    const last = copyMatch.log.length-1;
-    if (copyMatch.log[last].match(/[v^]/)) {
-        if (copyMatch.log[last].match('=')) copyMatch.log[last]+=q;
-        else copyMatch.log[last]+='='+q;
-    } else copyMatch.log[last] = copyMatch.log[last].replace(match.promotions[0], q+match.promotions[0]).replace('S'+match.promotions[0], q+match.promotions[0]);
-    copyMatch.promotions.shift();
-    const look = analyse(copyMatch);
-    if ((!look.whiteInCheck && !look.blackInCheck)
-        || ((!look.whiteInCheck || whiteMove(copyMatch)) && (!look.blackInCheck || !whiteMove(copyMatch)))) {
-            if (!match.move) match.move = copyMatch.log[last];
-            update(copyMatch);
-    } else match = JSON.parse(store);
-    match.first = '';
-    command({order:'menu', choice:''});
-}
-function aiSelect(match, item, command, update) {
-    switch(item) {
-        case 'ai-veryeasy': command({order:'cpu', level:1}); break;
-        case 'ai-easy': command({order:'cpu', level:2}); break;
-        case 'ai-medium': command({order:'cpu', level:3}); break;
-        case 'ai-hard': command({order:'cpu', level:4}); break;
-        case 'ai-veryhard': command({order:'cpu', level:5}); break;
-        case 'ai-best': command({order:'cpu', level:6}); break;
-        default: match.editor = ''; break;            
-    }
 }
 function editSelect(match, item, command, update) {
     if ((item.startsWith('edit-w-') || item.startsWith('edit-b-')) && !revMap[match.editor]) { console.log('init meta', match.editor, revMap[match.editor]);
@@ -196,7 +145,7 @@ function matchSelect(match, item, command, update) { // console.log('matchSelect
         case 'match-save': command({order:'saveMatch', match:match}); break;
         //case 'match-blitzmatch': command({order:'blitz-start', type:'10/60'}); break;
         case 'match-blitzmatch': command({order:'menu', choice:'blitz'}); break;
-        case 'match-openchallenge': command({order:'dialog', title:'Open Challenge', text:['Only opponents within 200 points of your rank will be allowed to accept your challenge.'], challenge:true}); break;
+        case 'match-newmatch': command({order:'dialog', title:'Create New Match', text:['Only opponents within 200 points of your rank will be allowed to accept your challenge.'], challenge:true}); break;
         case 'match-delete': command({order:'dialog', title:'Delete Match', text:['h1:::'+match.name], yesno:true, openId:match.ID}); break;
         default: break;
     } 
@@ -312,21 +261,21 @@ function makeMenu(match, command, update, list, label, spin, size=2, font=4, col
     return items;
 }
 function tutorials(match, command, update) { // console.log('tutorials');
-    return makeMenu(match, command, update, [['..Start. ..Here.',''],['...Quick.. .Start.',''],['....Interface.',''],['...Board..',''],['..Rules.',''],['pawn','P'],['spear','S'],['knight','N'],['bishop','B'],['rook','R'],['queen','Q'],['archer','A'],['prince','I'],['princess','E'],['king','K'],['...Special.',''],['......Promotion..',''],['...Forks.',''],['....Skewers.',''],['.Pins.',''],['...Tactics.','']], 'lesson', -110, 2,2);
+    return makeMenu(match, command, update, [['Start Here',''],['Quick Start',''],['Interface',''],['Board',''],['Rules',''],['pawn','P'],['spear','S'],['knight','N'],['bishop','B'],['rook','R'],['queen','Q'],['archer','A'],['prince','I'],['princess','E'],['king','K'],['S',''],['Promotion',''],['Forks',''],['Skewers',''],['Pins',''],['Tactics','']], 'lesson', -110, 2, 1.3);
 }
 function puzzles(match, command, update) { // console.log('puzzles');
-    return makeMenu(match, command, update, [['Mate in... One'],['Mate in... Two'],['Mate in.... Three'],['Mate in.... More']],'puzzle', -10,2,1.4);
+    return makeMenu(match, command, update, [['Mate in One'],['Mate in Two'],['Mate in Three'],['Mate in More']],'puzzle', -10, 2, 1.5);
 }
 function items(match, command, update, user) { // console.log('main items');
-    const items = [['..About',''],['..Puzzles',''],['.Reset .Board','','']];
-    if (!user.userid) items.push(['.Login','']);
-    return makeMenu(match, command, update, items,'items', 20, 2, 1.6,'#884');
+    const items = [['About',''],['Puzzles',''],['Reset Board','','']];
+    if (!user.userid) items.push(['Login','']);
+    return makeMenu(match, command, update, items,'items', 20, 3, 1.8,'#884');
 }
 function matchMenu(match, command, update, user) { // console.log('match');
-    const items = [['.Open ..Challenge',''],['.Save',''],['.Blitz ..Match',''],['Play ...Computer',''],['..History',''],['..Live']];
-    if (match.move) items.unshift(['..Undo','']);
+    const items = [['New Match',''],['Save',''],['Blitz Match',''],['History',''],['Live']];
+    if (match.move) items.unshift(['Undo','']);
     if (match.ID>0 && match.white.player.ID === user.ID && match.black.player.ID===user.ID) items.unshift(['..Delete','']);
-    let matchMenu = makeMenu(match, command, update, items,'match', 110, 2, 1.6,'#88a');
+    let matchMenu = makeMenu(match, command, update, items,'match', 110, 2.5, 1.6,'#88a');
     if (user.savedMatches) matchMenu = matchMenu.concat(makeMenu(match, command, update, user.savedMatches,'load', 205+user.savedMatches.length/2, 2, 1.7,'#088','#888','#ff5'));
     if (user.myOpen) matchMenu = matchMenu.concat(makeMenu(match, command, update, user.myOpen,'myOpen', 325+user.myOpen.length/2, 2, 1.5,'#00a0f070','#000','#aaa'));
     if (user.open) matchMenu = matchMenu.concat(makeMenu(match, command, update, user.open,'open', 325+user.myOpen.length*9+user.open.length/2, 2, 1.5,'#ffff4488','#fff','#000'));
@@ -336,7 +285,7 @@ function matchMenu(match, command, update, user) { // console.log('match');
     return matchMenu;
 }
 function userMenu(match, command, update) {
-    return makeMenu(match, command, update, [['...Friends.'],['...Coaches.'],['...Conquest',''],['..Teams/. ....Tournaments.',''],['.Leagues.',''],['.Ladders.',''],['..Matches',''],['..Profile',''],['..Logout','']],'user', 108, 2.7, 1.4,'#8080c050');
+    return makeMenu(match, command, update, [['Friends'],['Coaches'],['Conquest',''],['Teams',''],['Tournaments',''],['Leagues',''],['Ladders',''],['Matches',''],['Profile',''],['Logout','']],'user', 108, 2.7, 1.4,'#8080c050');
 }
 function blitzMenu(match, command, update, user) {
     return makeMenu(match, command, update, [['10-60'],['15-360'],['5-600'],['3-900'],['720'],['1500']],'blitz', 108, 2.7, 1.4,'#8080c050');
@@ -353,14 +302,67 @@ function promMenu(match, command, update, flip) {
     hilite([match.promotions[0]],'strokeOpacity','0.99', flip);
     return makeMenu(match, command, update, [['knight','N'],['bishop','B'],['rook','R'],['queen','Q'],['archer','A'],['prince','I'],['princess','E']],'promote', 246, 2.5, 1.5,'#fe6','#fff','#779', flip);
 }
+function promoteSelect(match, item, command, update, flip) { console.log('promoteSelect',match.promotions);
+    hilite([match.promotions[0]],'stroke','#000', flip);
+    hilite([match.promotions[0]],'strokeWidth','0.4', flip);
+    hilite([match.promotions[0]],'strokeOpacity','0.5', flip);
+    let q = 'P';
+    let copyMatch = {...match};
+    const store = JSON.stringify(match);
+    switch(item) {
+        case 'promote-bishop': q='B'; break;
+        case 'promote-knight': q='N'; break;
+        case 'promote-archer': q='A'; break;
+        case 'promote-rook': q='R'; break;
+        case 'promote-prince': q='I'; break;
+        case 'promote-princess': q='E'; break;
+        case 'promote-queen': q='Q'; break;
+        default: break;            
+    }
+    const p = getPiece(copyMatch, match.promotions[0]);
+    if (p[1]) { // white
+        const promote = copyMatch.white.pieces.findIndex(f => f.substring(1)===match.promotions[0]);
+        copyMatch.white.pieces[promote] = q+match.promotions[0];
+    } else { // black
+        const promote = copyMatch.black.pieces.findIndex(f => f.substring(1)===match.promotions[0]);
+        copyMatch.black.pieces[promote] = q+match.promotions[0];
+    }
+    const last = copyMatch.log.length-1;
+    if (copyMatch.log[last].match(/[v^]/)) {
+        if (copyMatch.log[last].match('=')) copyMatch.log[last]+=q;
+        else copyMatch.log[last]+='='+q;
+    } else copyMatch.log[last] = copyMatch.log[last].replace(match.promotions[0], q+match.promotions[0]).replace('S'+match.promotions[0], q+match.promotions[0]);
+    copyMatch.promotions.shift();
+    const look = analyse(copyMatch);
+    if ((!look.whiteInCheck && !look.blackInCheck)
+        || ((!look.whiteInCheck || whiteMove(copyMatch)) && (!look.blackInCheck || !whiteMove(copyMatch)))) {
+            if (!match.move) match.move = copyMatch.log[last];
+            update(copyMatch);
+    } else match = JSON.parse(store);
+    match.first = '';
+    command({order:'menu', choice:''});
+}
 function waybackMenu(match, command, update) {
     return makeMenu(match, command, update, [['From Here']],'wayback', 50, 2, 1.5,'#8080c090','#fff','#779');
 }
 function aiMenu(match, command, update) {
-    let items = makeMenu(match, command, update, [['Very Easy',''],['Easy','']],'ai', 166, 2.3, 1.3,'#50c05060','#f00','#fff');
+    let items = makeMenu(match, command, update, [['Off','']],'ai', 156, 2.3, 1.3,'#5050c060','#f00','#fff');
+    items = items.concat(makeMenu(match, command, update, [['Very Easy',''],['Easy','']],'ai', 166, 2.3, 1.3,'#50c05060','#f00','#fff'));
     items = items.concat(makeMenu(match, command, update, [['Medium',''],['Hard','']],'ai', 187, 2.3, 1.3,'#80a07060','#f00','#fff'));
     items = items.concat(makeMenu(match, command, update, [['Very Hard',''],['Best','']],'ai', 208, 2.3, 1.3,'#b0607060','#f00','#fff'));
     return items;
+}
+function aiSelect(match, item, command, update) {
+    switch(item) {
+        case 'ai-off': command({order:'cpu', level:0}); break;
+        case 'ai-veryeasy': command({order:'cpu', level:1}); break;
+        case 'ai-easy': command({order:'cpu', level:2}); break;
+        case 'ai-medium': command({order:'cpu', level:3}); break;
+        case 'ai-hard': command({order:'cpu', level:4}); break;
+        case 'ai-veryhard': command({order:'cpu', level:5}); break;
+        case 'ai-best': command({order:'cpu', level:6}); break;
+        default: match.editor = ''; break;            
+    }
 }
 
 export { blitzMenu, waybackMenu, aiMenu, promMenu, editMenu, userMenu, matchMenu, items, puzzles, tutorials, help, mainMenu, highlight, hover, leave}

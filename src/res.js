@@ -6,6 +6,8 @@ const socketUrl = 'ws://192.168.1.152:8000/ws';
 
 const hex = "M -1.7 -1 L 0 -2 L 1.7 -1 V 1 L 0 2 L -1.7 1 Z";
 const map = {"6-12":"*", "6-10":"a", "7-11":"b", "7-13":"c", "6-14":"d", "5-13":"e", "5-11":"f"};
+let letters = [];
+
 for (let i=1;i<6;i++) {
   map["6-"+(10-2*i)] = "a"+i;
   map[""+(7+i)+"-"+(11-i)] = "b"+i;
@@ -434,25 +436,33 @@ function analyse(match){ //console.log('analyse', match);
         board.covered[att][white].push(m);
     }
 }
-
-function text(x,y,r,sz,w,fc,sc,ds,text, id) { // console.log('text',text);
+function len(word) {
+    let l = 0;
+    for (const c of word) {
+        const idx = c.charCodeAt(0)-31;
+        if (idx<letters.length) l += letters[c.charCodeAt(0)-31][0];
+        else l += 5;
+    }
+    // console.log('len(',word,')=',l);
+    return l;
+}
+function text(x,y,r,sz,w,fc,sc,ds,text, id) { //console.log('text',text);
     if (!text) return [];
-    if (!id) id = ('t-'+text).replaceAll('.','').replaceAll(' ','').trim().toLowerCase();
-    const words = text.trim().split(' ').filter(w=>w&&w!=='.'); 
-    const fs = [];
-    const nudge = [];
+    
+    if (!id) id = ('t-'+text).replace(/ /g,'').toLowerCase();
+    const words = text.trim().split(' '); 
+    const word = [];
     for (const w of words) {
-        const t = w.split(w.replaceAll('.',''));
-        nudge.push((t[1].length-t[0].length)/3-2-w.length/50);
-        fs.push(sz*20/(8+w.length));
+        const wid = sz<0?0:sz*len(w)/50;
+        word.push([w,wid+sz*1.6, sz<0?-sz:sz*sz/(wid+0.05)]);
     }
     return <g key={id} id={id} transform={'rotate('+r+','+x+','+y+')'} filter={'drop-shadow('+ds+')'} fill={fc}>
-        { words.length === 1 && <text className='noMouse' x={x+nudge[0]} y={y+fs[0]/4} fontFamily="Verdana" fontSize={fs[0]} stroke={sc} strokeWidth={w}>{words[0].replaceAll('.','')}</text> }
-        { words.length === 2 && <text className='noMouse' x={x+nudge[0]} y={y-fs[0]/5} fontFamily="Verdana" fontSize={fs[0]} stroke={sc} strokeWidth={w}>{words[0].replaceAll('.','')}</text> }
-        { words.length === 2 && <text className='noMouse' x={x+nudge[1]} y={y+(fs[0]+fs[1])/3} fontFamily="Verdana" fontSize={fs[1]} stroke={sc} strokeWidth={w}>{words[1].replaceAll('.','')}</text> }
-        { words.length >2 && <text className='noMouse' x={x+nudge[0]} y={y-(fs[1]+fs[2])/5} fontFamily="Verdana" fontSize={fs[0]} stroke={sc} strokeWidth={w}>{words[0].replaceAll('.','')}</text> }
-        { words.length >2 && <text className='noMouse' x={x+nudge[1]} y={y+fs[2]/3} fontFamily="Verdana" fontSize={fs[1]} stroke={sc} strokeWidth={w}>{words[1].replaceAll('.','')}</text> }
-        { words.length >2 && <text className='noMouse' x={x+nudge[2]} y={y+2*(fs[1]+fs[2])/3} fontFamily="Verdana" fontSize={fs[2]} stroke={sc} strokeWidth={w}>{words[2].replaceAll('.','')}</text> }
+        { word.length === 1 && <text className='noMouse' x={x-word[0][1]} y={y+word[0][2]/3} fontFamily="Verdana" fontSize={word[0][2]} stroke={sc} strokeWidth={w}>{word[0][0]}</text> }
+        { word.length === 2 && <text className='noMouse' x={x-word[0][1]} y={y-word[0][2]/5} fontFamily="Verdana" fontSize={word[0][2]} stroke={sc} strokeWidth={w}>{word[0][0]}</text> }
+        { word.length === 2 && <text className='noMouse' x={x-word[1][1]} y={y+(word[0][2]+word[1][2])/3} fontFamily="Verdana" fontSize={word[1][2]} stroke={sc} strokeWidth={w}>{word[1][0]}</text> }
+        { word.length >2 && <text className='noMouse' x={x-word[0][1]} y={y-(word[0][2]+word[1][2])/12} fontFamily="Verdana" fontSize={4*word[0][2]/5} stroke={sc} strokeWidth={w}>{word[0][0]}</text> }
+        { word.length >2 && <text className='noMouse' x={x-word[1][1]} y={y+word[1][2]/6} fontFamily="Verdana" fontSize={word[1][2]/2} stroke={sc} strokeWidth={w}>{word[1][0]}</text> }
+        { word.length >2 && <text className='noMouse' x={x-word[2][1]} y={y+(word[1][2]+word[2][2])/4} fontFamily="Verdana" fontSize={4*word[2][2]/5} stroke={sc} strokeWidth={w}>{word[2][0]}</text> }
     </g>
 }
 function hilite(idList, what, to, flip) { //console.log('hilite',idList, what, to);
@@ -471,7 +481,7 @@ function genDefs(color) { //console.log('genDefs',color);
         return grad;
     }
     let defs = [];
-    for (let i=25;i<51;i+=5) {
+    for (let i=15;i<61;i+=1) {
         defs.push(<g transform={'translate(50,50)'}><path id={"infoup-"+i} d={"M "+i+",0 A "+i+","+i+" 0 0 1 0,"+i+" "+i+","+i+" 0 0 1 -"+i+",0 "+i+","+i+" 0 0 1 0,-"+i+" "+i+","+i+" 0 0 1 "+i+",0 Z"}></path></g>);
         defs.push(<g transform={'translate(50,50)'}><path id={"infodown-"+i} d={"M -"+i+",0 A "+i+","+i+" 0 0 0 0,"+i+" "+i+","+i+" 0 0 0 "+i+",0 "+i+","+i+" 0 0 0 0,-"+i+" "+i+","+i+" 0 0 0 -"+i+",0 Z"}></path></g>);
     }
@@ -482,5 +492,17 @@ function genDefs(color) { //console.log('genDefs',color);
         defs.push(<radialGradient id={"feltPattern"+i} cx={color['grain'][i][0]} cy={color['grain'][i][1]} r={color['grain'][i][2]} fx={color['grain'][i][3]} fy={color['grain'][i][4]} spreadMethod="repeat">{grads(color['felt'])}</radialGradient>);
     return defs;
 }
+function display(msgs) { //console.log('display:',msgs); //[[str, rad, rot, color, fontsz]]
+    const message = [];
+    for (const msg of msgs) {
+        const rot = msg[2]+(msg[1]>0?-len(msg[0]):len(msg[0]))/2;
+        message.push(<text transform={'translate(50,50) rotate('+rot+',0,0)'} className='noMouse' fontFamily='Verdana' fontSize={msg[4]} fill={msg[3]}><textPath href={(msg[1]>0?"#infoup-":"#infodown")+msg[1]}>{msg[0]}</textPath></text>);
+    }
+    return message;
+}
+
+function setLetterWidths(l) {
+    letters = l;
+}
        
-export {hex, genDefs, whiteMove, inStartPos, inPromotePos, map, revMap, flipped, hilite, getPiece, swapPieces, movePiece, clear, off, analyse,isOnBoard, text, serverUrl, socketUrl}
+export {setLetterWidths, display, hex, genDefs, whiteMove, inStartPos, inPromotePos, map, revMap, flipped, hilite, getPiece, swapPieces, movePiece, clear, off, analyse,isOnBoard, text, serverUrl, socketUrl}

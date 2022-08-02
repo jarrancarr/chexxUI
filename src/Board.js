@@ -1,8 +1,8 @@
 // import { logDOM } from '@testing-library/react';
 import React from 'react';
 import Hex from "./Hex"
-import $ from 'jquery';
-import {map, revMap, flipped, inPromotePos, getPiece} from './res';
+// import $ from 'jquery';
+import {display, map, revMap, flipped, inPromotePos, getPiece} from './res';
 
 import {hex, genDefs, whiteMove, hilite, movePiece, swapPieces, analyse,isOnBoard, clear, text} from './res';
 import { blitzMenu, waybackMenu, aiMenu, promMenu, editMenu, userMenu, matchMenu, items, puzzles, tutorials, help, mainMenu, leave, hover, highlight} from './menu'
@@ -10,7 +10,7 @@ import { blitzMenu, waybackMenu, aiMenu, promMenu, editMenu, userMenu, matchMenu
 //let editor = '';
 //let promote = [];
 
-function Board({color, user, match, update, view, menu, command, flip, mode, history, queue}) { //console.log('<Board>   menu['+menu+']    mode['+mode+']');
+function Board({color, user, match, update, view, menu, command, flip, mode, history, queue, cpu}) { //console.log('<Board>   menu['+menu+']    mode['+mode+']');
     //console.log('match', match);
     const board = analyse(match);  // console.log('board', board);
     let formation = [];
@@ -69,14 +69,14 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
         const y=(mode === 'blitz'?95:91);
         const sc=(mode === 'blitz'?2:4);
         ui.push(<path key="user" id="user" transform={'translate('+x+','+y+') rotate(12,0,0) scale('+sc+')'} fill="#359" stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=>command({order:'menu', choice:'users'})} d={hex}></path>);
-        ui.push(text(x,y,0,sc,0.01,'#fff','#500','#ff0000ff 0.2px 0.2px 0.25px','...'+user.userid)); // x,y,r,sz,w,fc,sc,ds,text
+        ui.push(text(x,y,0,2*sc/3,0.01,'#fff','#500','#ff0000ff 0.2px 0.2px 0.25px',user.userid)); // x,y,r,sz,w,fc,sc,ds,text
         if (match.white.player && match.white.player.ID !== 0 && match.white.player.ID !== user.ID) {
             ui.push(<path key="opponent" id="opponent" transform={'translate('+x+','+(100-y)+') rotate(-2,0,0) scale('+2+')'} fill="#953" stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=>command({order:'opponent', id:match.white.player.ID})} d={hex}></path>);
-            ui.push(text(x,(100-y),0,sc,0.01,'#fff','#500','#ff0000ff 0.2px 0.2px 0.25px','.'+match.white.player.userid)); // x,y,r,sz,w,fc,sc,ds,text       
+            ui.push(text(x,(100-y),0,2*sc/3,0.01,'#fff','#500','#ff0000ff 0.2px 0.2px 0.25px',match.white.player.userid)); // x,y,r,sz,w,fc,sc,ds,text       
         }
         if (match.black.player && match.black.player.ID !== 0 && match.black.player.ID !== user.ID) {
             ui.push(<path key="opponent" id="opponent" transform={'translate('+x+','+(100-y)+') rotate(-12,0,0) scale('+sc+')'} fill="#953" stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=>command({order:'opponent', id:match.black.player.ID})} d={hex}></path>);
-            ui.push(text(x,(100-y),0,sc,0.01,'#fff','#500','#ff0000ff 0.2px 0.2px 0.25px','.'+match.black.player.userid)); // x,y,r,sz,w,fc,sc,ds,text
+            ui.push(text(x,(100-y),0,2*sc/3,0.01,'#fff','#500','#ff0000ff 0.2px 0.2px 0.25px',match.black.player.userid)); // x,y,r,sz,w,fc,sc,ds,text
         }
         return ui;
     }
@@ -84,10 +84,10 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
         const ui = [];
         let x=95;        let y=80;
         ui.push(<path key="resign" id="resign" transform={'translate('+x+','+y+') rotate(-27,0,0) scale('+2+')'} fill="#f93" stroke='#333' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=> { command({order:'resign', id:match.ID}); }} d={hex}></path>);
-        ui.push(text(x,y,0,1.5 ,0.01,'#000','#500','#000000ff 0.2px 0.2px 0.25px','resign')); // x,y,r,sz,w,fc,sc,ds,text
-        y=20;
-        ui.push(<path key="draw" id="draw" transform={'translate('+x+','+y+') rotate(27,0,0) scale('+2+')'} fill="#333" stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=> { command({order:'offerDraw', id:match.ID}); }} d={hex}></path>);
-        ui.push(text(x,y,0,2.0 ,0.01,'#000','#500','#000000ff 0.2px 0.2px 0.25px','.offer ..draw')); // x,y,r,sz,w,fc,sc,ds,text
+        ui.push(text(x, y, 0, 1.3, 0.01,'#000','#500','#000000ff 0.2px 0.2px 0.25px','resign')); // x,y,r,sz,w,fc,sc,ds,text
+        y=95; x=80;
+        ui.push(<path key="draw" id="draw" transform={'translate('+x+','+y+') rotate(0,0,0) scale('+2+')'} fill="#333" stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=> { command({order:'offerDraw', id:match.ID}); }} d={hex}></path>);
+        ui.push(text(x,y,0, 1.4, 0.01,'#000','#500','#000000ff 0.2px 0.2px 0.25px','Offer Draw')); // x,y,r,sz,w,fc,sc,ds,text
    
         return ui;
     }
@@ -95,10 +95,10 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
         const ui = [];
         let x=5;        let y=80;
         ui.push(<path key="commit" id="commit" transform={'translate('+x+','+y+') rotate(27,0,0) scale('+2+')'} fill="#ff5" stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=> { command({order:'commit', move:match.move}); match.move=''; }} d={hex}></path>);
-        ui.push(text(x,y,0,1.5 ,0.01,'#000','#500','#000000ff 0.2px 0.2px 0.25px','.'+match.move.replace('~','~ ').replace('x','x '))); // x,y,r,sz,w,fc,sc,ds,text
+        ui.push(text(x,y,0,1.3,0.01,'#000','#500','#000000ff 0.2px 0.2px 0.25px',match.move.replace('~','~ ').replace('x','x '))); // x,y,r,sz,w,fc,sc,ds,text
         y=20;
         ui.push(<path key="retry" id="retry" transform={'translate('+x+','+y+') rotate(27,0,0) scale('+2+')'} fill="#ff5" stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=> { command({order:'loadMatch', id:match.ID}); }} d={hex}></path>);
-        ui.push(text(x,y,0,2.0 ,0.01,'#000','#500','#000000ff 0.2px 0.2px 0.25px','.retry')); // x,y,r,sz,w,fc,sc,ds,text
+        ui.push(text(x,y,0, 1.3,0.01,'#000','#500','#000000ff 0.2px 0.2px 0.25px','retry')); // x,y,r,sz,w,fc,sc,ds,text
    
         return ui;
     }
@@ -107,7 +107,7 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
         let x=80;
         let y=95;
         ui.push(<path key="editMatch" id="edit" transform={'translate('+x+','+y+') rotate(-2,0,0) scale('+2+')'} fill="#aa0" stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=>command({order:'menu', choice:(menu==='edit'?'':'edit')})} d={hex}></path>);
-        ui.push(text(x,y,-28,2,0.01,'#fff','#500','#ff0000ff 0.2px 0.2px 0.25px',menu==='edit'?'.play':'.edit')); // x,y,r,sz,w,fc,sc,ds,text
+        ui.push(text(x,y,-28,1.3,0.01,'#fff','#500','#ff0000ff 0.2px 0.2px 0.25px',menu==='edit'?'play':'edit')); // x,y,r,sz,w,fc,sc,ds,text
         // if (!user || !user.ID || user.ID<1 || !user.property.vet) {
         //     y=5;
         //     ui.push(<path key="quickTour" id="tour" transform={'translate('+x+','+y+') rotate(2,0,0) scale('+2+')'} fill="#aaf" stroke='#111' strokeWidth={0.2} onMouseOver={hover} onMouseLeave={(e)=>leave('#111',e)} onClick={()=>command({order:'menu', choice:'tour'})} d={hex}></path>);
@@ -116,7 +116,7 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
         x=9;
         y=9;
         ui.push(<g transform={'translate('+x+','+y+') scale(4)'} ><path key="cpu" id="cpu" transform={'rotate(27,0,0)'} fill="#8af" stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=> { command({order:'menu', choice:'cpu'}); match.move=''; }} d={hex}><animateTransform id='think' attributeName="transform" attributeType="XML" type="rotate" from="27 0 0" to="387 0 0" dur='1s' repeatCount='indefinite'/></path></g>);
-        ui.push(text(x-3,y,0,3.0 ,0.01,'#000','#500','#000000ff 0.2px 0.2px 0.25px','CPU')); // x,y,r,sz,w,fc,sc,ds,text
+        ui.push(text(x,y,0,2,0.01,'#000','#500','#000000ff 0.2px 0.2px 0.25px',cpu)); // x,y,r,sz,w,fc,sc,ds,text
         return ui;
     }
     function tiles() {
@@ -212,7 +212,7 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
         } // console.log('muster,switchArms',muster,switchArms);
         return [muster,switchArms];
     }
-    function clean() {
+    function clean(match) {
         special = false;
         match.first = '';
         muster = [];
@@ -220,7 +220,7 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
         left = 0;
         right = 0;
     }
-    function hexClicked(here) { // console.log('hexClicked  first:', match.first, '  here',here);
+    function hexClicked(here) { //console.log('hexClicked  first:', match.first, '  here',here);
         if (history>-1) return;
         if (flip) here = flipped(here);
         if (menu==='tutor') {
@@ -266,6 +266,7 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
                         }
                     break;
                 }
+                clean(copyMatch);
                 update(copyMatch);
             } else {
                 match.editor = here;
@@ -312,9 +313,9 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
                 if (whiteMove(match)) copyMatch.move = '^^^^^^^^^'.substring(0,left)+match.first+'^^^^^^^^'.substring(0,right)
                 else copyMatch.move = 'vvvvvvvvv'.substring(0,left)+match.first+'vvvvvvvvv'.substring(0,right)
                 copyMatch.log.push(copyMatch.move);
+                clean(copyMatch);
                 update(copyMatch);
                 if (mode==='blitz') command({order:'blitz-move', move:copyMatch.move});
-                clean();
                 // if ((match.white.pieces[idx][0]==='P' || match.white.pieces[idx][0]==='S') && inPromotePos(fm, true)) {
                 //     match.promote = [ps, fm]; // [match.first, here];
                 //     match.first = ps;
@@ -343,12 +344,12 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
                 }
                 copyMatch.move ='#########'.substring(0,left)+here+'#########'.substring(0,right);
                 copyMatch.log.push(copyMatch.move);
+                clean(copyMatch);
                 update(copyMatch);
                 if (mode==='blitz') command({order:'blitz-move', move:copyMatch.move});
-                clean();
             } else { //console.log('add soldier    march:', march, '    muster:', muster, '   sa:', switchArms);
                 if (!board.occupants[here]) {
-                    clean();
+                    clean(match);
                 } else {
                     const [m,sa] = getChain(here, true, true); //console.log(m,sa);
                     //const [canMarch, swArms] = specialMoves(here); 
@@ -374,7 +375,7 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
                         } else switchArms = []; // add soldier who couldn't switch
                     } 
                     if (switchArms.length===0 && muster.length===0)  {
-                        clean();
+                        clean(match);
                     }
                     // console.log('muster', muster); console.log('switchArms', switchArms); console.log('formation',formation);
                     hilite(muster,'stroke', '#0ff', flip);
@@ -426,10 +427,10 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
                     if ((!look.whiteInCheck && !look.blackInCheck)
                         || ((!look.whiteInCheck || whiteMove(copyMatch)) && (!look.blackInCheck || !whiteMove(copyMatch)))) {
                             if (!copyMatch.move) copyMatch.move = copyMatch.log[copyMatch.log.length-1];
+                            clean(copyMatch);
                             update(copyMatch);
                             if (mode==='blitz') command({order:'blitz-move', move:copyMatch.move});
                     } else match = JSON.parse(store);
-                    match.first = '';
                 } else { // console.log('invalid move');
                     match.first = '';
                     selectPiece(moves, attacks, attacked, covered, board.occupants, board.pinned, here);
@@ -464,7 +465,7 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
                     notes.push(
                         <g key={'log-'+l} transform={t} onMouseOver={(e) => highlight(e, lge,true, flip)} onMouseLeave={(e) => highlight(e, lge,false, flip)} onClick={()=>command({order:'rewind', event:l})} style={{ filter: 'drop-shadow(rgba(180, 180, 0, 0.5) 0.3px 0px 1px)'}}>
                             <rect id={'rect-'+lge} x="13" y="16" fill={f} stroke={s} strokeWidth={0.35} height="3" width="20"/>
-                            {text(16,17.8,0,2,0,l%2===0?'#fff':'#000','#888',(notes.length%2===0?'#80f':'#f80')+' 0.2px 0.2px 0.5px',lge)}
+                            {text(8,17.6,0,-3.3,0,l%2===0?'#fff':'#000','#888',(notes.length%2===0?'#80f':'#f80')+' 0.2px 0.2px 0.5px',lge)}
                         </g>);
                 }
             }
@@ -477,7 +478,7 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
                     notes.push(
                         <g key={'log-'+l} transform={t} opacity={(7-l+end+25)/7} onMouseOver={(e) => highlight(e, lge,true, flip)} onMouseLeave={(e) => highlight(e, lge,false, flip)} onClick={()=>command({order:'rewind', event:l})} style={{ filter: 'drop-shadow(rgba(180, 180, 0, 0.5) 0.3px 0px 1px)'}}>
                             <rect id={'rect-'+lge} x="13" y="16" fill={f} stroke={s} strokeWidth={0.35} height="3" width="20"/>
-                            {text(16,17.8,0,2,0,l%2===0?'#fff':'#000','#888',(l%2===0?'#80f':'#f80')+' 0.2px 0.2px 0.5px',lge)}
+                            {text(8,17.6,0,-3.3,0,l%2===0?'#fff':'#000','#888',(l%2===0?'#80f':'#f80')+' 0.2px 0.2px 0.5px',lge)}
                         </g>);
                 }
             }
@@ -491,7 +492,7 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
             notes.push(
                 <g key={'log-'+l} transform={t} onMouseOver={(e) => highlight(e, lge,true, flip)} onMouseLeave={(e) => highlight(e, lge,false, flip)} onClick={()=>command({order:'rewind', event:l})} style={{ filter: 'drop-shadow(rgba(180, 180, 0, 0.5) 0.3px 0px 1px)'}}>
                     <rect id={'rect-'+lge} x="13" y="16" fill={f} stroke={s} strokeWidth={0.35} height="3" width="20"/>
-                    {text(16,17.8,0,2,0,l%2===0?'#fff':'#000','#888',(l%2===0?'#80f':'#f80')+' 0.2px 0.2px 0.5px', lge)}
+                    {text(8,17.6,0,-3.3,0,l%2===0?'#fff':'#000','#888',(l%2===0?'#80f':'#f80')+' 0.2px 0.2px 0.5px', lge)}
                 </g>); // .split('=')[0]
         }
         if (start>0) {
@@ -502,7 +503,7 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
                 notes.push(
                     <g key={'log-'+l} transform={t} opacity={(10+l-start)/10} onMouseOver={(e) => highlight(e, match.log[l],true, flip)} onMouseLeave={(e) => highlight(e, match.log[l],false, flip)} onClick={()=>command({order:'rewind', event:l})} style={{ filter: 'drop-shadow(rgba(180, 180, 0, 0.5) 0.3px 0px 1px)'}}>
                         <rect id={'rect-'+match.log[l].split('::')[0]} x="13" y="16" fill={f} stroke={s} strokeWidth={0.35} height="3" width="20"/>
-                        {text(16,17.8,0,2,0,l%2===0?'#fff':'#000','#888',(l%2===0?'#80f':'#f80')+' 0.2px 0.2px 0.5px',match.log[l].split('::')[0])}
+                        {text(8,17.6,0,-3.3,0,l%2===0?'#fff':'#000','#888',(l%2===0?'#80f':'#f80')+' 0.2px 0.2px 0.5px',match.log[l].split('::')[0])}
                     </g>);
             }
         }
@@ -517,7 +518,7 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
             initials = ((initials.shift()?.[1] || '') + (initials.pop()?.[1] || '')).toUpperCase();
             messageQueue.push(<g key={'msg-'+idx} transform={'rotate('+idx*2+',0,0)'}>
                 <path id={'msg-'+idx} transform={'translate(52,0) scale(1.5)'} fill="#ccc" stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=> command({order:'read', id:m.ID}) } d={hex}></path>
-                {text(52,0,-idx*2,1.3,0,'#000','#ff8','#f80 0.2px 0.2px 0.5px',initials,'txt-'+idx)}
+                {text(52,0,-idx*2,1.1,0,'#000','#ff8','#f80 0.2px 0.2px 0.5px',initials,'txt-'+idx)}
                 </g>);
             idx += 8/queue.message.length;
         }
@@ -526,35 +527,30 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
             let initials = [...fr.from.matchAll(rgx)] || [];
             initials = ((initials.shift()?.[1] || '') + (initials.pop()?.[1] || '')).toUpperCase();
             messageQueue.push(<g key={'fr-'+idx} transform={'rotate('+idx*2+',0,0)'}>
-                <path id={'fr-'+idx} transform={'translate(52,0) scale(1.5)'} fill="#a4e" stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=> command({order:'befriend', id:fr.ID}) } d={hex}></path>
-                {text(52,0,-idx*2,1.3,0,'#000','#ff8','#f80 0.2px 0.2px 0.5px',initials,'fr-txt-'+idx)}
+                <path id={'fr-'+idx} transform={'translate(53,0) scale(1.8)'} fill="#a4e" stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=> command({order:'befriend', id:fr.ID}) } d={hex}></path>
+                {text(53,0,-idx*2,1,0,'#000','#ff8','#f80 0.2px 0.2px 0.5px',initials,'fr-txt-'+idx)}
                 </g>);
             idx += 8/queue.friendRequest.length;
         }
         idx = 344;
-        for (const f of queue.friend) { //console.log('friend', f);
+        for (const f of queue.friend) { console.log('friend', f);
             let initials = [...f.name.matchAll(rgx)] || [];
             initials = ((initials.shift()?.[1] || '') + (initials.pop()?.[1] || '')).toUpperCase();
             messageQueue.push(<g key={'friend-'+idx} transform={'rotate('+idx*2+',0,0)'}>
-                <path id={'friend-'+idx} transform={'translate(52,0) scale(1.5)'} fill={f.colors.split('|')[0]} stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=> command({order:'buddy', id:f.ID}) } d={hex}></path>
-                {text(52,0,-idx*2,1.3,0,'#000','#ff8','#f80 0.2px 0.2px 0.5px',initials,'f-txt-'+idx)}
+                <path id={'friend-'+f.userid} transform={'translate(53,0) scale(1.8)'} fill={f.colors.split('|')[f.online?f.incoming?2:0:1]} stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=> command({order:'buddy', id:f.ID}) } d={hex}></path>
+                {text(52.5,0,-idx*2,1.2,0,'#000','#ff8','#f80 0.2px 0.2px 0.5px',initials,'f-txt-'+idx)}
                 </g>);
             idx += 8/queue.friend.length;
         }
         return messageQueue;
     }
-    function message(msg, sz=7, r=180, t=0, c='#f80') { console.log('message:',msg);
-        const message = [];
-        message.push(<text transform={'translate(50,50) rotate('+(r-t)+',0,0)'} className='noMouse' fontFamily='Verdana' fontSize={sz} fill={c}><textPath href="#infoup-45">{msg}</textPath></text>);
-        message.push(<text transform={'translate(50,50) rotate('+(r+t)+',0,0)'} className='noMouse' fontFamily='Verdana' fontSize={sz} fill={c}><textPath href="#infodown-50">{msg}</textPath></text>);
-        return message;
-    }
-    React.useEffect(() => { //console.log('menu',menu);
+    React.useEffect(() => { // console.log('menu',menu);
         [...document.getElementsByClassName('spin')].forEach(e=>e.beginElement())
         hilite(['ledgerList'],'opacity',menu===''||menu==='wayback'?'0.9':'0.2');
 
         // const ledge = document.getElementById('ledgerList');
         // if (ledge) ledge.setAttribute('opacity',menu?'0.1':'0.2');
+
     }, [match, menu])
 
     return (
@@ -566,7 +562,8 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
             <g transform={'translate(91, 8)'}> { help(command) } </g>   
             <g transform={'translate(91, 91)'}> { mainMenu(command, menu) } </g>
             { <g transform={'translate(50, 50)'}> { showMessages() } </g> }
-            <circle fill="#000" cx="50" cy="50" r="50"/>
+            <circle fill="#000" cx="50" cy="50" r="50"/>            
+            { match && display([[match.name, 45, 273, '#440', 6], [match.name, 45, 333, '#440', 6], [match.name, 45, 33, '#440', 6], [match.name, 45, 93, '#440', 6],[match.name, 45, 153, '#440', 6],[match.name, 45, 213, '#440', 6]]) }
             { mode === 'blitz' && clocks() }
             { user.userid && users() }
             { (mode === 'match' || mode === 'blitz') && resign() }
@@ -592,9 +589,11 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
             <g transform={"translate(50,50) scale(1.5)"} style={{ filter: 'drop-shadow(rgba(210, 128, 210, 0.4) 0px 0px 2px)'}}>
                 { rose() }
             </g> 
-            { match.checkmate && message("Checkmate!", 10, 270, 30,'#f40') }
-            { match.stalemate && message("Stalemate.", 10, 270, 30,'#aa8') }
-            { match.stalemate && message("Draw.", 10, 270, 30,'#8aa') }           
+            { match.checkmate && display([["Checkmate!", 45, 270, '#f40', 9],["Checkmate!", -50, 270, '#f40', 9]]) }
+            { match.stalemate && display([["Stalemate.", 45, 270, '#f40', 9],["Stalemate.", -50, 270, '#f40', 9]]) }
+            { match.draw && display([["Draw.", 45, 260, '#8aa', 9],["Draw.", -50, 280, '#8aa', 9]]) }    
+            { match && !flip && display([['A', 38, 300, '#cc0', 8],['B', 38, 0, '#cc0', 8],['C', 38, 60, '#cc0', 8],['D', 38, 120, '#cc0', 8],['E', 38, 180, '#cc0', 8],['F', 38, 240, '#cc0', 8]]) }       
+            { match && flip && display([['C', 38, 300, '#cc0', 8],['B', 38, 0, '#cc0', 8],['A', 38, 60, '#cc0', 8],['F', 38, 120, '#cc0', 8],['E', 38, 180, '#cc0', 8],['D', 38, 240, '#cc0', 8]]) }       
         </svg>
       </div>
     );

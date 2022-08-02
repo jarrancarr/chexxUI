@@ -27,7 +27,7 @@ export default function Hex({x, y, color, action}) {
 
     return (
         <g key={id} onMouseOver={hover} onMouseLeave={leave} onClick={click} transform={t} style={{ filter: off}}>
-            <path className={classes} id={id} fill={color[(y+x%2)%3]} stroke='#000' strokeWidth={0.4} strokeOpacity={0.5} d="M -2 0 L -1 -1.7 H 1 L 2 0 L 1 1.7 H -1 Z"></path>
+            <path className={classes} id={id} fill={color[(y+x%2)%3]} stroke='#000' strokeWidth={0.3} strokeOpacity={0.5} d="M -2 0 L -1 -1.7 H 1 L 2 0 L 1 1.7 H -1 Z"></path>
             <text className='noMouse coord' id={'text-'+id} x={-id.length/2} y={0.5} fontFamily="Verdana" fontSize="0" fill="#cc4">{id}</text>
         </g>
     );

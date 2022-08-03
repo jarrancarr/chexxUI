@@ -5,7 +5,7 @@ import Hex from "./Hex"
 import {display, map, revMap, flipped, inPromotePos, getPiece} from './res';
 
 import {hex, genDefs, whiteMove, hilite, movePiece, swapPieces, analyse,isOnBoard, clear, text} from './res';
-import { blitzMenu, waybackMenu, aiMenu, promMenu, editMenu, userMenu, matchMenu, items, puzzles, tutorials, help, mainMenu, leave, hover, highlight} from './menu'
+import { liveMatches, blitzMenu, waybackMenu, aiMenu, promMenu, editMenu, userMenu, matchMenu, items, puzzles, tutorials, help, mainMenu, leave, hover, highlight} from './menu'
 //let move = '';
 //let editor = '';
 //let promote = [];
@@ -533,7 +533,7 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
             idx += 8/queue.friendRequest.length;
         }
         idx = 344;
-        for (const f of queue.friend) { console.log('friend', f);
+        for (const f of queue.friend) { // console.log('friend', f);
             let initials = [...f.name.matchAll(rgx)] || [];
             initials = ((initials.shift()?.[1] || '') + (initials.pop()?.[1] || '')).toUpperCase();
             messageQueue.push(<g key={'friend-'+idx} transform={'rotate('+idx*2+',0,0)'}>
@@ -565,7 +565,7 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
             <circle fill="#000" cx="50" cy="50" r="50"/>            
             { match && display([[match.name, 45, 273, '#440', 6], [match.name, 45, 333, '#440', 6], [match.name, 45, 33, '#440', 6], [match.name, 45, 93, '#440', 6],[match.name, 45, 153, '#440', 6],[match.name, 45, 213, '#440', 6]]) }
             { mode === 'blitz' && clocks() }
-            { user.userid && users() }
+            { user && user.userid && users() }
             { (mode === 'match' || mode === 'blitz') && resign() }
             { mode === 'match' && match.move && commit() }
             { mode === '' && offline() }
@@ -575,6 +575,7 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
             { menu==='main' && <g transform={'translate(50, 50)'}> { items(match, command, update, user) } </g>}
             { menu==='match' && <g transform={'translate(50, 50)'}> { matchMenu(match, command, update, user) } </g>}
             { menu==='users' && <g transform={'translate(50, 50)'}> { userMenu(match, command, update) } </g>}
+            { menu==='live' && <g transform={'translate(50, 50)'}> { liveMatches(match, command, update, user) } </g>}
             { menu==='edit' && <g transform={'translate(50, 50)'}> { editMenu(match, command, update) } </g>}
             { menu==='cpu' && <g transform={'translate(50, 50)'}> { aiMenu(match, command, update) } </g>}
             { menu==='blitz' && <g transform={'translate(50, 50)'}> { blitzMenu(match, command, update, user) } </g>}

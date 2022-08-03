@@ -11,7 +11,6 @@ function hover(e) { //console.log('hover',e.target.id);
     if (e.target.id.startsWith('open')) $('#hint2').text("Open Challenges");
     if (e.target.id.startsWith('myopen')) $('#hint2').text("Your Open Challenges");
     if (e.target.id.startsWith('finished')) $('#hint6').text("Finished Matches");
-
 }
 function leave(c, e) {
     hilite([e.target.id],'style', 'filter: drop-shadow(rgba(0, 0, 0, 0.0) 0px 0px 0px)');
@@ -139,17 +138,6 @@ function lessonSelect(match, item, command, update) {
         default: lesson('Unimplemented'); break;
     } 
 }
-function matchSelect(match, item, command, update) { // console.log('matchSelect', item);
-    switch(item) {
-        case 'match-playcomputer':  command({order:'dialog', title:'New Game vs AI?', text:['Play against computer...'], yesno:true}); break;
-        case 'match-save': command({order:'saveMatch', match:match}); break;
-        //case 'match-blitzmatch': command({order:'blitz-start', type:'10/60'}); break;
-        case 'match-blitzmatch': command({order:'menu', choice:'blitz'}); break;
-        case 'match-newmatch': command({order:'dialog', title:'Create New Match', text:['Only opponents within 200 points of your rank will be allowed to accept your challenge.'], challenge:true}); break;
-        case 'match-delete': command({order:'dialog', title:'Delete Match', text:['h1:::'+match.name], yesno:true, openId:match.ID}); break;
-        default: break;
-    } 
-}
 function blitzSelect(match, item, command, update) { console.log('blitzSelect', item);
     switch(item) {
         case 'blitz-3-900': command({order:'blitz-start', type:'3/900'}); break;
@@ -238,21 +226,22 @@ function help(command) { // console.log('help');
     
     return help;
 }
-function makeMenu(match, command, update, list, label, spin, size=2, font=4, color='#880', draw='#110', fill='#cc4', flip) { // console.log('tutorials');
+function makeMenu(match, command, update, list, label, spin, size=2, font=4, color='#880', draw='#110', fill='#cc4', flip) { // console.log('makeMenu',list);
     const items=[];
     if (!list || list.length===0) return [];
     let iter = 0;
     for (const p of list) {
         const txt = p[0].split(':');
         if (p[1]!=='spacer') {
-            const id = (label+'-'+p[0]).replaceAll('.','').replaceAll(' ','').replaceAll(':','-').trim().toLowerCase();
-            
+            const id = (label+'-'+p[0]).replace(/[. ]/g,'').replace(/:/g,'-').toLowerCase();
             items.push(<g key={id} transform={'rotate('+(spin+iter*4.5*size)+',0,0) '}>
                 <animate className='spin' attributeName="opacity" attributeType="XML" from={0} to={1} dur='0.6s' begin='indefinite' repeatCount="1"/>
-                <g transform={'translate(47, 0)'}>
-                <path id={id} className={label} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={() => menuSelect(match, id, command, update, flip)} transform={'rotate(30) scale('+size+')'} stroke='#000' strokeWidth='0.1' fill={color} d="M -1.7 -1 L 0 -2 L 1.7 -1 V 1 L 0 2 L -1.7 1 Z"></path>
+                <g transform={'translate(48, 0)'}>
+                { p[1]!=='C' && <path id={id} className={label} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={() => menuSelect(match, id, command, update, flip)} transform={'rotate(30) scale('+size+')'} stroke='#000' strokeWidth='0.1' fill={color} d="M -1.7 -1 L 0 -2 L 1.7 -1 V 1 L 0 2 L -1.7 1 Z"></path> }
+                { p[1]==='C' && <path id={id} className={label} onMouseOver={(e)=>{ hover(e); command({order:'live', 'game':p[0]}); }} onMouseLeave={(e)=>leave('#000',e)} onClick={() => menuSelect(match, id, command, update, flip)} transform={'rotate(30) scale('+size+')'} stroke='#000' strokeWidth='0.1' fill={color} d="M -1.7 -1 L 0 -2 L 1.7 -1 V 1 L 0 2 L -1.7 1 Z"></path> }
                 <g transform={'rotate('+(-spin-iter*4.5*size)+',0,0)'} filter='drop-shadow(rgba(0, 0, 0, 0.99) 0px 0px 0.3px)'>
-                    { p[1] && <g transform={'translate(-15.8, -11.2)'} filter='drop-shadow(#000 0.3px 0.3px 0.03px)'><Piece type={'x'+p[1]} x={0} y={0} c={fill} s={draw} id='tutor' sc={0.2}/></g>}
+                    { p[1] && <g transform={'translate(-15.8, -11.2)'} filter='drop-shadow(#000 0.3px 0.3px 0.03px)'><Piece type={'x'+p[1]} x={0} y={0} c={fill} s={draw} id='tutor' sc={0.2} r={p[1]==='C'?(spin+iter*4.5*size+30):0}/></g>}
+                    { p[1] && p[1]==='C' && text(0,0,0,1.9,0,'#ff0','#f00','#000 0.3px 0.3px 0.03px',p[0].replace(/:/,' -vs- '), 'txt-'+id) }
                     { !p[1] && text(0,0,0,font,0,fill,draw,'#00f 0.3px 0.3px 0.03px',txt[0], 'txt-'+id) }
                 </g></g></g>);
         }
@@ -283,6 +272,25 @@ function matchMenu(match, command, update, user) { // console.log('match');
     if (user.waiting) matchMenu = matchMenu.concat(makeMenu(match, command, update, user.waiting,'wait', 325+(user.open.length+user.myOpen.length+user.ready.length)*9+user.waiting.length/2, 2, 1.7,'#ff606070','#000','#9ff'));
     if (user.finished) matchMenu = matchMenu.concat(makeMenu(match, command, update, user.finished,'done', 325+(user.open.length+user.myOpen.length+user.ready.length+user.ready.length+user.waiting.length)*9+user.finished.length/2, 2, 1.7,'#002020a0','#000','#9ff'));
     return matchMenu;
+}
+function matchSelect(match, item, command, update) { // console.log('matchSelect', item);
+    switch(item) {
+        case 'match-playcomputer':  command({order:'dialog', title:'New Game vs AI?', text:['Play against computer...'], yesno:true}); break;
+        case 'match-save': command({order:'saveMatch', match:match}); break;
+        case 'match-live': command({order:'blitz-live'}); break;
+        case 'match-blitzmatch': command({order:'menu', choice:'blitz'}); break;
+        case 'match-newmatch': command({order:'dialog', title:'Create New Match', text:['Only opponents within 200 points of your rank will be allowed to accept your challenge.'], challenge:true}); break;
+        case 'match-delete': command({order:'dialog', title:'Delete Match', text:['h1:::'+match.name], yesno:true, openId:match.ID}); break;
+        default: break;
+    } 
+}
+function liveMatches(match, command, update, user) { console.log('liveMatches',user.live);
+    if (!user || !user.live) return [];
+    const live = [];
+    for (const k in user.live) {
+        live.push([k,'C']);
+    }
+    return makeMenu(match, command, update, live,'live', 208, 2.7, 1.4,'#a08060a0');
 }
 function userMenu(match, command, update) {
     return makeMenu(match, command, update, [['Friends'],['Coaches'],['Conquest',''],['Teams',''],['Tournaments',''],['Leagues',''],['Ladders',''],['Matches',''],['Profile',''],['Logout','']],'user', 108, 2.7, 1.4,'#8080c050');
@@ -365,4 +373,4 @@ function aiSelect(match, item, command, update) {
     }
 }
 
-export { blitzMenu, waybackMenu, aiMenu, promMenu, editMenu, userMenu, matchMenu, items, puzzles, tutorials, help, mainMenu, highlight, hover, leave}
+export { liveMatches, blitzMenu, waybackMenu, aiMenu, promMenu, editMenu, userMenu, matchMenu, items, puzzles, tutorials, help, mainMenu, highlight, hover, leave}

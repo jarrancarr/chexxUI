@@ -81,6 +81,8 @@ function App() { // console.log('App');
       case 'cpu' : cpuPlayer=data.level; setMode(''); setBoard(''); cpuMove(); break;
       case 'blitz-start' : startBlitz(data.type); break;
       case 'blitz-move' : blitzMove(data.move); break;
+      case 'blitz-live' : blitzLive(); break;
+      case 'live': update(user.live[data.game]); break;
       case 'rewind' : goBack(data.event); break;
       case 'befriend' : befriend(data.id); break;
       case 'resign' : resign(data.id); break;
@@ -191,6 +193,14 @@ function App() { // console.log('App');
     sendMessage(JSON.stringify({type:'abort-blitz', token:user.token})); 
     setMode('');
   }
+  function blitzLive() {
+    fetch(serverUrl+'/match/live', stdGetRequest).then(response => response.json() ).then(data => {
+      if (data.status) {
+        user.live = {}
+        cmd({order:'menu', choice:'live'});
+      } else cmd({order:'dialog', title:'Error', text:['h2:::'+data.message]}); })
+    .catch((error) => { cmd({order:'dialog',title:'Error', text:['h3:::Server error.', ''+error]})});
+  }
   function blitzMove(move) {
     clickClock(match, false);
     sendMessage(JSON.stringify({type:'blitz-move', token:user.token, move:move})); 
@@ -198,21 +208,26 @@ function App() { // console.log('App');
   function clickClock(match, my) {
     clearInterval(timer); // stop old timer
     const start = new Date().getTime()
+    
     timer = setInterval(
       () => {
         const s = new Date().getTime()-start;
         const hand = $(my?'#myMoveHand':'#theirMoveHand');
         const gameHand = $(my?'#myGameHand':'#theirGameHand');
         const timeLeft = flip?my?match.black.time:match.white.time:my?match.white.time:match.black.time;
+        $(!my?'#myClockFace':'#theirClockFace').attr('fill', '#555');
         if (s/1000>match.Game.move) {
           if (s/1000>match.Game.move+timeLeft) {
             sendMessage(JSON.stringify({type:'blitz-timesup', token:user.token, move:move})); 
           } else {
+            const tl = timeLeft+match.Game.move-s/1000;
+            $(my?'#myClockFace':'#theirClockFace').attr('fill', tl>20?'#ff0':'#f00');
             if (hand) hand.attr('transform', 'rotate(180,0,0)');
-            let gTime = 360*((timeLeft+match.Game.move-s/1000)/match.Game.game);
+            let gTime = 360*(tl/match.Game.game);
             if (gameHand) gameHand.attr('transform', 'rotate('+(180+gTime)+',0,0)');
           }
         } else {
+          $(my?'#myClockFace':'#theirClockFace').attr('fill', '#fff');
           let mTime = 360*((match.Game.move-s/1000)/match.Game.move);
           let gTime = 360*(timeLeft/match.Game.game);
           if (hand) hand.attr('transform', 'rotate('+(180+mTime)+',0,0)');
@@ -389,7 +404,6 @@ function App() { // console.log('App');
           fetch(serverUrl+'/user/message/ok/'+data, stdGetRequest).then(response => response.json())
             .then(x => { if (!x.status) cmd({order:'dialog', title:'Error', text:['h2:::'+x.message]}); })
             .catch((error) => { cmd({order:'dialog',title:'Error', text:['h3:::Server error.', ''+error]}) });
-          updateQueue((prev)=> { prev.message = prev.message.filter(m=>m.ID!==data); return prev; });
         }
         resume();
       break;
@@ -641,16 +655,34 @@ function App() { // console.log('App');
       }
       return colors;
     }
+    function ratings(user) {
+      const ranks = JSON.parse(user.rank)
+      console.log(ranks);
+      const r = [];
+      $.each(ranks, function(k,v){ 
+        r.push(<tr>{tdr('h4:::'+k)}{tdl('h4:::'+v)}</tr>);
+      });
+      return r;
+    }
+    // tdr('h3:::Rank:')}{tdl('h2:::'+user.rank)
     const table = [<table><tbody>
       <tr><td colSpan={2}><img src={serverUrl+'/pub/smiley.png'} alt="Smiley face" width="80" height="120" style={{border:'5px solid black'}}/></td></tr>
       <tr>{tdr('h3:::User Name:')}{tdl('h2:::'+user.userid)}{tdr('h3:::Email:')}{tdl('h2:::'+user.email)}</tr>
-      <tr>{tdr('h3:::Rank:')}{tdl('h2:::'+user.rank)}{tdr('h3:::Account:')}{tdl('h2:::silver')}</tr>
+      <tr><td colSpan={2}><div style={{'border':'2px solid black','margin':'auto', 'height':'100px', 'overflow-y':'scroll'}}>
+          <table>{ratings(user)}</table>
+          </div></td>{tdr('h3:::Account:')}{tdl('h2:::silver')}</tr>
       <tr>{tdr('h3:::History:')}{tdl('-------')}{tdr('h3:::About:')}{tdl('xxxxxx')}</tr>
       <tr></tr>
-      <tr>{tdr('h3:::Show Hints')}<td><input type="checkbox" id="showHints" className='left'tname="showHints" checked={hints} onChange={()=>{onoffHints(!hints)}}/></td></tr>
-      <tr>{tdr('h3:::Show Moves')}<td><input type="checkbox" id="showMoves" className='left'tname="showMoves" checked={hints} onChange={()=>{onoffHints(!hints)}}/></td></tr>
-      <tr>{tdr('h3:::Show Notation')}<td><input type="checkbox" id="showNotation" className='left'tname="showNotation" checked={hints} onChange={()=>{onoffHints(!hints)}}/></td></tr>
-      <tr><td colSpan={2} rowSpan={3}>
+      <tr><td colSpan={6}>
+        <div style={{'border':'2px solid black','margin':'auto', 'height':'100px', 'overflow-y':'scroll'}}>
+          <table>
+            <tr>{tdr('h3:::Show Hints')}<td><input type="checkbox" id="showHints" className='left'tname="showHints" checked={hints} onChange={()=>{onoffHints(!hints)}}/></td></tr>
+            <tr>{tdr('h3:::Show Moves')}<td><input type="checkbox" id="showMoves" className='left'tname="showMoves" checked={hints} onChange={()=>{onoffHints(!hints)}}/></td></tr>
+            <tr>{tdr('h3:::Show Notation')}<td><input type="checkbox" id="showNotation" className='left'tname="showNotation" checked={hints} onChange={()=>{onoffHints(!hints)}}/></td></tr>
+          </table>
+          </div>
+      </td></tr>
+      <tr><td colSpan={2} rowSpan={2}>
         <table style={{'border':'2px solid black','margin':'auto'}}>
           <caption>Board Colors</caption>
           { <tr><td>light</td>{makeHexColors('light',2)}</tr> }
@@ -663,8 +695,7 @@ function App() { // console.log('App');
           { <tr><td>Black</td><td><input type='color' id='blackPiece' name='blackPiece' defaultValue={boardColor['black'][0]}/></td></tr> }
           <tr><td>Set:</td><td><select id='set' name="set"><option value="default">default</option><option value="minimal">minimalistic</option></select></td></tr>
         </table>
-      </td></tr>
-      <tr>
+      </td>
         <td colSpan={2} rowSpan={2}>
           <table style={{'border':'2px solid black','margin':'auto'}}>
             <caption>Table Colors</caption>
@@ -819,7 +850,9 @@ function App() { // console.log('App');
     for (const m of queue.message) {
       if (m.ID === id) {
         cmd({order:'dialog', title:'Telegram', text:['h3:::from: '+m.from, 'h2:::'+m.topic, m.text], noClose:true, button:['Reply', 'Save', 'Ok'], id:m.ID})
-  } } }
+  } } 
+  updateQueue((prev)=> { prev.message = prev.message.filter(m=>m.ID!==id); return prev; });
+}
   function storeProfile() {
     boardColor = {neutral:[],light:[], dark:[], white:[], black:[], table:[], felt:[]};
     for (let i=0;i<2;i++) {
@@ -878,12 +911,13 @@ function App() { // console.log('App');
   //   }
   // });
 
-  React.useEffect(() => { console.log('App useEffect#1:',state, mode, user, cpuPlayer);
+  React.useEffect(() => { // console.log('App useEffect#1:',state, mode, user, cpuPlayer);
     if (lastMessage !== null && lastMessage !== lastReadMessage) {
       lastReadMessage = lastMessage;
       const message = JSON.parse(lastMessage.data);
       console.log('new message:',message);
       const copyQ = {...queue};
+      const copyU = {...user};
       switch(message.type) {
         case 'notify':
           hilite(['wait-'+message.match],'fill',message.state==='Checkmate'?'#000000a0':message.state==='Stalemate'?'#999999a0':'#00ff00b0', false);
@@ -892,14 +926,18 @@ function App() { // console.log('App');
         case 'message':
           const mm = message.message;
           if (mm.meta && mm.meta==="FriendRequest") {
-            if (!queue.friendRequest[queue.friendRequest.length-1] || queue.friendRequest[queue.friendRequest.length-1].ID !== mm.ID)
-              updateQueue((prev)=> { prev.friendRequest.push(mm); return prev; } );
+            if (!queue.friendRequest[queue.friendRequest.length-1] || queue.friendRequest[queue.friendRequest.length-1].ID !== mm.ID) {
+              copyQ.friendRequest.push(mm);
+              updateQueue(copyQ);
+            } //updateQueue((prev)=> { prev.friendRequest.push(mm); return prev; } );
           } else if (mm.meta && mm.meta==="chat") { // console.log('incoming chat',mm, person);
             hear(mm);
             // if (person.userid===mm.userid) hear(mm);
             // else updateQueue((prev)=> { prev.message.push(mm); return prev; } );
-          } else if (!queue.message[queue.message.length-1] || queue.message[queue.message.length-1].ID !== mm.ID)
-            updateQueue((prev)=> { prev.message.push(mm); return prev; } );
+          } else if (!queue.message[queue.message.length-1] || queue.message[queue.message.length-1].ID !== mm.ID){
+            copyQ.message.push(mm);
+            updateQueue(copyQ);
+          } //updateQueue((prev)=> { prev.message.push(mm); return prev; } );
           break;
         case 'blitz': // console.log('user',user); console.log('message',message);
           message.match.log = message.match.log.filter(l=>l!=='');
@@ -910,6 +948,7 @@ function App() { // console.log('App');
           setMode('blitz');
           clickClock(message.match, message.match.log.length%2===0?message.match.black.userid !== user.ID:message.match.black.userid === user.ID);
           break;
+        case 'view': if (!copyU.live) copyU.live = {}; copyU.live[message.match.name]=message.match; loginUser(copyU); break;
         case 'win':
           clearInterval(timer); 
           cmd({order:'dialog', title:'Congratulations', text:['h2:::You won!','h3:::'+message.info,'h3::: Your new rating is: '+message.rating], ok:true, noClose:true});
@@ -918,13 +957,13 @@ function App() { // console.log('App');
           clearInterval(timer); 
           cmd({order:'dialog', title:'Condolences', text:['h2:::You lost!','h3:::'+message.info,'h3::: Your new rating is: '+message.rating], ok:true, noClose:true});
         break;
-        case 'online': for (const f in copyQ.friend) { if (copyQ.friend[f].userid===message.friend) copyQ.friend[f].online=true; } console.log(copyQ); updateQueue(copyQ); break;
+        case 'online': for (const f in copyQ.friend) { if (copyQ.friend[f].userid===message.friend) copyQ.friend[f].online=true; } updateQueue(copyQ); break;
         case 'offline': for (const f in copyQ.friend) { if (copyQ.friend[f].userid===message.friend) copyQ.friend[f].online=false; } updateQueue(copyQ); break;
         default: break;
       }
     }
-  }, [lastMessage, person.userid, user.ID])
-  React.useEffect(() => { console.log('App useEffect#2:',state, mode, user, cpuPlayer);
+  }, [lastMessage, person.userid, user])
+  React.useEffect(() => { // console.log('App useEffect#2:',state, mode, user, cpuPlayer);
     if (letters.length===0) {
       for(let i=31;i<128;i++) {
         const l = document.getElementById('alpha-'+i);

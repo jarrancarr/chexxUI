@@ -3,7 +3,7 @@ import {revMap} from './res';
 
 function place(w, b, l, d, f) { //console.log('place',w, b, l, d);
     const set = [];
-    for (let wp of w) { 
+    for (let wp of w) {
         const xy = revMap[wp.substring(1)].split('-');
         set.push(<Piece key={'w'+wp} type={'w'+wp[0]} x={parseInt(xy[0])} y={f?24-parseInt(xy[1]):parseInt(xy[1])} c={f?d:l} s={f?l:d} id='w'/>);
     }

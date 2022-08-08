@@ -6,7 +6,8 @@ import GoogleLogin from 'react-google-login';
 import './App.css';
 import Board from "./Board"
 import Pieces from "./Pieces"
-import { setLetterWidths, display, genDefs, serverUrl, socketUrl, clear, hilite, movePiece, analyse } from './res';
+import Piece from "./Piece"
+import { revMap, setLetterWidths, display, genDefs, serverUrl, socketUrl, clear, hilite, movePiece, analyse } from './res';
 let onHint = 0;
 let lesson = {};
 const zoomed = false;
@@ -99,27 +100,39 @@ function App() { // console.log('App');
         const ansKey = lesson.step[idx].answer;
         if (ansKey) { console.log('answer key ',ansKey);
           let check = ansKey.filter(ak=>ak[0].split(' ').includes((tutor?tutor+'~':'')+data.here));
-          if (check.length===0) {
-            tutor = '';
+          if (check.length===0) { // no good answers... reset
+            if (!tutor[0]==='+') tutor = '';
             check = ansKey.filter(ak=>ak[0].split(' ').includes(data.here));
           }
           const sketch = [];
-          if (check.length>0) { // console.log('got an answer', check);
+          if (check.length>0) { console.log('got an answer', check);
             const textAttr = check[0][2].split(',');
+            let numAns = 0;
             if (check[0][3]) { // action taken
               //clear();
               for (const specs of check[0][3].split('||')) {
                 const spec = specs.split('|');
                 switch(spec[0]) {
                   case '~' : tutor = data.here; hilite([data.here],"stroke","#00f"); break;
+                  case '+' : 
+                  if (!tutor.includes(data.here)) tutor += '+' + data.here; 
+                    hilite(tutor.split('+'),"stroke","#0ff"); 
+                    const d = check[0][4].split('|');
+                    numAns = parseInt(d[0]); 
+                    for (let wp of tutor.split('+').filter(f=>f)) {
+                      const xy = revMap[wp].split('-');
+                      sketch.push(<Piece key={'ans'+wp} type={'a'+d[1]} x={parseInt(xy[0])} y={parseInt(xy[1])} c='none' s={d[2]} id='ans'/>);
+                    }
+                    break;
                   case '-' : movePiece(match, null,[tutor,data.here]); tutor = ''; break; // move piece 
+                  case 'mv' : movePiece(match, null,spec[1].split('~')); tutor = ''; break; // move piece 
                   case 'hl' : hilite(spec[2].split(' '),'stroke',spec[1]); break;
                   default: break;
                 }
               }
             } else tutor = '';
             let space = parseInt(textAttr[1]);
-            if (check[0][1]) {
+            if (check[0][1] && (numAns===0 || tutor.split('+').length===numAns+1)) {
               const lines = check[0][1].split('||');
               let longest = 0;
               for (const line of lines) {
@@ -584,38 +597,6 @@ function App() { // console.log('App');
         .then(data => cmd(data.status?{order:'login',user:data.user}:{order:'dialog', title:'Error', text:['h2:::'+data.message], ok:true})); //cmd({order:'login',user:data}));
       }
   }
-  function teach(num) { console.log('teach', lesson.step[num]);
-    if (num > lesson.step.length-1) return;
-    onHint = 0;
-    tutor = '';
-    const copy = {...match};
-    const step = lesson.step[num];
-    if (step.white) copy.white.pieces = [...step.white];
-    if (step.black) copy.black.pieces = [...step.black];
-    if (step.log) copy.log = step.log;
-    move(num)
-    update(copy);
-    clear();
-    const sketch = [];
-    if (step.hilite) for (const h of step.hilite) hilite(h[0].split(' '), h[1], h[2]);
-    if (step.order) for (const o of step.order) {
-      const oo = o.split(' ');
-      switch(oo[0]) {
-        case 'menu' : setBoard(oo[1]); break;
-        case 'draw' :
-          switch(oo[1]){
-            case 'circle': 
-              const ooo = oo[2].split(',');
-              sketch.push(<circle fill="#00000000" cx={ooo[0]} cy={ooo[1]} r={ooo[2]} stroke={ooo[3]} strokeWidth={1}/>); 
-              break;
-            default: break;
-          } 
-          break;
-        default: break;
-      }
-    }
-    scribble(sketch);
-  }
   function hint() {
     const sketch = [];
     const h = lesson.step[idx].hint[onHint].split('||');
@@ -878,7 +859,9 @@ function App() { // console.log('App');
       .then(data => cmd(data.status?{order:'dialog', title:'Profile Saved', text:[], ok:true, noClose:true}:{order:'dialog', title:'Error', text:['h2:::'+data.message]}));
   }
   function teacher(lines) { // console.log('teacher', idx,lesson);
-    
+    boardColor = {neutral:['#444','#333','#545'],light:['#887','#878','#777'], dark:['#011','#111','#012'], 
+      white:['#eeb'], black:['#012'], felt:['#111','#222','#131','#202','#000'], table:['#000'],
+      grain:[[2.9, 0.5, 0.02, 2.912, 0.505],[-2.8, 0.3, 0.025, -2.8, 0.312],[0.9, 0.4, 0.027, 0.908, 0.407],[2.7, -0.65, 0.023, 2.703, -0.651]]};
     const step = lesson.step[idx];
     const h = $(window).height();
     const w = $(window).width();
@@ -902,6 +885,50 @@ function App() { // console.log('App');
         </div>
       </div>
     );
+  }
+  function teach(num) { console.log('teach', lesson.step[num]);
+    scribble([]);
+    if (num > lesson.step.length-1) return;
+    onHint = 0;
+    tutor = '';
+    const copy = {...match};
+    const step = lesson.step[num];
+    if (step.audio) {
+      let audio = new Audio('tutor/'+step.audio+'.mp3');
+      audio.load();
+      audio.muted = false;
+      audio.play();
+    }
+    if (step.white) copy.white.pieces = [...step.white];
+    if (step.black) copy.black.pieces = [...step.black];
+    if (step.log) copy.log = step.log;
+    move(num)
+    copy.name='tutor'+(step.title?':'+step.title:'');
+    update(copy);
+    clear();
+    const sketch = [];
+    if (step.hilite) for (const h of step.hilite) hilite(h[0].split(' '), h[1], h[2]);
+    if (step.order) for (const o of step.order) {
+      const oo = o.split(' ');
+      switch(oo[0]) {
+        case 'menu' : setBoard(oo[1]); break;
+        case 'draw' :
+          switch(oo[1]){
+            case 'circle': 
+              const ooo = oo[2].split(',');
+              sketch.push(<circle fill="#00000000" cx={ooo[0]} cy={ooo[1]} r={ooo[2]} stroke={ooo[3]} strokeWidth={1}/>); 
+              break;
+            default: break;
+          } 
+          break;
+        case 'P': case 'S': case 'N': case 'B': case 'R': case 'A': case 'I': case 'E': case 'Q': case 'K':
+          const xy = revMap[oo[1]].split('-');
+          sketch.push(<Piece key={'tut-'+oo[0]} type={'?'+oo[0]} x={parseInt(xy[0])} y={parseInt(xy[1])} c='none' s={oo[2]} id='tut'/>);
+          break;  
+        default: break;
+      }
+    }
+    scribble(sketch);
   }
 
   // document.addEventListener('keydown', function(event){

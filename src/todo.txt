@@ -4,3 +4,4 @@ photo
 about me 
 chess sets
 whose watching my game
+anonymous user

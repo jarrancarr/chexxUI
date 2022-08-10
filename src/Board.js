@@ -71,10 +71,10 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
         ui.push(<path key="user" id="user" transform={'translate('+x+','+y+') rotate(12,0,0) scale('+sc+')'} fill="#359" stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=>command({order:'menu', choice:'users'})} d={hex}></path>);
         ui.push(text(x,y,0,2*sc/3,0.01,'#fff','#500','#ff0000ff 0.2px 0.2px 0.25px',user.userid)); // x,y,r,sz,w,fc,sc,ds,text
         if (match.white.player && match.white.player.ID !== 0 && match.white.player.ID !== user.ID) {
-            ui.push(<path key="opponent" id="opponent" transform={'translate('+x+','+(100-y)+') rotate(-2,0,0) scale('+2+')'} fill="#953" stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=>command({order:'opponent', id:match.white.player.ID})} d={hex}></path>);
+            ui.push(<path key="opponent" id="opponent" transform={'translate('+x+','+(100-y)+') rotate(-2,0,0) scale('+sc+')'} fill="#953" stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=>command({order:'opponent', id:match.white.player.ID})} d={hex}></path>);
             ui.push(text(x,(100-y),0,2*sc/3,0.01,'#fff','#500','#ff0000ff 0.2px 0.2px 0.25px',match.white.player.userid)); // x,y,r,sz,w,fc,sc,ds,text       
         }
-        if (match.black.player && match.black.player.ID !== 0 && match.black.player.ID !== user.ID) {
+        if (match.black.player && match.black.player.ID !== 0 && match.black.player.ID !== user.ID) { // TODO: fix this.
             ui.push(<path key="opponent" id="opponent" transform={'translate('+x+','+(100-y)+') rotate(-12,0,0) scale('+sc+')'} fill="#953" stroke='#111' strokeWidth={0.1} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={()=>command({order:'opponent', id:match.black.player.ID})} d={hex}></path>);
             ui.push(text(x,(100-y),0,2*sc/3,0.01,'#fff','#500','#ff0000ff 0.2px 0.2px 0.25px',match.black.player.userid)); // x,y,r,sz,w,fc,sc,ds,text
         }
@@ -552,7 +552,6 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
         // if (ledge) ledge.setAttribute('opacity',menu?'0.1':'0.2');
 
     }, [match, menu])
-
     return (
       <div className="App">
         <svg id='board' viewBox={view} xmlns="http://www.w3.org/2000/svg">

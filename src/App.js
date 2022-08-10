@@ -35,8 +35,8 @@ function post(data) {
 function App() { // console.log('App');
   const [match, update] = React.useState({id:0, name:'offline', white:{pieces:['Rd54', 'Rd5', 'Rc52', 'Nd53', 'Nd51', 'Nc33', 'Bc53', 'Bc55', 'Bd52', 'Qd41', 'Kc44', 'Id31', 'Ed4', 'Pd55', 'Pd44', 'Pd33', 'Pd21', 'Pc22', 'Pc31', 'Pc41', 'Pc51', 'Sd43', 'Sd32', 'Sd2', 'Sc32', 'Sc42', 'Ad42', 'Ad3', 'Ac43'], time:300}, black:{pieces:['Ra5', 'Rf52', 'Ra54', 'Nf53', 'Nf55', 'Na31', 'Ba53', 'Ba51', 'Bf54', 'Qf44', 'Ka41', 'If33', 'Ea4', 'Pf51', 'Pf41', 'Pf31', 'Pf22', 'Pa21', 'Pa33', 'Pa44', 'Pa55', 'Sf42', 'Sf32', 'Sa2', 'Sa32', 'Sa43', 'Af43', 'Aa3', 'Aa42'], time:300}, log:[], type:{game:300, move:15}});
   let [view, zoom] = React.useState(zoomed?'14 0 72 200':'0, -4, 100, 200');
-  let [mode, setMode] = React.useState('');
-  let [dialog, setDialog] = React.useState({});
+  let [mode, setMode] = React.useState('dialog');
+  let [dialog, setDialog] = React.useState({order:'dialog', title:'Welcome', text:['Select a login method.'], login:true});
   let [user, loginUser] = React.useState({});
   let [idx, move] = React.useState(0);
   let [state, setBoard] = React.useState('main');
@@ -110,7 +110,9 @@ function App() { // console.log('App');
             let numAns = 0;
             if (check[0][3]) { // action taken
               //clear();
+              let stop = false;
               for (const specs of check[0][3].split('||')) {
+                if (stop) continue;
                 const spec = specs.split('|');
                 switch(spec[0]) {
                   case '~' : tutor = data.here; hilite([data.here],"stroke","#00f"); break;
@@ -123,6 +125,7 @@ function App() { // console.log('App');
                       const xy = revMap[wp].split('-');
                       sketch.push(<Piece key={'ans'+wp} type={'a'+d[1]} x={parseInt(xy[0])} y={parseInt(xy[1])} c='none' s={d[2]} id='ans'/>);
                     }
+                    if (tutor.split('+').length<numAns+1) stop = true;
                     break;
                   case '-' : movePiece(match, null,[tutor,data.here]); tutor = ''; break; // move piece 
                   case 'mv' : movePiece(match, null,spec[1].split('~')); tutor = ''; break; // move piece 

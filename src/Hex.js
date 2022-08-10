@@ -8,7 +8,8 @@ function set(what, thing ,to) { // console.log('set',what,thing,to);
 export default function Hex({x, y, color, action}) {
     const off = 'drop-shadow(rgba(210, 128, 210, 0.4) 0px 0px 2px)';
     const sk = 2.85;
-    const t = "translate("+(x*sk*2+15.7)+","+((y+x%2)*sk*1.15+10.8)+") scale(1.7)";
+    //const t = "translate("+(x*sk*2+15.7)+","+((y+x%2)*sk*1.15+10.8)+") scale(1.7)";
+    const t = "translate("+(x*sk*2.2+12)+","+((y+x%2)*sk*1.26+7)+") scale(1.9)";
     const id = map[x+"-"+(y+x%2)];
     const classes = "hex reg"+id[0]+(id.length>1?" ring"+id[1]:"");
     

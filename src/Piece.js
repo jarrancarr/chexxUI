@@ -1,10 +1,12 @@
 import {map, chexxBoard} from './res';
 
-export default function Piece({type, c, s, x, y, sc=0.22, id, r=0}) { //console.log('Piece',type,c,s,x,y,sc,id);
+export default function Piece({type, c, s, x, y, sc=0.25, id, r=0}) { //console.log('Piece',type,c,s,x,y,sc,id);
     const p = type[1];
     let t = "";
     const xy = map[''+x+'-'+y];
-    t = 'translate('+(x*5.69+15.8)+','+(y*3.27+11)+') scale('+(sc+(p==='N'?0.12:p==='B'||p==='R'?0.1:0.05))+') rotate('+r+')';
+    //const t = "translate("+(x*sk*2+15.7)+","+((y+x%2)*sk*1.15+10.8)+") scale(1.7)";
+    //const t = "translate("+(x*sk*2.2+12)+","+((y+x%2)*sk*1.26+7)+") scale(1.9)";
+    t = 'translate('+(x*6.25+12.1)+','+(y*3.59+7.2)+') scale('+(sc+(p==='N'?0.12:p==='B'||p==='R'?0.1:0.05))+') rotate('+r+')';
     const idx=id+'-'+type+'-'+xy;
     const classes = 'noMouse chx-piece '+xy+' '+type;
     const filter = { filter: 'drop-shadow(rgba(0, 0, 255, 0.5) 0.3px 0px 1px)'};
@@ -59,7 +61,7 @@ export default function Piece({type, c, s, x, y, sc=0.22, id, r=0}) { //console.
             <path d="m -6.1004343,-4.2840607 3.2985587,-0.8154348 -0.1712445,3.6552527 -0.7881093,-1.0432543 c -1.8539526,2.06905454 -2.1400313,3.23233569 -0.4442395,6.2887078 l 0.074714,0.7600735 c -2.840138,-3.59155914 -3.2519436,-5.16879568 -0.831699,-8.1628431 z"/>
             <path d="M 6.9919929,-2.5884247 5.592674,0.51557242 2.8325818,-1.878529 4.1376433,-1.8549578 C 3.6612164,-4.5950715 2.9259477,-5.5395301 -0.5185053,-6.0918426 l -0.6421184,-0.4108695 c 4.5713304,-0.018924 6.0624903,0.631287 6.9141689,4.3894578 z"/>
             <path d="M 0.41600859,7.4238259 -1.8639867,4.8984995 1.4269647,3.3166109 0.88452545,4.5069864 C 3.5804224,5.1626453 4.7375635,4.8636485 6.6174078,1.9174966 L 7.2494208,1.4911661 C 5.4421853,5.7012877 4.2524281,6.812641 0.47577731,6.0956283 Z"/></g>);    
-        case "C": return (<g key={idx} id={idx} className={classes} transform={'translate('+(x*5.69+15.8)+','+(y*3.27+11.2)+') scale(0.3) rotate('+r+')'}>{chexxBoard}</g>);
+        case "C": return (<g key={idx} id={idx} className={classes} transform={'translate('+(x*5.69+12.1)+','+(y*3.27+8.4)+') scale(0.3) rotate('+r+')'}>{chexxBoard}</g>);
         default: console.log("MISTAKE! "+p); return (<g key={idx} id={idx}  className={classes} transform={t} style={filter}><circle fill={c} stroke={s} strokeWidth={0.5} cx={0} cy={0} r={5} /></g>);
     }
 }

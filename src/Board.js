@@ -573,18 +573,18 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
             { menu==='tutor' && <g transform={'translate(50, 50)'}> { tutorials(match, command, update) } </g>}
             { menu==='main' && <g transform={'translate(50, 50)'}> { items(match, command, update, user) } </g>}
             { menu==='match' && <g transform={'translate(50, 50)'}> { matchMenu(match, command, update, user) } </g>}
-            { menu==='users' && <g transform={'translate(50, 50)'}> { userMenu(match, command, update) } </g>}
+            { menu==='users' && <g transform={'translate(50, 50)'}> { userMenu(match, command, update, user) } </g>}
             { menu==='live' && <g transform={'translate(50, 50)'}> { liveMatches(match, command, update, user) } </g>}
             { menu==='edit' && <g transform={'translate(50, 50)'}> { editMenu(match, command, update) } </g>}
             { menu==='cpu' && <g transform={'translate(50, 50)'}> { aiMenu(match, command, update) } </g>}
             { menu==='blitz' && <g transform={'translate(50, 50)'}> { blitzMenu(match, command, update, user) } </g>}
             { match.promotions && match.promotions.length>0 && <g transform={'translate(50, 50)'}> { promMenu(match, command, update, flip) } </g>}
             { menu==='wayback' && <g transform={'translate(50, 50)'}> { waybackMenu(match, command, update) } </g>}
-            <circle fill={board.whiteInCheck||board.blackInCheck?'#F33':'#321'} cx="50" cy="50" r="43"/>
-            <circle fill="url(#feltPattern1)" cx="50" cy="50" r="42"/>
-            <circle fill="url(#feltPattern2)" cx="50" cy="50" r="42" opacity={0.5}/>
-            <circle fill="url(#feltPattern3)" cx="50" cy="50" r="42" opacity={0.25}/>
-            <circle fill="url(#feltPattern4)" cx="50" cy="50" r="42" opacity={0.125}/>
+            <circle fill={board.whiteInCheck||board.blackInCheck?'#F33':'#321'} cx="50" cy="50" r="45"/>
+            <circle fill="url(#feltPattern1)" cx="50" cy="50" r="44"/>
+            <circle fill="url(#feltPattern2)" cx="50" cy="50" r="44" opacity={0.5}/>
+            <circle fill="url(#feltPattern3)" cx="50" cy="50" r="44" opacity={0.25}/>
+            <circle fill="url(#feltPattern4)" cx="50" cy="50" r="44" opacity={0.125}/>
             { tiles() }
             <g transform={"translate(50,50) scale(1.5)"} style={{ filter: 'drop-shadow(rgba(210, 128, 210, 0.4) 0px 0px 2px)'}}>
                 { rose() }

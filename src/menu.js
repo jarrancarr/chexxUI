@@ -193,12 +193,10 @@ function menuSelect(match, item, command, update, flip) { console.log('menuSelec
         lessonSelect(match, item, command, update);
         return;
     }
-    switch(item) {
-        case 'user-logout': command({order:'dialog', title:'Log out?', text:['Leaving us so soon?'], yesno:true}); break;
-        case 'user-matches': command({order:'listMatches'}); break;
-        case 'user-profile': command({order:'profile'}); break;
-        default: break;
-    } // end menu not starts with...
+    if (item.startsWith('user-')) { 
+        userSelect(match, item, command, update);
+        return;
+    }
 }
 function lesson(on, command) { // console.log('do lesson on',on);
     // selectMenu(state);
@@ -240,7 +238,7 @@ function makeMenu(match, command, update, list, label, spin, size=2, font=4, col
                 { p[1]!=='C' && <path id={id} className={label} onMouseOver={hover} onMouseLeave={(e)=>leave('#000',e)} onClick={() => menuSelect(match, id, command, update, flip)} transform={'rotate(30) scale('+size+')'} stroke='#000' strokeWidth='0.1' fill={color} d="M -1.7 -1 L 0 -2 L 1.7 -1 V 1 L 0 2 L -1.7 1 Z"></path> }
                 { p[1]==='C' && <path id={id} className={label} onMouseOver={(e)=>{ hover(e); command({order:'live', 'game':p[0]}); }} onMouseLeave={(e)=>leave('#000',e)} onClick={() => menuSelect(match, id, command, update, flip)} transform={'rotate(30) scale('+size+')'} stroke='#000' strokeWidth='0.1' fill={color} d="M -1.7 -1 L 0 -2 L 1.7 -1 V 1 L 0 2 L -1.7 1 Z"></path> }
                 <g transform={'rotate('+(-spin-iter*4.5*size)+',0,0)'} filter='drop-shadow(rgba(0, 0, 0, 0.99) 0px 0px 0.3px)'>
-                    { p[1] && <g transform={'translate(-15.8, -11.2)'} filter='drop-shadow(#000 0.3px 0.3px 0.03px)'><Piece type={'x'+p[1]} x={0} y={0} c={fill} s={draw} id='tutor' sc={0.2} r={p[1]==='C'?(spin+iter*4.5*size+30):0}/></g>}
+                    { p[1] && <g transform={'translate(-12, -7)'} filter='drop-shadow(#000 0.3px 0.3px 0.03px)'><Piece type={'x'+p[1]} x={0} y={0} c={fill} s={draw} id='tutor' sc={0.2} r={p[1]==='C'?(spin+iter*4.5*size+30):0}/></g>}
                     { p[1] && p[1]==='C' && text(0,0,0,1.9,0,'#ff0','#f00','#000 0.3px 0.3px 0.03px',p[0].replace(/:/,' -vs- '), 'txt-'+id) }
                     { !p[1] && text(0,0,0,font,0,fill,draw,'#00f 0.3px 0.3px 0.03px',txt[0], 'txt-'+id) }
                 </g></g></g>);
@@ -261,24 +259,28 @@ function items(match, command, update, user) { // console.log('main items');
     return makeMenu(match, command, update, items,'items', 20, 3, 1.8,'#884');
 }
 function matchMenu(match, command, update, user) { // console.log('match');
-    const items = [['New Match',''],['Save',''],['Blitz Match',''],['History',''],['Live']];
+    const items = [['New Match',''],['Save',''],['Past',''],['Live']];
     if (match.move) items.unshift(['Undo','']);
     if (match.ID>0 && match.white.player.ID === user.ID && match.black.player.ID===user.ID) items.unshift(['..Delete','']);
     let matchMenu = makeMenu(match, command, update, items,'match', 110, 2.5, 1.6,'#88a');
     if (user.savedMatches) matchMenu = matchMenu.concat(makeMenu(match, command, update, user.savedMatches,'load', 205+user.savedMatches.length/2, 2, 1.7,'#088','#888','#ff5'));
-    if (user.myOpen) matchMenu = matchMenu.concat(makeMenu(match, command, update, user.myOpen,'myOpen', 325+user.myOpen.length/2, 2, 1.5,'#00a0f070','#000','#aaa'));
-    if (user.open) matchMenu = matchMenu.concat(makeMenu(match, command, update, user.open,'open', 325+user.myOpen.length*9+user.open.length/2, 2, 1.5,'#ffff4488','#fff','#000'));
-    if (user.ready) matchMenu = matchMenu.concat(makeMenu(match, command, update, user.ready,'ready', 325+(user.open.length+user.myOpen.length)*9+user.ready.length/2, 2, 1.7,'#60ff6070','#000','#f9f'));
-    if (user.waiting) matchMenu = matchMenu.concat(makeMenu(match, command, update, user.waiting,'wait', 325+(user.open.length+user.myOpen.length+user.ready.length)*9+user.waiting.length/2, 2, 1.7,'#ff606070','#000','#9ff'));
-    if (user.finished) matchMenu = matchMenu.concat(makeMenu(match, command, update, user.finished,'done', 325+(user.open.length+user.myOpen.length+user.ready.length+user.ready.length+user.waiting.length)*9+user.finished.length/2, 2, 1.7,'#002020a0','#000','#9ff'));
+    matchMenu = matchMenu.concat(openMatches(match, command, update, user));
     return matchMenu;
+}
+function openMatches(match, command, update, user) { // console.log('match');
+    let matches = [];
+    if (user.myOpen) matches = matches.concat(makeMenu(match, command, update, user.myOpen,'myOpen', 325+user.myOpen.length/2, 2, 1.5,'#00a0f070','#000','#aaa'));
+    if (user.open) matches = matches.concat(makeMenu(match, command, update, user.open,'open', 325+user.myOpen.length*9+user.open.length/2, 2, 1.5,'#ffff4488','#fff','#000'));
+    if (user.ready) matches = matches.concat(makeMenu(match, command, update, user.ready,'ready', 325+(user.open.length+user.myOpen.length)*9+user.ready.length/2, 2, 1.7,'#60ff6070','#000','#f9f'));
+    if (user.waiting) matches = matches.concat(makeMenu(match, command, update, user.waiting,'wait', 325+(user.open.length+user.myOpen.length+user.ready.length)*9+user.waiting.length/2, 2, 1.7,'#ff606070','#000','#9ff'));
+    if (user.finished) matches = matches.concat(makeMenu(match, command, update, user.finished,'done', 325+(user.open.length+user.myOpen.length+user.ready.length+user.ready.length+user.waiting.length)*9+user.finished.length/2, 2, 1.7,'#002020a0','#000','#9ff'));
+    return matches;
 }
 function matchSelect(match, item, command, update) { // console.log('matchSelect', item);
     switch(item) {
         case 'match-playcomputer':  command({order:'dialog', title:'New Game vs AI?', text:['Play against computer...'], yesno:true}); break;
         case 'match-save': command({order:'saveMatch', match:match}); break;
         case 'match-live': command({order:'blitz-live'}); break;
-        case 'match-blitzmatch': command({order:'menu', choice:'blitz'}); break;
         case 'match-newmatch': command({order:'dialog', title:'Create New Match', text:['Only opponents within 200 points of your rank will be allowed to accept your challenge.'], challenge:true}); break;
         case 'match-delete': command({order:'dialog', title:'Delete Match', text:['h1:::'+match.name], yesno:true, openId:match.ID}); break;
         default: break;
@@ -292,8 +294,17 @@ function liveMatches(match, command, update, user) { console.log('liveMatches',u
     }
     return makeMenu(match, command, update, live,'live', 208, 2.7, 1.4,'#a08060a0');
 }
-function userMenu(match, command, update) {
-    return makeMenu(match, command, update, [['Friends'],['Coaches'],['Conquest',''],['Teams',''],['Tournaments',''],['Leagues',''],['Ladders',''],['Matches',''],['Profile',''],['Logout','']],'user', 108, 2.7, 1.4,'#8080c050');
+function userMenu(match, command, update, user) {
+    return openMatches(match, command, update, user).concat(makeMenu(match, command, update, [['Blitz',''],['Matches',''],['Friends'],['Coaches'],['Conquest',''],['Teams',''],['Tournaments',''],['Leagues',''],['Ladders',''],['Profile',''],['Logout','']],'user', 108, 2.7, 1.4,'#8080c050'));
+}
+function userSelect(match, item, command, update) {
+    switch(item) {
+        case 'user-logout': command({order:'dialog', title:'Log out?', text:['Leaving us so soon?'], yesno:true}); break;
+        case 'user-matches': command({order:'listMatches'}); break;
+        case 'user-profile': command({order:'profile'}); break;
+        case 'user-blitz': command({order:'menu', choice:'blitz'}); break;
+        default: break;
+    } // end menu not starts with...
 }
 function blitzMenu(match, command, update, user) {
     return makeMenu(match, command, update, [['10-60'],['15-360'],['5-600'],['3-900'],['720'],['1500']],'blitz', 108, 2.7, 1.4,'#8080c050');

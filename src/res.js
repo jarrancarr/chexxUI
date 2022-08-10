@@ -514,10 +514,10 @@ function genDefs(color) { //console.log('genDefs',color);
         defs.push(<radialGradient id={"feltPattern"+i} cx={color['grain'][i][0]} cy={color['grain'][i][1]} r={color['grain'][i][2]} fx={color['grain'][i][3]} fy={color['grain'][i][4]} spreadMethod="repeat">{grads(color['felt'])}</radialGradient>);
     return defs;
 }
-function display(msgs) { //console.log('display:',msgs); //[[str, rad, rot, color, fontsz]]
+function display(msgs) { console.log('display:',msgs); //[[str, rad, rot, color, fontsz]]
     const message = [];
     for (const msg of msgs) {
-        const rot = msg[2]+(msg[1]>0?-len(msg[0]):len(msg[0]))/2;
+        const rot = msg[2]+msg[4]*(msg[1]>0?-len(msg[0]):len(msg[0]))/20;
         message.push(<text transform={'translate(50,50) rotate('+rot+',0,0)'} className='noMouse' fontFamily='Verdana' fontSize={msg[4]} fill={msg[3]}><textPath href={(msg[1]>0?"#infoup-":"#infodown")+msg[1]}>{msg[0]}</textPath></text>);
     }
     return message;

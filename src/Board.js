@@ -562,7 +562,7 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
             <g transform={'translate(91, 91)'}> { mainMenu(command, menu) } </g>
             { <g transform={'translate(50, 50)'}> { showMessages() } </g> }
             <circle fill="#000" cx="50" cy="50" r="50"/>            
-            { match && display([[match.name, 45, 273, '#440', 6], [match.name, 45, 333, '#440', 6], [match.name, 45, 33, '#440', 6], [match.name, 45, 93, '#440', 6],[match.name, 45, 153, '#440', 6],[match.name, 45, 213, '#440', 6]]) }
+            { match && display([[match.name, 47, 270, '#440', 3], [match.name, 47, 330, '#440', 3], [match.name, 47, 30, '#440', 3], [match.name, 47, 90, '#440', 3],[match.name, 47, 150, '#440', 3],[match.name, 47, 210, '#440', 3]]) }
             { mode === 'blitz' && clocks() }
             { user && user.userid && users() }
             { (mode === 'match' || mode === 'blitz') && resign() }
@@ -592,8 +592,8 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
             { match.checkmate && display([["Checkmate!", 45, 270, '#f40', 9],["Checkmate!", -50, 270, '#f40', 9]]) }
             { match.stalemate && display([["Stalemate.", 45, 270, '#f40', 9],["Stalemate.", -50, 270, '#f40', 9]]) }
             { match.draw && display([["Draw.", 45, 260, '#8aa', 9],["Draw.", -50, 280, '#8aa', 9]]) }    
-            { match && !flip && display([['A', 38, 300, '#cc0', 8],['B', 38, 0, '#cc0', 8],['C', 38, 60, '#cc0', 8],['D', 38, 120, '#cc0', 8],['E', 38, 180, '#cc0', 8],['F', 38, 240, '#cc0', 8]]) }       
-            { match && flip && display([['C', 38, 300, '#cc0', 8],['B', 38, 0, '#cc0', 8],['A', 38, 60, '#cc0', 8],['F', 38, 120, '#cc0', 8],['E', 38, 180, '#cc0', 8],['D', 38, 240, '#cc0', 8]]) }       
+            { match && !flip && display([['A', 42, 300, '#cc0', 8],['B', 42, 0, '#cc0', 8],['C', 42, 60, '#cc0', 8],['D', 42, 120, '#cc0', 8],['E', 42, 180, '#cc0', 8],['F', 42, 240, '#cc0', 8]]) }       
+            { match && flip && display([['C', 42, 300, '#cc0', 8],['B', 42, 0, '#cc0', 8],['A', 42, 60, '#cc0', 8],['F', 42, 120, '#cc0', 8],['E', 42, 180, '#cc0', 8],['D', 42, 240, '#cc0', 8]]) }       
         </svg>
       </div>
     );

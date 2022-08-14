@@ -11,7 +11,7 @@ import { liveMatches, blitzMenu, waybackMenu, aiMenu, promMenu, editMenu, userMe
 //let promote = [];
 
 function Board({color, user, match, update, view, menu, command, flip, mode, history, queue, cpu}) { //console.log('<Board>   menu['+menu+']    mode['+mode+']');
-    //console.log('match', match);
+    console.log('match', match);
     const board = analyse(match);  // console.log('board', board);
     let formation = [];
     let muster = [];
@@ -561,7 +561,10 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
             <g transform={'translate(91, 8)'}> { help(command) } </g>   
             <g transform={'translate(91, 91)'}> { mainMenu(command, menu) } </g>
             { <g transform={'translate(50, 50)'}> { showMessages() } </g> }
-            <circle fill="#000" cx="50" cy="50" r="50"/>            
+            <circle fill="#000" cx="50" cy="50" r="50"/>     
+            { match && !flip && display([['A', 46, 300, '#440', 5],['B', 46, 0, '#440', 5],['C', 46, 60, '#440', 5],['D', 46, 120, '#440', 5],['E', 46, 180, '#440', 5],['F', 46, 240, '#440', 5]]) }       
+            { match && flip && display([['C', 46, 300, '#440', 5],['B', 46, 0, '#440', 5],['A', 46, 60, '#440', 5],['F', 46, 120, '#440', 5],['E', 46, 180, '#440', 5],['D', 46, 240, '#440', 5]]) }       
+             
             { match && display([[match.name, 47, 270, '#440', 3], [match.name, 47, 330, '#440', 3], [match.name, 47, 30, '#440', 3], [match.name, 47, 90, '#440', 3],[match.name, 47, 150, '#440', 3],[match.name, 47, 210, '#440', 3]]) }
             { mode === 'blitz' && clocks() }
             { user && user.userid && users() }
@@ -569,17 +572,6 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
             { mode === 'match' && match.move && commit() }
             { mode === '' && offline() }
             <g id='ledgerList' opacity={0.5}>{ledger(match)}</g>
-            { menu==='puzzles' && <g transform={'translate(50, 50)'}> { puzzles(match, command, update) } </g>}
-            { menu==='tutor' && <g transform={'translate(50, 50)'}> { tutorials(match, command, update) } </g>}
-            { menu==='main' && <g transform={'translate(50, 50)'}> { items(match, command, update, user) } </g>}
-            { menu==='match' && <g transform={'translate(50, 50)'}> { matchMenu(match, command, update, user) } </g>}
-            { menu==='users' && <g transform={'translate(50, 50)'}> { userMenu(match, command, update, user) } </g>}
-            { menu==='live' && <g transform={'translate(50, 50)'}> { liveMatches(match, command, update, user) } </g>}
-            { menu==='edit' && <g transform={'translate(50, 50)'}> { editMenu(match, command, update) } </g>}
-            { menu==='cpu' && <g transform={'translate(50, 50)'}> { aiMenu(match, command, update) } </g>}
-            { menu==='blitz' && <g transform={'translate(50, 50)'}> { blitzMenu(match, command, update, user) } </g>}
-            { match.promotions && match.promotions.length>0 && <g transform={'translate(50, 50)'}> { promMenu(match, command, update, flip) } </g>}
-            { menu==='wayback' && <g transform={'translate(50, 50)'}> { waybackMenu(match, command, update) } </g>}
             <circle fill={board.whiteInCheck||board.blackInCheck?'#F33':'#321'} cx="50" cy="50" r="45"/>
             <circle fill="url(#feltPattern1)" cx="50" cy="50" r="44"/>
             <circle fill="url(#feltPattern2)" cx="50" cy="50" r="44" opacity={0.5}/>
@@ -591,9 +583,18 @@ function Board({color, user, match, update, view, menu, command, flip, mode, his
             </g> 
             { match.checkmate && display([["Checkmate!", 45, 270, '#f40', 9],["Checkmate!", -50, 270, '#f40', 9]]) }
             { match.stalemate && display([["Stalemate.", 45, 270, '#f40', 9],["Stalemate.", -50, 270, '#f40', 9]]) }
-            { match.draw && display([["Draw.", 45, 260, '#8aa', 9],["Draw.", -50, 280, '#8aa', 9]]) }    
-            { match && !flip && display([['A', 42, 300, '#cc0', 8],['B', 42, 0, '#cc0', 8],['C', 42, 60, '#cc0', 8],['D', 42, 120, '#cc0', 8],['E', 42, 180, '#cc0', 8],['F', 42, 240, '#cc0', 8]]) }       
-            { match && flip && display([['C', 42, 300, '#cc0', 8],['B', 42, 0, '#cc0', 8],['A', 42, 60, '#cc0', 8],['F', 42, 120, '#cc0', 8],['E', 42, 180, '#cc0', 8],['D', 42, 240, '#cc0', 8]]) }       
+            { match.draw && display([["Draw.", 45, 260, '#8aa', 9],["Draw.", -50, 280, '#8aa', 9]]) }  
+            { menu==='puzzles' && <g transform={'translate(50, 50)'}> { puzzles(match, command, update) } </g>}
+            { menu==='tutor' && <g transform={'translate(50, 50)'}> { tutorials(match, command, update) } </g>}
+            { menu==='main' && <g transform={'translate(50, 50)'}> { items(match, command, update, user) } </g>}
+            { menu==='match' && <g transform={'translate(50, 50)'}> { matchMenu(match, command, update, user) } </g>}
+            { menu==='users' && <g transform={'translate(50, 50)'}> { userMenu(match, command, update, user) } </g>}
+            { menu==='live' && <g transform={'translate(50, 50)'}> { liveMatches(match, command, update, user) } </g>}
+            { menu==='edit' && <g transform={'translate(50, 50)'}> { editMenu(match, command, update) } </g>}
+            { menu==='cpu' && <g transform={'translate(50, 50)'}> { aiMenu(match, command, update) } </g>}
+            { menu==='blitz' && <g transform={'translate(50, 50)'}> { blitzMenu(match, command, update, user) } </g>}
+            { match.promotions && match.promotions.length>0 && <g transform={'translate(50, 50)'}> { promMenu(match, command, update, flip) } </g>}
+            { menu==='wayback' && <g transform={'translate(50, 50)'}> { waybackMenu(match, command, update) } </g>}
         </svg>
       </div>
     );

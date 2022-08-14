@@ -117,7 +117,7 @@ function App() { // console.log('App');
                 switch(spec[0]) {
                   case '~' : tutor = data.here; hilite([data.here],"stroke","#00f"); break;
                   case '+' : 
-                  if (!tutor.includes(data.here)) tutor += '+' + data.here; 
+                  if (!tutor.includes(data.here+'+')) tutor += data.here+'+'; 
                     hilite(tutor.split('+'),"stroke","#0ff"); 
                     const d = check[0][4].split('|');
                     numAns = parseInt(d[0]); 
@@ -130,6 +130,8 @@ function App() { // console.log('App');
                   case '-' : movePiece(match, null,[tutor,data.here]); tutor = ''; break; // move piece 
                   case 'mv' : movePiece(match, null,spec[1].split('~')); tutor = ''; break; // move piece 
                   case 'hl' : hilite(spec[2].split(' '),'stroke',spec[1]); break;
+                  case 'cw' : match.white.pieces.push(spec[1]); break;
+                  case 'cb' : match.black.pieces.push(spec[1]); break;
                   default: break;
                 }
               }
@@ -456,8 +458,8 @@ function App() { // console.log('App');
     form.push(<div className='subPanel'><FacebookLogin appId="1326440067839844" autoLoad={false} fields="name,email,picture" callback={responseFacebook}/></div>);
     form.push(<div className='subPanel'><GoogleLogin clientId="1326440067839844" buttonText="Login" onSuccess={responseGoogle} onFailure={responseGoogle} cookiePolicy={'single_host_origin'}/></div>);
     form.push(<div className='subPanel' id='chexxLogin'><table><tbody>
-      <tr><td>Login Id:</td><td><input id='loginName' className='input' type="text" name="username" size="18" maxLength="40"/></td></tr>
-      <tr><td>Password:</td><td><input id='loginPassword' className='input' type="password" name="password" size="18" maxLength="40"  onKeyPress={enterPass}/></td></tr>
+      <tr><td>Login Id:</td><td><input id='loginName' className='input' type="text" name="username" size="10" maxLength="20"/></td></tr>
+      <tr><td>Password:</td><td><input id='loginPassword' className='input' type="password" name="password" size="10" maxLength="20"  onKeyPress={enterPass}/></td></tr>
       </tbody></table></div>);
     return form;
   }
@@ -482,7 +484,7 @@ function App() { // console.log('App');
       <div className='Full Overlay'>
         <div className='Dialog' >
           <div className='topper'><h2>{dialog.title}</h2></div>
-          { dialog.text && textOut(dialog.text)}
+          { dialog.text && textOut(dialog.text) }
           { dialog.login && loginForm() }
           { dialog.register && registerForm() }
           { dialog.challenge && <div className='group'>
@@ -875,17 +877,25 @@ function App() { // console.log('App');
         <div id='Tutor' style={{width:step.width+'vw', top:top, left:step.posX+'%', backgroundColor: step.background}}>
           {step.title && <div className='topper'><h2>{step.title}</h2></div>}
           {textOut(lesson.step[idx].text)}
-          <div className='bottomer'>
-            <div className='group'>
-              { idx > 0 && <button className='smButton' onClick={()=>teach(idx>0?idx-1:0)}>Prev</button> }
-              <button className='smButton' onClick={resume}>Close</button>
-              <button className='smButton' onClick={()=>teach(idx)}>Reset</button>
-              { idx < lesson.step.length-1 && <button className='smButton' onClick={()=>teach(idx+1)}>Next</button> }
-              { lesson.step[idx].hint && onHint < lesson.step[idx].hint.length && <button className='smButton' onClick={()=>hint()}>?</button>}
-            </div>
-          </div>
           
-        </div>
+        { h<=w*1.5 && <div className='bottomer'>
+          <div className='group'>
+            { idx > 0 && <button className='smButton' onClick={()=>teach(idx>0?idx-1:0)}>Prev</button> }
+            <button className='smButton' onClick={resume}>Close</button>
+            <button className='smButton' onClick={()=>teach(idx)}>Reset</button>
+            { idx < lesson.step.length-1 && <button className='smButton' onClick={()=>teach(idx+1)}>Next</button> }
+            { lesson.step[idx].hint && onHint < lesson.step[idx].hint.length && <button className='smButton' onClick={()=>hint()}>?</button>}
+          </div></div> }
+        
+          </div>
+        { h>w*1.5 && <div className='footer'>
+            <div className='group'>
+              { idx > 0 && <button className='lgButton' onClick={()=>teach(idx>0?idx-1:0)}>Prev</button> }
+              <button className='lgButton' onClick={resume}>Close</button>
+              <button className='lgButton' onClick={()=>teach(idx)}>Reset</button>
+              { idx < lesson.step.length-1 && <button className='lgButton' onClick={()=>teach(idx+1)}>Next</button> }
+              { lesson.step[idx].hint && onHint < lesson.step[idx].hint.length && <button className='lgButton' onClick={()=>hint()}>?</button>}
+            </div></div> }
       </div>
     );
   }

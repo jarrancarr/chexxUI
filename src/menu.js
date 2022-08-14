@@ -116,7 +116,7 @@ function itemsSelect(match, item, command, update) {
 }
 function lessonSelect(match, item, command, update) {
     switch(item) {case 'lesson-starthere': lesson('Intro', command); break;
-        case 'lesson-interface': lesson('Interface', command); break;
+        case 'lesson-gameplay': lesson('Interface', command); break;
         case 'lesson-quickstart': lesson('Quick', command); break;
         case 'lesson-board': lesson('Board', command); break;
         case 'lesson-rules': lesson('Rules', command); break;
@@ -248,7 +248,7 @@ function makeMenu(match, command, update, list, label, spin, size=2, font=4, col
     return items;
 }
 function tutorials(match, command, update) { // console.log('tutorials');
-    return makeMenu(match, command, update, [['Start Here',''],['Quick Start',''],['Interface',''],['Board',''],['Rules',''],['pawn','P'],['spear','S'],['knight','N'],['bishop','B'],['rook','R'],['queen','Q'],['archer','A'],['prince','I'],['princess','E'],['king','K'],['S',''],['Promotion',''],['Forks',''],['Skewers',''],['Pins',''],['Tactics','']], 'lesson', -110, 2, 1.3);
+    return makeMenu(match, command, update, [['Start Here',''],['Quick Start',''],['Game Play',''],['Board',''],['Rules',''],['pawn','P'],['spear','S'],['knight','N'],['bishop','B'],['rook','R'],['queen','Q'],['archer','A'],['prince','I'],['princess','E'],['king','K'],['Special Moves',''],['Promotion',''],['Forks',''],['Skewers',''],['Pins',''],['Tactics','']], 'lesson', -110, 2, 1.3);
 }
 function puzzles(match, command, update) { // console.log('puzzles');
     return makeMenu(match, command, update, [['Mate in One'],['Mate in Two'],['Mate in Three'],['Mate in More']],'puzzle', -10, 2, 1.5);

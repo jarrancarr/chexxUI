@@ -27,8 +27,7 @@
 }
 .Overlay {
   pointer-events: none;
-}
-.header {
+}.header {
   position: absolute;
   top: 0;
   right: 0;
@@ -47,7 +46,7 @@
   height: 10vh;
   width: 96vw;
   background-color: rgb(77, 67, 4);
-  border-radius: 2vw;
+  border-radius: 5%;
   border: 0.5vw solid rgb(22, 24, 24);
   pointer-events: all;
 }
@@ -73,8 +72,7 @@
   background-color: rgb(43, 38, 9);
   border-radius: 2em;
   border: 0.5vw solid rgb(22, 24, 24);
-}
-.header > h1 {
+}.header > h1 {
   margin: 0px;
   color:rgb(194, 200, 18);
   filter: none;
@@ -91,20 +89,19 @@
   margin: 0px;
   color:rgb(194, 200, 18);
 }
-
 .Dialog {
   position: absolute;
-  border-radius: 2vw;
+  border-radius: 8%;
   background-color: #442210a0;
   text-align: center;
   border: 0.3vw solid #ee2;
   display: inline-grid;
-  filter: drop-shadow(1vw 1vw 2vw #aa3);
+  filter: drop-shadow(1vw 1vw 2% #aa3);
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  padding: 2vw 0vw;
-  min-width: 29vw;
+  padding: 5% 0%;
+  min-width: 30%;
   pointer-events: all;
 }
 .subPanel {
@@ -122,19 +119,18 @@
 .subInput {
   font-size: 30px;
 }
-
 #Tutor {
   position: absolute;
-  border-radius: 2vw;
+  border-radius: 2vmin;
   background-color: rgba(240, 14, 14, 0.3);
   text-align: center;
   border: 0.3vw solid rgb(218, 218, 16);
   display: inline-grid;
-  filter: drop-shadow(1vw 1vw 2vw #FF0);
+  filter: drop-shadow(1vmin 1vmin 2vmin #FF0);
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  padding: 2vw;
+  padding: 2vmin;
   min-width: 29vw;
   pointer-events: all;
 }
@@ -177,13 +173,13 @@
   background-color: rgb(38, 39, 1); /* Green */
   border: none;
   color: rgb(194, 200, 18);
-  padding: 5px 20px;
+  padding: 2vmin 2vmin;
   text-align: center;
   text-decoration: none;
   display: flex;
-  font-size: 20px;
-  margin: 12px; 
-  border-radius: 8px;
+  font-size: 4vmin;
+  margin: 2vmin; 
+  border-radius: 2vmin;
 }
 .group {
   display: inline-flex;

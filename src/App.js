@@ -7,7 +7,7 @@ import './App.css';
 import Board from "./Board"
 import Pieces from "./Pieces"
 import Piece from "./Piece"
-import { revMap, setLetterWidths, display, genDefs, serverUrl, socketUrl, clear, hilite, movePiece, analyse } from './res';
+import { restGet, restPost, revMap, setLetterWidths, display, genDefs, serverUrl, socketUrl, clear, hilite, movePiece, analyse } from './res';
 let onHint = 0;
 let lesson = {};
 const zoomed = false;
@@ -16,6 +16,7 @@ let cpu=['CPU','cpu very easy','cpu easy','cpu moderate','cpu hard','cpu very ha
 let timer = null;
 let tutor = '';
 let history = -1;
+let toss = [0,0];
 let lastReadMessage = null;
 let stdGetRequest = {}; // fetch(serverUrl+'/'+data, stdGetRequest).then(response => response.json()).then(x => { if (x.status) { cmd({order:'menu', choice:'?'}); } else cmd({order:'dialog', title:'Error', text:['h2:::'+x.message]}); }).catch((error) => { cmd({order:'dialog',title:'Error', text:['h3:::Server error.', ''+error]}) });
                         // fetch(serverUrl+'/xxx',post({data})).then(response => response.json())
@@ -24,13 +25,6 @@ let stdGetRequest = {}; // fetch(serverUrl+'/'+data, stdGetRequest).then(respons
 let boardColor = {neutral:['#555','#585','#545'],light:['#aab','#aa8','#aaa'], dark:['#011','#111','#012'], 
   white:['#eeb'], black:['#012'], felt:['#131','#444','#131','#131','#000'], table:['#000'],
   grain:[[2.9, 0.5, 0.02, 2.912, 0.505],[-2.8, 0.3, 0.025, -2.8, 0.312],[0.9, 0.4, 0.027, 0.908, 0.407],[2.7, -0.65, 0.023, 2.703, -0.651]]};
-
-function post(data) {
-  let request = {...stdGetRequest}
-  request.body = JSON.stringify(data);
-  request.method = "POST"
- return request;
-}
 
 function App() { // console.log('App');
   const [match, update] = React.useState({id:0, name:'offline', white:{pieces:['Rd54', 'Rd5', 'Rc52', 'Nd53', 'Nd51', 'Nc33', 'Bc53', 'Bc55', 'Bd52', 'Qd41', 'Kc44', 'Id31', 'Ed4', 'Pd55', 'Pd44', 'Pd33', 'Pd21', 'Pc22', 'Pc31', 'Pc41', 'Pc51', 'Sd43', 'Sd32', 'Sd2', 'Sc32', 'Sc42', 'Ad42', 'Ad3', 'Ac43'], time:300}, black:{pieces:['Ra5', 'Rf52', 'Ra54', 'Nf53', 'Nf55', 'Na31', 'Ba53', 'Ba51', 'Bf54', 'Qf44', 'Ka41', 'If33', 'Ea4', 'Pf51', 'Pf41', 'Pf31', 'Pf22', 'Pa21', 'Pa33', 'Pa44', 'Pa55', 'Sf42', 'Sf32', 'Sa2', 'Sa32', 'Sa43', 'Af43', 'Aa3', 'Aa42'], time:300}, log:[], type:{game:300, move:15}});
@@ -98,9 +92,9 @@ function App() { // console.log('App');
       case 'guess' : console.log('user guessed:',tutor, data.here, lesson); 
         clear();
         const ansKey = lesson.step[idx].answer;
-        if (ansKey) { console.log('answer key ',ansKey);
+        if (ansKey) { console.log('answer key ', ansKey);
           let check = ansKey.filter(ak=>ak[0].split(' ').includes((tutor?tutor+'~':'')+data.here));
-          if (check.length===0) { // no good answers... reset
+          if (check.length===0) { console.log('no good answers... reset');
             if (!tutor[0]==='+') tutor = '';
             check = ansKey.filter(ak=>ak[0].split(' ').includes(data.here));
           }
@@ -110,12 +104,16 @@ function App() { // console.log('App');
             let numAns = 0;
             if (check[0][3]) { // action taken
               //clear();
+              match.white.pieces = match.white.pieces.slice(0,match.white.pieces.length-toss[0]);
+              match.black.pieces = match.black.pieces.slice(0,match.black.pieces.length-toss[1]);
+              toss = [0,0];
               let stop = false;
               for (const specs of check[0][3].split('||')) {
                 if (stop) continue;
                 const spec = specs.split('|');
                 switch(spec[0]) {
                   case '~' : tutor = data.here; hilite([data.here],"stroke","#00f"); break;
+                  case '~~' : tutor += '~'+data.here; break;
                   case '+' : 
                   if (!tutor.includes(data.here+'+')) tutor += data.here+'+'; 
                     hilite(tutor.split('+'),"stroke","#0ff"); 
@@ -130,8 +128,8 @@ function App() { // console.log('App');
                   case '-' : movePiece(match, null,[tutor,data.here]); tutor = ''; break; // move piece 
                   case 'mv' : movePiece(match, null,spec[1].split('~')); tutor = ''; break; // move piece 
                   case 'hl' : hilite(spec[2].split(' '),'stroke',spec[1]); break;
-                  case 'cw' : match.white.pieces.push(spec[1]); break;
-                  case 'cb' : match.black.pieces.push(spec[1]); break;
+                  case 'cw' : match.white.pieces.push(spec[1]); toss[0]++; break;
+                  case 'cb' : match.black.pieces.push(spec[1]); toss[1]++; break;
                   default: break;
                 }
               }
@@ -187,7 +185,8 @@ function App() { // console.log('App');
   function cpuMove() { // console.log('cpuMove');
     if ((flip && match.log.length%2===1) || (!flip && match.log.length%2===0)) return;
     document.getElementById('think').beginElement();
-    fetch(serverUrl+'/match/cpu/'+cpuPlayer, post(match)).then(response => response.json() ).then(data => {
+    //  fetch(serverUrl+'/match/cpu/'+cpuPlayer, post(match))
+    restPost('/match/cpu/'+cpuPlayer, stdGetRequest, match).then(response => response.json() ).then(data => {
         document.getElementById('think').endElement();
         let copyMatch = {...match};
         const board = analyse(match); 
@@ -212,7 +211,8 @@ function App() { // console.log('App');
     setMode('');
   }
   function blitzLive() {
-    fetch(serverUrl+'/match/live', stdGetRequest).then(response => response.json() ).then(data => {
+    //fetch(serverUrl+'/match/live', stdGetRequest).
+    restGet('/match/live/', stdGetRequest).then(response => response.json() ).then(data => {
       if (data.status) {
         user.live = {}
         cmd({order:'menu', choice:'live'});
@@ -268,7 +268,7 @@ function App() { // console.log('App');
     );
   }
   function commitMove(move) { // console.log('commit move',move,'to match id',match.ID);
-    fetch(serverUrl+'/match/move/'+match.ID, post({move:move})).then(response => response.json() ).then(data => { 
+    restPost(serverUrl+'/match/move/'+match.ID, stdGetRequest, {move:move}).then(response => response.json() ).then(data => { 
       if (data.status) { 
         listMatches();
         resume();
@@ -279,7 +279,7 @@ function App() { // console.log('App');
     clear();
     setBoard('');
     history = -1;
-    fetch(serverUrl+'/match/load/'+id, stdGetRequest).then(response => response.json() ).then(data => { 
+    restGet(serverUrl+'/match/load/'+id, stdGetRequest).then(response => response.json() ).then(data => { 
       if (data.status) { 
         data.match.log = data.match.log.filter(l=>l!=='');
         if (data.white) data.match.white.player = data.white;
@@ -294,13 +294,13 @@ function App() { // console.log('App');
   }
   function previewMatch(id) { //console.log('previewMatch',id);
     let open = {};
-    fetch(serverUrl+'/match/load/'+id, stdGetRequest).then(response => response.json() ).then(data => { 
+    restGet(serverUrl+'/match/load/'+id, stdGetRequest).then(response => response.json() ).then(data => { 
       if (data.status) { 
         data.match.log = data.match.log.filter(l=>l!=='');
         open = data.match;
         let oid = open.white.userid;
         if (oid===0) oid = open.black.userid;
-        fetch(serverUrl+'/user/'+oid, stdGetRequest).then(response => response.json() )
+        restGet(serverUrl+'/user/'+oid, stdGetRequest).then(response => response.json() )
           .then(data => { 
             if (data.status) { 
               let o = data.opponent;
@@ -312,7 +312,7 @@ function App() { // console.log('App');
     });
   }
   function accept() {
-    fetch(serverUrl+'/match/accept/'+dialog.openId, stdGetRequest).then(response => response.json() ).then(data => { 
+    restGet(serverUrl+'/match/accept/'+dialog.openId, stdGetRequest).then(response => response.json() ).then(data => { 
       if (data.status) {
         cmd({order:'listMatches'});  
       } else cmd({order:'dialog', title:'Error', text:['h2:::'+data.message]});
@@ -328,7 +328,7 @@ function App() { // console.log('App');
     user.defeat = data.defeat
   }
   function deleteMatch() {
-    fetch(serverUrl+'/match/delete/'+dialog.openId, stdGetRequest).then(response => response.json()).then(data => {
+    restGet(serverUrl+'/match/delete/'+dialog.openId, stdGetRequest).then(response => response.json()).then(data => {
       if (data.status) {
         readyMatches(data);
         cmd({order:'menu', choice:'match'});
@@ -336,7 +336,7 @@ function App() { // console.log('App');
     .catch((error) => { cmd({order:'dialog',title:'Error', text:['h3:::Server error.', ''+error]}) });
   }
   function saveMatch(match) {
-    fetch(serverUrl+'/match/save',post(match)).then(response => response.json() )
+    restPost(serverUrl+'/match/save', stdGetRequest, match).then(response => response.json() )
       .then(data => cmd(data.status?{order:'dialog', title:'Match Saved', text:[], ok:true, noClose:true}:{order:'dialog', title:'Error', text:['h2:::'+data.message]}));
   }
   function resign(match) {
@@ -346,12 +346,12 @@ function App() { // console.log('App');
       // loop closed when message returned with new rating.
     }
     if (mode==='match') {
-      fetch(serverUrl+'/match/resign',post(match)).then(response => response.json() )
+      restPost(serverUrl+'/match/resign', stdGetRequest, match).then(response => response.json() )
         .then(data => cmd(data.status?{order:'dialog', title:'Match Resigned', text:['h2:::'+data.message, 'h3:::'+data.rank], ok:true, noClose:true}:{order:'dialog', title:'Error', text:['h2:::'+data.message]}));
     }
   }
   function listMatches() {
-    fetch(serverUrl+'/match/list', stdGetRequest).then(response => response.json() ).then(data => {
+    restGet(serverUrl+'/match/list', stdGetRequest).then(response => response.json() ).then(data => {
         if (data.status) {
           readyMatches(data);
           cmd({order:'menu', choice:'match'});
@@ -364,7 +364,7 @@ function App() { // console.log('App');
   }
   const responseFacebook = (response) => { // console.log("responseFacebook", response);
     response.id = parseInt(response.id);
-    fetch(serverUrl+'/user/facebook',{
+    restPost(serverUrl+'/user/facebook',{
       mode: 'cors',
       method: "POST",
       headers: {"Content-Type": "application/json"},
@@ -419,7 +419,7 @@ function App() { // console.log('App');
     switch (context) {
       case 'Telegram': 
         if (button==='Ok') {
-          fetch(serverUrl+'/user/message/ok/'+data, stdGetRequest).then(response => response.json())
+          restGet(serverUrl+'/user/message/ok/'+data, stdGetRequest).then(response => response.json())
             .then(x => { if (!x.status) cmd({order:'dialog', title:'Error', text:['h2:::'+x.message]}); })
             .catch((error) => { cmd({order:'dialog',title:'Error', text:['h3:::Server error.', ''+error]}) });
         }
@@ -444,7 +444,7 @@ function App() { // console.log('App');
     const dpm = document.getElementById('dpm').value;
     const color = document.getElementById('color').value;
     console.log('Form',title,dpm,color);
-    fetch(serverUrl+'/match/challenge',post({title:title, dpm:dpm, color:color})).then(response => response.json() ).then(data => {
+    restPost(serverUrl+'/match/challenge', stdGetRequest, {title:title, dpm:dpm, color:color}).then(response => response.json() ).then(data => {
         if (data.status) {
           user.savedMatches = data.matches;
           listMatches();
@@ -532,7 +532,7 @@ function App() { // console.log('App');
     );
   }
   function getQueues(user) {
-    fetch(serverUrl+'/user/queues', stdGetRequest).then(response => response.json() ).then(data => {
+    restGet(serverUrl+'/user/queues', stdGetRequest).then(response => response.json() ).then(data => {
       if (!data.status)cmd({order:'dialog', title:'Problem', text:['h2:::Queue data unavailable.']});
       else updateQueue((prev)=> {return {message:data.messages, friendRequest:data.requests, friend:user.friend}});
     });
@@ -541,7 +541,7 @@ function App() { // console.log('App');
   function chexxLogin() { // console.log('chexxLogin');
     const user = {userid:document.getElementById('loginName').value, password:document.getElementById('loginPassword').value};
     if (user.userid && user.password) {
-      fetch(serverUrl+'/user/login',post(user)).then(response => response.json()).then(data => {
+      restPost(serverUrl+'/user/login', stdGetRequest, user).then(response => response.json()).then(data => {
         stdGetRequest = { mode: 'cors', method: "GET", headers: {"Content-Type": "application/json", "Authorization": data.user.token} };
         if (data.user.property.board) boardColor = JSON.parse(data.user.property.board);
         if (!boardColor.white) boardColor.white=['#012'];
@@ -572,7 +572,7 @@ function App() { // console.log('App');
     return grain;
   }
   function chexxLogout() {
-    fetch(serverUrl+'/user/logout',post({token:user.token})).then(response => response.json() )
+    restPost(serverUrl+'/user/logout', stdGetRequest, {token:user.token}).then(response => response.json() )
     .then(data => cmd(data.status?{order:'logout'}:{order:'dialog', title:'Error', text:['h2:::'+data.message], ok:true}))
     .catch((error) => {
       // Handle the error
@@ -597,7 +597,7 @@ function App() { // console.log('App');
       else if (user.email.split('@').length!==2 || user.email.split('@')[1].split('.').length===1) warn('<h4>Invalid Email</h4>');
       else if (user.confirm !== user.password) warn('<h4>Passwords dont match.</h4>');
       else {
-        fetch(serverUrl+'/user/register',{ mode: 'cors', method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(user)
+        restPost(serverUrl+'/user/register',{ mode: 'cors', method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(user)
         }).then(response => response.json() )
         .then(data => cmd(data.status?{order:'login',user:data.user}:{order:'dialog', title:'Error', text:['h2:::'+data.message], ok:true})); //cmd({order:'login',user:data}));
       }
@@ -632,7 +632,7 @@ function App() { // console.log('App');
   function tdr(txt) { return <td className='right'>{textOut([txt])}</td>; }
   function tdl(txt) { return <td className='left'>{textOut([txt])}</td>; }
   function welcome() { }
-  function openProfile(id) { fetch(serverUrl+'/user/'+id, stdGetRequest).then(response=>response.json() ).then(data=>setProfile(data.opponent)); }
+  function openProfile(id) { restGet(serverUrl+'/user/'+id, stdGetRequest).then(response=>response.json() ).then(data=>setProfile(data.opponent)); }
   function myProfile() { // console.log("profile",user);
     function makeHexColors(color, num) {
       let colors = [];
@@ -746,7 +746,7 @@ function App() { // console.log('App');
       </div>
     );
   }
-  function friendRequest(id, message) { fetch(serverUrl+'/user/friendRequest', post({userid:id, message:message})).then(response=>response.json()).then(data => { if (!data.status) cmd({order:'dialog', title:'Error', text:['h2:::'+data.message]})});
+  function friendRequest(id, message) { restPost(serverUrl+'/user/friendRequest', stdGetRequest, {userid:id, message:message}).then(response=>response.json()).then(data => { if (!data.status) cmd({order:'dialog', title:'Error', text:['h2:::'+data.message]})});
   }
   function befriend(id) { console.log('befriend',id);
     for (const m of queue.friendRequest) {
@@ -755,7 +755,7 @@ function App() { // console.log('App');
   } } }
   function friendAccept(id) { console.log('friend accept',id);
     const invite = {requestId:id}
-    fetch(serverUrl+'/user/friendAccept', post(invite)).then(response => response.json() )
+    restPost(serverUrl+'/user/friendAccept', stdGetRequest, invite).then(response => response.json() )
       .then(data => { if (!data.status) cmd({order:'dialog', title:'Error', text:['h2:::'+data.message]});
                       else { // add friend to friend list
                         updateQueue((prev)=> { prev.friend.push(data.friend); return prev; } );
@@ -764,7 +764,7 @@ function App() { // console.log('App');
   }
   function friendDeny(id) {
     const reject = {requestId:id}
-    fetch(serverUrl+'/user/friendReject',post(reject)).then(response => response.json() )
+    restPost(serverUrl+'/user/friendReject', stdGetRequest, reject).then(response => response.json() )
       .then(data => { if (!data.status) cmd({order:'dialog', title:'Error', text:['h2:::'+data.message]}); });
   }
   function openChat(id) { //console.log('openChat',id);
@@ -831,7 +831,7 @@ function App() { // console.log('App');
       </div>
     );
   }
-  function message(meta, topic, text, id) { fetch(serverUrl+'/user/message',post({meta:meta, topic:topic, body:text, recipient:id})).then(response=>response.json()).then(data => { if (!data.status) cmd({order:'dialog', title:'Error', text:['h2:::'+data.message]})});}
+  function message(meta, topic, text, id) { restPost(serverUrl+'/user/message', stdGetRequest, {meta:meta, topic:topic, body:text, recipient:id}).then(response=>response.json()).then(data => { if (!data.status) cmd({order:'dialog', title:'Error', text:['h2:::'+data.message]})});}
   function showMessage(id) {
     for (const m of queue.message) {
       if (m.ID === id) {
@@ -860,7 +860,7 @@ function App() { // console.log('App');
     boardColor.table=['#000'];
     boardColor.grain=grain();
     user.property = {hints:hints?'true':'false', board:JSON.stringify(boardColor)};
-    fetch(serverUrl+'/user/save',post(user)).then(response => response.json() )
+    restPost(serverUrl+'/user/save', stdGetRequest, user).then(response => response.json() )
       .then(data => cmd(data.status?{order:'dialog', title:'Profile Saved', text:[], ok:true, noClose:true}:{order:'dialog', title:'Error', text:['h2:::'+data.message]}));
   }
   function teacher(lines) { // console.log('teacher', idx,lesson);
@@ -1054,6 +1054,10 @@ function App() { // console.log('App');
       { drawing && <div className="Overlay Full"><svg viewBox={view} xmlns="http://www.w3.org/2000/svg"> { drawing } </svg></div> }
     
       {letters.length===0 && <svg viewBox={view} xmlns="http://www.w3.org/2000/svg">{alphabet} </svg> }
+      <div className="Debug">
+        <h2>mode:{mode}</h2>
+        <h2>state/menu:{state}</h2>
+      </div>
     </div>
   );
 }

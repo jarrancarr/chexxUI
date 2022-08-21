@@ -57,15 +57,15 @@ function restPost(url, stdGetRequest, data) { console.log("restPost(",url,stdGet
     let request = {...stdGetRequest}
     request.method = "POST"
     if (APP) {
-        return axios.post(url, data, request);
+        return axios.post(serverUrl+url, data, request);
     } else {
         request.body = JSON.stringify(data);
-        return fetch(url, request);
+        return fetch(serverUrl+url, request);
     }
 }
 function restGet(url, stdGetRequest) { console.log("restGet(",url,stdGetRequest);
-    if (APP) return axios.get(url, stdGetRequest);
-    else return fetch(url, stdGetRequest);
+    if (APP) return axios.get(serverUrl+url, stdGetRequest);
+    else return fetch(serverUrl+url, stdGetRequest);
 }
 function flipped(here) {
     const coord = revMap[here].split('-');

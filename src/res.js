@@ -3,6 +3,7 @@ import axios from 'axios';
 // const serverUrl = 'http://192.168.1.152:8000';
 const serverUrl = 'http://96.231.45.134:6085';
 const socketUrl = 'ws://192.168.1.152:8000/ws';
+const version = '0.1.0';
 const APP = false;
 const hex = "M -1.7 -1 L 0 -2 L 1.7 -1 V 1 L 0 2 L -1.7 1 Z";
 const map = {"6-12":"*", "6-10":"a", "7-11":"b", "7-13":"c", "6-14":"d", "5-13":"e", "5-11":"f"};
@@ -52,17 +53,17 @@ const keys = Object.keys(map);
 for (const hex of keys) revMap[map[hex]] = hex; 
 const off = 'drop-shadow(rgba(210, 128, 210, 0.4) 0px 0px 2px)';
 
-function restPost(url, stdGetRequest, data) {
+function restPost(url, stdGetRequest, data) { console.log("restPost(",url,stdGetRequest,data);
     let request = {...stdGetRequest}
     request.method = "POST"
     if (APP) {
-        axios.post(url, data, request);
+        return axios.post(url, data, request);
     } else {
         request.body = JSON.stringify(data);
         return fetch(url, request);
     }
 }
-function restGet(url, stdGetRequest) {
+function restGet(url, stdGetRequest) { console.log("restGet(",url,stdGetRequest);
     if (APP) return axios.get(url, stdGetRequest);
     else return fetch(url, stdGetRequest);
 }
@@ -541,4 +542,4 @@ function setLetterWidths(l) {
     letters = l;
 }
        
-export {restPost, restGet, chexxBoard, setLetterWidths, display, hex, genDefs, whiteMove, inStartPos, inPromotePos, map, revMap, flipped, hilite, getPiece, swapPieces, movePiece, clear, off, analyse,isOnBoard, text, serverUrl, socketUrl}
+export {version, restPost, restGet, chexxBoard, setLetterWidths, display, hex, genDefs, whiteMove, inStartPos, inPromotePos, map, revMap, flipped, hilite, getPiece, swapPieces, movePiece, clear, off, analyse,isOnBoard, text, serverUrl, socketUrl}

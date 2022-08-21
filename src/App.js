@@ -7,7 +7,7 @@ import './App.css';
 import Board from "./Board"
 import Pieces from "./Pieces"
 import Piece from "./Piece"
-import { restGet, restPost, revMap, setLetterWidths, display, genDefs, serverUrl, socketUrl, clear, hilite, movePiece, analyse } from './res';
+import { version, restGet, restPost, revMap, setLetterWidths, display, genDefs, serverUrl, socketUrl, clear, hilite, movePiece, analyse } from './res';
 let onHint = 0;
 let lesson = {};
 const zoomed = false;
@@ -1055,6 +1055,7 @@ function App() { // console.log('App');
     
       {letters.length===0 && <svg viewBox={view} xmlns="http://www.w3.org/2000/svg">{alphabet} </svg> }
       <div className="Debug">
+        <h2>version:{version}</h2>
         <h2>mode:{mode}</h2>
         <h2>state/menu:{state}</h2>
       </div>

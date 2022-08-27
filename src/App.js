@@ -49,6 +49,17 @@ function App() { // console.log('App');
   const alphabet = [];
   const letters = [];
 
+  restGet('/testGet', stdGetRequest).then(response => response.json() ).then(data => {
+    if (data) {
+      console.log('axios get succeeded:',data.status);
+    }
+  });
+  restPost('/testPost', stdGetRequest, {"one":1,"two":2}).then(response => response.json() ).then(data => {
+    if (data) {
+      console.log('axios post succeeded:',data.status);
+    }
+  });
+
   for (let i=31;i<128;i++) {
     alphabet.push(<text id={'alpha-'+i} x='20px' y='15px' fontFamily="Verdana" fontSize={10}>{String.fromCharCode(i)}</text>);
   }

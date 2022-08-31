@@ -1,8 +1,8 @@
 import axios from 'axios';
 //import { HTTP } from '@ionic-native/http/ngx';
 // const serverUrl = 'http://localhost:8000';
-// const serverUrl = 'http://192.168.1.152:8000';
-const serverUrl = 'http://96.231.45.134:6085';
+const serverUrl = 'http://192.168.1.152:8000';
+//const serverUrl = 'http://96.231.45.134:6085';
 const socketUrl = 'ws://192.168.1.152:8000/ws';
 const version = '0.1.0';
 const APP = false;

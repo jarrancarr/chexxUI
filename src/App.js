@@ -7,7 +7,7 @@ import './App.css';
 import Board from "./Board"
 import Pieces from "./Pieces"
 import Piece from "./Piece"
-import { version, restGet, restPost, revMap, setLetterWidths, display, genDefs, serverUrl, socketUrl, clear, hilite, movePiece, analyse } from './res';
+import { version, restGet, restPost, revMap, setLetterWidths, display, genDefs, socketUrl, clear, hilite, movePiece, analyse } from './res';
 let onHint = 0;
 let lesson = {};
 const zoomed = false;
@@ -18,8 +18,8 @@ let tutor = '';
 let history = -1;
 let toss = [0,0];
 let lastReadMessage = null;
-let stdGetRequest = {}; // fetch(serverUrl+'/'+data, stdGetRequest).then(response => response.json()).then(x => { if (x.status) { cmd({order:'menu', choice:'?'}); } else cmd({order:'dialog', title:'Error', text:['h2:::'+x.message]}); }).catch((error) => { cmd({order:'dialog',title:'Error', text:['h3:::Server error.', ''+error]}) });
-                        // fetch(serverUrl+'/xxx',post({data})).then(response => response.json())
+let stdGetRequest = {}; // fetch('/'+data, stdGetRequest).then(response => response.json()).then(x => { if (x.status) { cmd({order:'menu', choice:'?'}); } else cmd({order:'dialog', title:'Error', text:['h2:::'+x.message]}); }).catch((error) => { cmd({order:'dialog',title:'Error', text:['h3:::Server error.', ''+error]}) });
+                        // fetch('/xxx',post({data})).then(response => response.json())
                         //   .then(x => { if (x.status) { } else cmd({order:'dialog', title:'Error', text:['h2:::'+data.message]}); })
                         //   .catch((e) => { cmd({order:'dialog',title:'Error', text:['h3:::Server error.', ''+error]}); });
 let boardColor = {neutral:['#555','#585','#545'],light:['#aab','#aa8','#aaa'], dark:['#011','#111','#012'], 
@@ -196,7 +196,7 @@ function App() { // console.log('App');
   function cpuMove() { // console.log('cpuMove');
     if ((flip && match.log.length%2===1) || (!flip && match.log.length%2===0)) return;
     document.getElementById('think').beginElement();
-    //  fetch(serverUrl+'/match/cpu/'+cpuPlayer, post(match))
+    //  fetch('/match/cpu/'+cpuPlayer, post(match))
     restPost('/match/cpu/'+cpuPlayer, stdGetRequest, match).then(response => response.json() ).then(data => {
         document.getElementById('think').endElement();
         let copyMatch = {...match};
@@ -222,7 +222,7 @@ function App() { // console.log('App');
     setMode('');
   }
   function blitzLive() {
-    //fetch(serverUrl+'/match/live', stdGetRequest).
+    //fetch('/match/live', stdGetRequest).
     restGet('/match/live/', stdGetRequest).then(response => response.json() ).then(data => {
       if (data.status) {
         user.live = {}
@@ -279,7 +279,7 @@ function App() { // console.log('App');
     );
   }
   function commitMove(move) { // console.log('commit move',move,'to match id',match.ID);
-    restPost(serverUrl+'/match/move/'+match.ID, stdGetRequest, {move:move}).then(response => response.json() ).then(data => { 
+    restPost('/match/move/'+match.ID, stdGetRequest, {move:move}).then(response => response.json() ).then(data => { 
       if (data.status) { 
         listMatches();
         resume();
@@ -290,7 +290,7 @@ function App() { // console.log('App');
     clear();
     setBoard('');
     history = -1;
-    restGet(serverUrl+'/match/load/'+id, stdGetRequest).then(response => response.json() ).then(data => { 
+    restGet('/match/load/'+id, stdGetRequest).then(response => response.json() ).then(data => { 
       if (data.status) { 
         data.match.log = data.match.log.filter(l=>l!=='');
         if (data.white) data.match.white.player = data.white;
@@ -305,13 +305,13 @@ function App() { // console.log('App');
   }
   function previewMatch(id) { //console.log('previewMatch',id);
     let open = {};
-    restGet(serverUrl+'/match/load/'+id, stdGetRequest).then(response => response.json() ).then(data => { 
+    restGet('/match/load/'+id, stdGetRequest).then(response => response.json() ).then(data => { 
       if (data.status) { 
         data.match.log = data.match.log.filter(l=>l!=='');
         open = data.match;
         let oid = open.white.userid;
         if (oid===0) oid = open.black.userid;
-        restGet(serverUrl+'/user/'+oid, stdGetRequest).then(response => response.json() )
+        restGet('/user/'+oid, stdGetRequest).then(response => response.json() )
           .then(data => { 
             if (data.status) { 
               let o = data.opponent;
@@ -323,7 +323,7 @@ function App() { // console.log('App');
     });
   }
   function accept() {
-    restGet(serverUrl+'/match/accept/'+dialog.openId, stdGetRequest).then(response => response.json() ).then(data => { 
+    restGet('/match/accept/'+dialog.openId, stdGetRequest).then(response => response.json() ).then(data => { 
       if (data.status) {
         cmd({order:'listMatches'});  
       } else cmd({order:'dialog', title:'Error', text:['h2:::'+data.message]});
@@ -339,7 +339,7 @@ function App() { // console.log('App');
     user.defeat = data.defeat
   }
   function deleteMatch() {
-    restGet(serverUrl+'/match/delete/'+dialog.openId, stdGetRequest).then(response => response.json()).then(data => {
+    restGet('/match/delete/'+dialog.openId, stdGetRequest).then(response => response.json()).then(data => {
       if (data.status) {
         readyMatches(data);
         cmd({order:'menu', choice:'match'});
@@ -347,7 +347,7 @@ function App() { // console.log('App');
     .catch((error) => { cmd({order:'dialog',title:'Error', text:['h3:::Server error.', ''+error]}) });
   }
   function saveMatch(match) {
-    restPost(serverUrl+'/match/save', stdGetRequest, match).then(response => response.json() )
+    restPost('/match/save', stdGetRequest, match).then(response => response.json() )
       .then(data => cmd(data.status?{order:'dialog', title:'Match Saved', text:[], ok:true, noClose:true}:{order:'dialog', title:'Error', text:['h2:::'+data.message]}));
   }
   function resign(match) {
@@ -357,12 +357,12 @@ function App() { // console.log('App');
       // loop closed when message returned with new rating.
     }
     if (mode==='match') {
-      restPost(serverUrl+'/match/resign', stdGetRequest, match).then(response => response.json() )
+      restPost('/match/resign', stdGetRequest, match).then(response => response.json() )
         .then(data => cmd(data.status?{order:'dialog', title:'Match Resigned', text:['h2:::'+data.message, 'h3:::'+data.rank], ok:true, noClose:true}:{order:'dialog', title:'Error', text:['h2:::'+data.message]}));
     }
   }
   function listMatches() {
-    restGet(serverUrl+'/match/list', stdGetRequest).then(response => response.json() ).then(data => {
+    restGet('/match/list', stdGetRequest).then(response => response.json() ).then(data => {
         if (data.status) {
           readyMatches(data);
           cmd({order:'menu', choice:'match'});
@@ -375,7 +375,7 @@ function App() { // console.log('App');
   }
   const responseFacebook = (response) => { // console.log("responseFacebook", response);
     response.id = parseInt(response.id);
-    restPost(serverUrl+'/user/facebook',{
+    restPost('/user/facebook',{
       mode: 'cors',
       method: "POST",
       headers: {"Content-Type": "application/json"},
@@ -385,7 +385,7 @@ function App() { // console.log('App');
     // setMode('profile');
   }
   const responseGoogle = (response) => { // console.log("responseGoogle", response);
-    // fetch(serverUrl+'/user',{
+    // fetch('/user',{
     //   mode: 'cors',
     //   method: "POST",
     //   headers: {"Content-Type": "application/json"},
@@ -430,7 +430,7 @@ function App() { // console.log('App');
     switch (context) {
       case 'Telegram': 
         if (button==='Ok') {
-          restGet(serverUrl+'/user/message/ok/'+data, stdGetRequest).then(response => response.json())
+          restGet('/user/message/ok/'+data, stdGetRequest).then(response => response.json())
             .then(x => { if (!x.status) cmd({order:'dialog', title:'Error', text:['h2:::'+x.message]}); })
             .catch((error) => { cmd({order:'dialog',title:'Error', text:['h3:::Server error.', ''+error]}) });
         }
@@ -455,7 +455,7 @@ function App() { // console.log('App');
     const dpm = document.getElementById('dpm').value;
     const color = document.getElementById('color').value;
     console.log('Form',title,dpm,color);
-    restPost(serverUrl+'/match/challenge', stdGetRequest, {title:title, dpm:dpm, color:color}).then(response => response.json() ).then(data => {
+    restPost('/match/challenge', stdGetRequest, {title:title, dpm:dpm, color:color}).then(response => response.json() ).then(data => {
         if (data.status) {
           user.savedMatches = data.matches;
           listMatches();
@@ -543,7 +543,7 @@ function App() { // console.log('App');
     );
   }
   function getQueues(user) {
-    restGet(serverUrl+'/user/queues', stdGetRequest).then(response => response.json() ).then(data => {
+    restGet('/user/queues', stdGetRequest).then(response => response.json() ).then(data => {
       if (!data.status)cmd({order:'dialog', title:'Problem', text:['h2:::Queue data unavailable.']});
       else updateQueue((prev)=> {return {message:data.messages, friendRequest:data.requests, friend:user.friend}});
     });
@@ -552,7 +552,7 @@ function App() { // console.log('App');
   function chexxLogin() { // console.log('chexxLogin');
     const user = {userid:document.getElementById('loginName').value, password:document.getElementById('loginPassword').value};
     if (user.userid && user.password) {
-      restPost(serverUrl+'/user/login', stdGetRequest, user).then(response => response.json()).then(data => {
+      restPost('/user/login', stdGetRequest, user).then(response => response.json()).then(data => {
         stdGetRequest = { mode: 'cors', method: "GET", headers: {"Content-Type": "application/json", "Authorization": data.user.token} };
         if (data.user.property.board) boardColor = JSON.parse(data.user.property.board);
         if (!boardColor.white) boardColor.white=['#012'];
@@ -583,7 +583,7 @@ function App() { // console.log('App');
     return grain;
   }
   function chexxLogout() {
-    restPost(serverUrl+'/user/logout', stdGetRequest, {token:user.token}).then(response => response.json() )
+    restPost('/user/logout', stdGetRequest, {token:user.token}).then(response => response.json() )
     .then(data => cmd(data.status?{order:'logout'}:{order:'dialog', title:'Error', text:['h2:::'+data.message], ok:true}))
     .catch((error) => {
       // Handle the error
@@ -608,7 +608,7 @@ function App() { // console.log('App');
       else if (user.email.split('@').length!==2 || user.email.split('@')[1].split('.').length===1) warn('<h4>Invalid Email</h4>');
       else if (user.confirm !== user.password) warn('<h4>Passwords dont match.</h4>');
       else {
-        restPost(serverUrl+'/user/register',{ mode: 'cors', method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(user)
+        restPost('/user/register',{ mode: 'cors', method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(user)
         }).then(response => response.json() )
         .then(data => cmd(data.status?{order:'login',user:data.user}:{order:'dialog', title:'Error', text:['h2:::'+data.message], ok:true})); //cmd({order:'login',user:data}));
       }
@@ -643,7 +643,7 @@ function App() { // console.log('App');
   function tdr(txt) { return <td className='right'>{textOut([txt])}</td>; }
   function tdl(txt) { return <td className='left'>{textOut([txt])}</td>; }
   function welcome() { }
-  function openProfile(id) { restGet(serverUrl+'/user/'+id, stdGetRequest).then(response=>response.json() ).then(data=>setProfile(data.opponent)); }
+  function openProfile(id) { restGet('/user/'+id, stdGetRequest).then(response=>response.json() ).then(data=>setProfile(data.opponent)); }
   function myProfile() { // console.log("profile",user);
     function makeHexColors(color, num) {
       let colors = [];
@@ -663,7 +663,7 @@ function App() { // console.log('App');
     }
     // tdr('h3:::Rank:')}{tdl('h2:::'+user.rank)
     const table = [<table><tbody>
-      <tr><td colSpan={2}><img src={serverUrl+'/pub/smiley.png'} alt="Smiley face" width="80" height="120" style={{border:'5px solid black'}}/></td></tr>
+      <tr><td colSpan={2}><img src={'/pub/smiley.png'} alt="Smiley face" width="80" height="120" style={{border:'5px solid black'}}/></td></tr>
       <tr>{tdr('h3:::User Name:')}{tdl('h2:::'+user.userid)}{tdr('h3:::Email:')}{tdl('h2:::'+user.email)}</tr>
       <tr><td colSpan={2}><div style={{'border':'2px solid black','margin':'auto', 'height':'100px', 'overflow-y':'scroll'}}>
           <table>{ratings(user)}</table>
@@ -731,7 +731,7 @@ function App() { // console.log('App');
   }
   function profile(user) { //console.log("profile",user);
     const table = [<table><tbody>
-      <tr><td colSpan={2}><img src={serverUrl+'/pub/smiley.png'} alt="Smiley face" width="80" height="120" style={{border:'5px solid black'}}/></td></tr>
+      <tr><td colSpan={2}><img src={'/pub/smiley.png'} alt="Smiley face" width="80" height="120" style={{border:'5px solid black'}}/></td></tr>
       <tr>{tdr('h3:::User Name:')}{tdl('h2:::'+user.userid)}{tdr('h3:::Rank:')}{tdl('h2:::'+user.rank)}{tdr('h3:::Account:')}{tdl('h2:::silver')}</tr>
       <tr>{tdr('h3:::Rank:')}{tdl('h2:::'+user.rank)}{tdr('h3:::Account:')}{tdl('h2:::silver')}</tr>
       <tr>{tdr('h3:::About:')}{tdl('xxxxxx')}</tr>
@@ -757,7 +757,7 @@ function App() { // console.log('App');
       </div>
     );
   }
-  function friendRequest(id, message) { restPost(serverUrl+'/user/friendRequest', stdGetRequest, {userid:id, message:message}).then(response=>response.json()).then(data => { if (!data.status) cmd({order:'dialog', title:'Error', text:['h2:::'+data.message]})});
+  function friendRequest(id, message) { restPost('/user/friendRequest', stdGetRequest, {userid:id, message:message}).then(response=>response.json()).then(data => { if (!data.status) cmd({order:'dialog', title:'Error', text:['h2:::'+data.message]})});
   }
   function befriend(id) { console.log('befriend',id);
     for (const m of queue.friendRequest) {
@@ -766,7 +766,7 @@ function App() { // console.log('App');
   } } }
   function friendAccept(id) { console.log('friend accept',id);
     const invite = {requestId:id}
-    restPost(serverUrl+'/user/friendAccept', stdGetRequest, invite).then(response => response.json() )
+    restPost('/user/friendAccept', stdGetRequest, invite).then(response => response.json() )
       .then(data => { if (!data.status) cmd({order:'dialog', title:'Error', text:['h2:::'+data.message]});
                       else { // add friend to friend list
                         updateQueue((prev)=> { prev.friend.push(data.friend); return prev; } );
@@ -775,7 +775,7 @@ function App() { // console.log('App');
   }
   function friendDeny(id) {
     const reject = {requestId:id}
-    restPost(serverUrl+'/user/friendReject', stdGetRequest, reject).then(response => response.json() )
+    restPost('/user/friendReject', stdGetRequest, reject).then(response => response.json() )
       .then(data => { if (!data.status) cmd({order:'dialog', title:'Error', text:['h2:::'+data.message]}); });
   }
   function openChat(id) { //console.log('openChat',id);
@@ -842,7 +842,7 @@ function App() { // console.log('App');
       </div>
     );
   }
-  function message(meta, topic, text, id) { restPost(serverUrl+'/user/message', stdGetRequest, {meta:meta, topic:topic, body:text, recipient:id}).then(response=>response.json()).then(data => { if (!data.status) cmd({order:'dialog', title:'Error', text:['h2:::'+data.message]})});}
+  function message(meta, topic, text, id) { restPost('/user/message', stdGetRequest, {meta:meta, topic:topic, body:text, recipient:id}).then(response=>response.json()).then(data => { if (!data.status) cmd({order:'dialog', title:'Error', text:['h2:::'+data.message]})});}
   function showMessage(id) {
     for (const m of queue.message) {
       if (m.ID === id) {
@@ -871,7 +871,7 @@ function App() { // console.log('App');
     boardColor.table=['#000'];
     boardColor.grain=grain();
     user.property = {hints:hints?'true':'false', board:JSON.stringify(boardColor)};
-    restPost(serverUrl+'/user/save', stdGetRequest, user).then(response => response.json() )
+    restPost('/user/save', stdGetRequest, user).then(response => response.json() )
       .then(data => cmd(data.status?{order:'dialog', title:'Profile Saved', text:[], ok:true, noClose:true}:{order:'dialog', title:'Error', text:['h2:::'+data.message]}));
   }
   function teacher(lines) { // console.log('teacher', idx,lesson);

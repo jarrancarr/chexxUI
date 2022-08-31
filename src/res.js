@@ -1,4 +1,5 @@
 import axios from 'axios';
+//import { HTTP } from '@ionic-native/http/ngx';
 // const serverUrl = 'http://localhost:8000';
 // const serverUrl = 'http://192.168.1.152:8000';
 const serverUrl = 'http://96.231.45.134:6085';
@@ -57,14 +58,16 @@ function restPost(url, stdGetRequest, data) { console.log("restPost(",url,stdGet
     let request = {...stdGetRequest}
     request.method = "POST"
     if (APP) {
-        return axios.post(serverUrl+url, data, request);
+        return this.http.post(serverUrl+url, data, {});
+        //return axios.post(serverUrl+url, data, request);
     } else {
         request.body = JSON.stringify(data);
         return fetch(serverUrl+url, request);
     }
 }
 function restGet(url, stdGetRequest) { console.log("restGet(",url,stdGetRequest);
-    if (APP) return axios.get(serverUrl+url, stdGetRequest);
+    if (APP) return this.http.get(serverUrl+url, {}, {});
+    //return axios.get(serverUrl+url, stdGetRequest);
     else return fetch(serverUrl+url, stdGetRequest);
 }
 function flipped(here) {

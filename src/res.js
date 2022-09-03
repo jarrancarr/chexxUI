@@ -1,5 +1,4 @@
-import axios from 'axios';
-//import { HTTP } from '@ionic-native/http/ngx';
+import { Http } from '@capacitor-community/http';
 // const serverUrl = 'http://localhost:8000';
 const serverUrl = 'http://192.168.1.152:8000';
 //const serverUrl = 'http://96.231.45.134:6085';
@@ -57,8 +56,14 @@ const off = 'drop-shadow(rgba(210, 128, 210, 0.4) 0px 0px 2px)';
 function restPost(url, stdGetRequest, data) { console.log("restPost(",url,stdGetRequest,data);
     let request = {...stdGetRequest}
     request.method = "POST"
+    
     if (APP) {
-        return this.http.post(serverUrl+url, data, {});
+        const options = {
+            url: serverUrl+url,
+            headers: stdGetRequest,
+            data: data,
+        };    
+        return Http.post(options);
         //return axios.post(serverUrl+url, data, request);
     } else {
         request.body = JSON.stringify(data);
@@ -66,8 +71,13 @@ function restPost(url, stdGetRequest, data) { console.log("restPost(",url,stdGet
     }
 }
 function restGet(url, stdGetRequest) { console.log("restGet(",url,stdGetRequest);
-    if (APP) return this.http.get(serverUrl+url, {}, {});
-    //return axios.get(serverUrl+url, stdGetRequest);
+    if (APP) {
+        const options = {
+            url: serverUrl+url,
+            headers: stdGetRequest
+        };    
+        return Http.post(options);
+    }
     else return fetch(serverUrl+url, stdGetRequest);
 }
 function flipped(here) {
